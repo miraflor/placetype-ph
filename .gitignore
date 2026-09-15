@@ -1,0 +1,75 @@
+# Python bytecode
+
+**pycache**/
+*.py[cod]
+*$py.class
+
+# Test / lint / type-check caches
+
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.pytype/
+.coverage
+.coverage.*
+htmlcov/
+
+# Build / packaging artifacts
+
+build/
+dist/
+*.egg-info/
+.eggs/
+pip-wheel-metadata/
+
+# Virtual environments
+
+.venv/
+venv/
+env/
+ENV/
+
+# Local environment / secrets
+
+.env
+.env.*
+!.env.example
+!config/default.env.example
+
+# Temporary PlaceType working data
+
+# Generated corpora, worklists, stress-test outputs, backups, and intermediate audits.
+
+data/work/**
+
+# Temporary files
+
+*.tmp
+*.temp
+*.bak
+*.swp
+*.swo
+*~
+
+# Jupyter
+
+.ipynb_checkpoints/
+
+# IDE / editor state
+
+.vscode/
+.idea/
+*.code-workspace
+
+# Windows
+
+Thumbs.db
+Desktop.ini
+
+# macOS
+
+.DS_Store
+
+# Logs
+
+*.log

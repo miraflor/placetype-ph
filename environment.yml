@@ -1,0 +1,19 @@
+name: placetype-ph
+channels:
+  - conda-forge
+dependencies:
+  - python=3.12
+  - pip
+  - numpy
+  - pandas
+  - pyarrow
+  - scikit-learn
+  - openpyxl
+  - requests
+  - typer
+  - rich
+  - pip:
+      - openai>=1.50
+      - pytest>=8.2
+      - pytest-cov>=5
+      - ruff>=0.6
