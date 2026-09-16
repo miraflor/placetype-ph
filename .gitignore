@@ -73,3 +73,6 @@ Desktop.ini
 # Logs
 
 *.log
+
+# Generated classification outputs
+output/

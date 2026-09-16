@@ -780,6 +780,13 @@ def classify(
         str | None, typer.Option(help="Explicit product/commodity text for PCPC/PSCC")
     ] = None,
     limit: Annotated[int | None, typer.Option(help="Pilot on first N rows")] = None,
+    workers: Annotated[
+        int,
+        typer.Option(
+            min=1,
+            help="Parallel worker processes for deterministic classification",
+        ),
+    ] = 1,
     cache_path: Annotated[Path, typer.Option()] = Path("cache/decisions.sqlite"),
     fail_on_ambiguous_crosswalk: Annotated[
         bool,
@@ -799,6 +806,8 @@ def classify(
         else None
     )
     backend = _make_backend(llm, model)
+    if workers > 1 and backend is not None:
+        raise typer.BadParameter("--workers > 1 currently supports --llm none only")
     cache = DecisionCache(cache_path) if backend is not None else None
     classifiers: dict[str, EntityClassifier] = {}
     try:
@@ -820,8 +829,15 @@ def classify(
                 )
             classifiers[scheme] = classifier
 
+        if workers > 1:
+            console.print(f"Using up to [bold]{workers}[/bold] deterministic worker processes")
         classifications, pois = classify_openplaces(
-            input_path, classifiers, output_dir, product_column, limit
+            input_path,
+            classifiers,
+            output_dir,
+            product_column=product_column,
+            limit=limit,
+            workers=workers,
         )
         console.print(f"Wrote [bold]{classifications}[/bold]")
         console.print(f"Wrote [bold]{pois}[/bold]")
