@@ -38,11 +38,28 @@ def clean_text(value: object) -> str | None:
     return text
 
 
-def normalize_key(value: object) -> str:
-    text = clean_text(value) or ""
+def _fold_key(text: str) -> str:
     text = text.casefold()
     text = re.sub(r"[^\w=:+&/.-]+", " ", text, flags=re.UNICODE)
     return re.sub(r"\s+", " ", text).strip()
+
+
+def normalize_key(value: object) -> str:
+    """Index key for noisy OpenPlaces/user text, with POI null semantics applied."""
+    return _fold_key(clean_text(value) or "")
+
+
+def normalize_match_key(value: object) -> str:
+    """Index key for an authoritative reviewed match value.
+
+    A crosswalk row is reviewed input, so POI null semantics must not be applied to it.
+    Under `normalize_key` a rule keyed on the literal source value `Other` folds to the
+    empty string: it then collides in the index with every other rule whose value is a
+    generic label, a `contains` rule built from it can never match, and an exact rule
+    built from it matches any record whose category is `n/a`. Official taxonomy nodes are
+    legitimately titled `Other`, and so are source categories, so the value is kept.
+    """
+    return _fold_key(clean_literal(value) or "")
 
 
 def combine_text(*parts: object) -> str:

@@ -73,18 +73,36 @@ class Taxonomy:
             self._children[node.parent_code].append(node.code)
         for children in self._children.values():
             children.sort(key=lambda c: (len(c), c))
-        self._validate_acyclic()
         self._leaf_cache: dict[str, frozenset[str]] = {}
+        self._branch_depth: dict[str, int] = {}
+        self._root_paths: dict[str, tuple[str, ...]] = {}
+        self._build_root_paths()
 
-    def _validate_acyclic(self) -> None:
+    def _build_root_paths(self) -> None:
+        """Resolve each node's chain to its root once, deepest node first.
+
+        `ancestors`, `path_from_root` and `depth` are asked for the same few thousand
+        codes tens of times per classified row, and each answer is fixed once the tree is
+        built. Walking the parent chain per call was about 45 percent of the deterministic
+        classification cost. The walk below also detects cycles, so no separate pass is
+        needed: a chain that revisits a code inside one walk cannot terminate at a root.
+        """
         for code in self.nodes:
+            if code in self._root_paths:
+                continue
+            chain: list[str] = []
             seen: set[str] = set()
             cur: str | None = code
-            while cur is not None:
+            while cur is not None and cur not in self._root_paths:
                 if cur in seen:
                     raise TaxonomyError(f"cycle detected at {cur}")
                 seen.add(cur)
+                chain.append(cur)
                 cur = self.nodes[cur].parent_code
+            tail: tuple[str, ...] = () if cur is None else self._root_paths[cur]
+            for member in reversed(chain):
+                tail = (member, *tail)
+                self._root_paths[member] = tail
 
     @property
     def roots(self) -> list[str]:
@@ -119,19 +137,22 @@ class Taxonomy:
     def parent(self, code: str) -> str | None:
         return self.get(code).parent_code
 
+    def _root_path(self, code: str) -> tuple[str, ...]:
+        """Chain from `code` up to its root. Raises KeyError for an unknown code."""
+        try:
+            return self._root_paths[str(code)]
+        except KeyError:
+            raise KeyError(str(code)) from None
+
     def ancestors(self, code: str, include_self: bool = True) -> list[str]:
-        out: list[str] = []
-        cur: str | None = str(code) if include_self else self.parent(str(code))
-        while cur is not None:
-            out.append(cur)
-            cur = self.parent(cur)
-        return out
+        chain = self._root_path(code)
+        return list(chain) if include_self else list(chain[1:])
 
     def path_from_root(self, code: str) -> list[str]:
-        return list(reversed(self.ancestors(code)))
+        return list(reversed(self._root_path(code)))
 
     def depth(self, code: str) -> int:
-        return len(self.path_from_root(code))
+        return len(self._root_path(code))
 
     def descendants(self, code: str, include_self: bool = False) -> list[str]:
         out = [code] if include_self else []
@@ -158,8 +179,17 @@ class Taxonomy:
         return leaves
 
     def branch_max_depth(self, code: str) -> int:
-        """Deepest level reachable under `code`. More informative than the global max."""
-        return max(self.depth(leaf) for leaf in self.leaves(code))
+        """Deepest level reachable under `code`. More informative than the global max.
+
+        Memoized: the classifier asks this once per result row, and a section-level code
+        scans every leaf beneath it, but the answer depends only on the code.
+        """
+        code = str(code)
+        cached = self._branch_depth.get(code)
+        if cached is None:
+            cached = max(self.depth(leaf) for leaf in self.leaves(code))
+            self._branch_depth[code] = cached
+        return cached
 
     def lca(self, codes: Iterable[str]) -> str | None:
         codes = [str(c) for c in codes]

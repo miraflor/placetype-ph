@@ -10,7 +10,7 @@ import pandas as pd
 from .models import CrosswalkEntry, MappingKind, SourceField
 from .openplaces import SOURCES
 from .taxonomy import SCHEMES
-from .text import normalize_key
+from .text import normalize_key, normalize_match_key
 
 
 class CrosswalkError(ValueError):
@@ -83,10 +83,30 @@ class Crosswalk:
                     f"unknown match_type {entry.match_type!r} for "
                     f"{entry.source}:{entry.source_value!r}; expected exact, contains, or regex"
                 )
+            match_key = normalize_match_key(source_value)
+            if match_type != "regex" and not match_key:
+                # A value made only of separators indexes under the empty key: the exact
+                # rule would then match any record whose normalized value is also empty,
+                # and the contains rule could never match at all. Neither is reviewable.
+                raise CrosswalkError(
+                    f"source_value {entry.source_value!r} for {source} normalizes to an "
+                    f"empty match key ({scheme} {entry.version}, {field_name}); it carries "
+                    "no matchable characters, so use a regex rule if this is intended"
+                )
+            if match_type == "exact" and not normalize_key(source_value):
+                # The canonical observed value is removed by POI null semantics, while
+                # punctuated or extended variants may normalize differently. Exact matching
+                # on such a reviewed value is therefore inconsistent and not reviewable.
+                raise CrosswalkError(
+                    f"source_value {entry.source_value!r} for {source} is a generic null label "
+                    f"({scheme} {entry.version}, {field_name}); its canonical value is missing, "
+                    "so exact matching is not well-defined. Use contains for larger values, "
+                    "regex for deliberate raw matching, or change the null vocabulary in text.py."
+                )
             self._scope[(scheme, entry.version)] += 1
             bucket = (source, scheme, entry.version, field_name)
             if match_type == "exact":
-                key = (*bucket, normalize_key(source_value))
+                key = (*bucket, match_key)
                 previous = self._exact.get(key)
                 if previous is not None and self._signature(previous) != self._signature(entry):
                     raise CrosswalkError(
@@ -105,9 +125,7 @@ class Crosswalk:
                     ) from exc
                 self._scanned[bucket].append((entry, pattern, ""))
             else:
-                self._scanned[bucket].append(
-                    (entry, None, normalize_key(source_value))
-                )
+                self._scanned[bucket].append((entry, None, match_key))
 
     @staticmethod
     def _signature(entry: CrosswalkEntry) -> tuple[MappingKind, tuple[str, ...]]:
@@ -218,6 +236,8 @@ class Crosswalk:
         self, source: str, scheme: str, version: str, field_name: SourceField, value: str
     ) -> tuple[CrosswalkEntry | None, str | None]:
         bucket = (source, scheme, version, str(field_name))
+        # Observed POI text keeps POI null semantics. Reviewed rule targets are
+        # normalized separately at load so authoritative values do not collide.
         norm = normalize_key(value)
         hit = self._exact.get((*bucket, norm))
         if hit is not None:
