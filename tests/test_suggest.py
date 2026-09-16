@@ -159,7 +159,6 @@ def test_remaining_live_rewrites_are_branch_constrained():
 def test_broad_ontology_buckets_are_explicitly_uncodeable(toy_psic):
     retriever = TaxonomyRetriever(toy_psic)
     for source, value in (
-        ("overture", "community_and_government"),
         ("fsq", "[Business and Professional Services > Office]"),
         ("fsq", "[Travel and Transportation]"),
     ):
@@ -244,6 +243,73 @@ def test_fsq_spa_in_multi_category_value_still_matches_beauty():
     assert plan.branch_roots == ("962",)
 
 
+
+def test_non_psic_suggestions_use_raw_category_and_never_auto_promote():
+    pcpc = Taxonomy(
+        [
+            TaxonomyNode("pcpc", "2002", "8", "section", "Services"),
+            TaxonomyNode(
+                "pcpc", "2002", "85", "division", "Health services", "8"
+            ),
+            TaxonomyNode(
+                "pcpc", "2002", "851", "group", "Hospital services", "85"
+            ),
+        ]
+    )
+
+    pscc = Taxonomy(
+        [
+            TaxonomyNode("pscc", "2022", "94", "chapter", "Furniture"),
+            TaxonomyNode(
+                "pscc",
+                "2022",
+                "9402",
+                "heading",
+                "Medical and hospital furniture",
+                "94",
+            ),
+            TaxonomyNode(
+                "pscc",
+                "2022",
+                "94029015000",
+                "commodity",
+                "Hospital furniture",
+                "9402",
+            ),
+        ]
+    )
+
+    for taxonomy in (pcpc, pscc):
+        result = suggest_mapping(
+            taxonomy,
+            TaxonomyRetriever(taxonomy),
+            "overture",
+            "hospital",
+            min_score=0.0,
+            min_margin=-1.0,
+        )
+
+        assert result.candidate_codes
+        assert result.suggested_kind == ""
+        assert result.suggested_codes == ""
+        assert "semantic:raw_category" in result.suggestion_source
+        assert "guard:raw_category" in result.suggestion_source
+
+        non_activity = suggest_mapping(
+            taxonomy,
+            TaxonomyRetriever(taxonomy),
+            "overture",
+            "historic_site",
+            min_score=0.0,
+            min_margin=-1.0,
+        )
+
+        assert non_activity.suggested_kind == ""
+        assert (
+            non_activity.suggestion_source
+            != "rule:high_precision_non_activity"
+        )
+
 def test_v5_compound_source_detection():
     assert _has_multiple_source_components(
         "fsq",
@@ -307,6 +373,19 @@ def test_v5_candidate_only_guards():
         safe,
     ) is None
 
+
+
+def test_v5_compound_broad_uncodeable_is_candidate_only(toy_psic):
+    result = suggest_mapping(
+        toy_psic,
+        TaxonomyRetriever(toy_psic),
+        "overture",
+        "community_and_government",
+    )
+    assert result.suggested_kind == ""
+    assert result.suggested_codes == ""
+    assert "guard:compound_source" in result.suggestion_source
+    assert result.review_status == "REVIEW_CANDIDATES"
 
 def test_v5_mixed_activity_and_non_activity_is_not_forced_non_activity(toy_psic):
     result = suggest_mapping(

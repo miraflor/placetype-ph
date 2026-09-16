@@ -566,13 +566,23 @@ def suggest_mapping(
     min_score: float = 0.45,
     min_margin: float = 0.12,
 ) -> Suggestion:
-    plan = category_plan(source, source_value)
+    # Curated source-ontology rewrites encode PSIC economic-activity semantics.
+    # PCPC and PSCC use raw source categories only and remain candidate-only.
+    plan = (
+        category_plan(source, source_value)
+        if taxonomy.scheme == "psic"
+        else QueryPlan(category_query(source, source_value))
+    )
     compound_source = _has_multiple_source_components(source, source_value)
     query = plan.query_text
     branches = _valid_branch_roots(taxonomy, plan.branch_roots)
     branch_titles = [taxonomy.get(code).title for code in branches]
 
-    if not compound_source and _is_non_activity(source, source_value):
+    if (
+        taxonomy.scheme == "psic"
+        and not compound_source
+        and _is_non_activity(source, source_value)
+    ):
         return Suggestion(
             query_text=query,
             suggested_kind="NOT_ACTIVITY",
@@ -580,7 +590,11 @@ def suggest_mapping(
             review_status="REVIEW_REQUIRED",
         )
 
-    if _is_broad_uncodeable(source, source_value):
+    if (
+        taxonomy.scheme == "psic"
+        and not compound_source
+        and _is_broad_uncodeable(source, source_value)
+    ):
         return Suggestion(
             query_text=query,
             suggested_kind="UNCODEABLE",
