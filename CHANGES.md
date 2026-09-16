@@ -1,3 +1,15 @@
+# Unreleased
+
+## QGIS export
+
+- Added `placetype gis-export`, which writes a compact standalone GeoParquet next to a classification run for direct use in QGIS.
+- Ancestor codes are read from the taxonomy tree, so a coarse assignment leaves deeper levels empty instead of implying a level the classifier never reached. The export covers every level the scheme defines, including PSIC/PCPC `section` and PCPC `item`.
+- Column types are declared rather than inferred: a level that no row reached is still a string column, and `canonical_id` and `geometry` keep the Arrow types they had in the source.
+- The copied GeoParquet `geo` block is rewritten to describe only the columns the export retains, so a bounding-box covering that pointed at a dropped column is removed rather than left dangling.
+- The reference taxonomy is checked against the `taxonomy_fingerprint` recorded by the run, not only against scheme and version.
+- The export refuses an `--output` path that points at the run's own manifest, its classification summary, or any other existing output file the manifest names, so a mistyped path cannot destroy the record the layer describes.
+- The exported layer carries a `placetype` metadata key naming the run, the classification-time and export-time package versions, and both the run-recorded and export-time taxonomy fingerprints. This preserves provenance even when an old run is exported after an upgrade or with the fingerprint check explicitly disabled. No export timestamp is recorded, so re-exporting an unchanged run reproduces the same bytes.
+
 # PlaceType PH 0.1.1
 
 This patch is the first release driven by **live PSA workbooks**, not synthetic importer fixtures.

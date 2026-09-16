@@ -493,6 +493,40 @@ GeoParquet metadata, the pipeline attempts to preserve it. A failure is now warn
 silently swallowed, and `run.json` records `classified_pois_geo_metadata` as `preserved`,
 `source_has_no_geo_metadata`, or `failed:<ExceptionType>`.
 
+### `gis.parquet`
+
+An optional compact layer for QGIS. It is written on request, not by `classify`:
+
+```powershell
+placetype gis-export .\output\metro-manila-workers-8
+```
+
+It keeps `canonical_id`, `geometry`, each scheme's assigned code, and one column for every level
+of that scheme: `psic_5digit`, `psic_4digit`, `psic_3digit`, `psic_2digit`, `psic_section`, and
+the equivalent columns for PCPC (including `pcpc_6digit`) and PSCC (`pscc_11digit` down to
+`pscc_2digit`). Ancestor codes come from the taxonomy tree recorded in `run.json`, not from
+truncating the assigned code, so a class-level assignment leaves `psic_5digit` empty rather than
+presenting a subclass the classifier never chose.
+
+Names, coordinates, taxonomy titles, candidate codes and audit fields are left out. `geometry` is
+kept because the file is meant to be a standalone layer rather than a join table. Add
+`--with-status` to carry `<scheme>_status`, which distinguishes an unclassified row from an
+ineligible one. Output is Zstandard-compressed, and every code column is declared as a string, so
+two runs of the same pipeline produce the same schema even when one of them resolved fewer levels.
+
+The file records where it came from. Its Parquet metadata carries a `placetype` key naming the
+run, the package version that created the classification, the package version that performed the
+export, and both the run-recorded and export-time taxonomy fingerprints. This distinction matters
+when an older run is exported after an upgrade or with the fingerprint check disabled. No export
+timestamp is stored, so exporting an unchanged run twice produces the same bytes.
+
+The export stops rather than writing a file it cannot vouch for. `canonical_id` and `geometry`
+must be present; the summary must carry GeoParquet metadata; every non-empty code must exist in
+the exact taxonomy version the run used; and the reference tree must still match the
+`taxonomy_fingerprint` that `run.json` recorded. Pass `--no-check-taxonomy-fingerprint` to export
+against a reference tree that was rebuilt after the run. The output path may not be `run.json`,
+the classification summary, or any other existing output file the manifest names.
+
 ## 7. Evaluate the cascade
 
 Keep a quarantined gold file with at least `canonical_id`, `scheme`, and `gold_code`, then report

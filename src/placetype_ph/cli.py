@@ -16,6 +16,7 @@ from .cache import DecisionCache
 from .classifier import EntityClassifier
 from .crosswalk import Crosswalk
 from .evaluate import evaluate_predictions, load_gold
+from .gis import GISExportError, export_gis_run
 from .openplaces import read_openplaces
 from .pipeline import classify_openplaces
 from .retrieval import TaxonomyRetriever
@@ -858,6 +859,43 @@ def classify(
     finally:
         if cache is not None:
             cache.close()
+
+
+@app.command("gis-export")
+def gis_export(
+    run_dir: Annotated[Path, typer.Argument(help="PlaceType classification output directory")],
+    output: Annotated[
+        Path | None, typer.Option(help="Default: <run_dir>/gis.parquet")
+    ] = None,
+    reference_dir: Annotated[
+        Path, typer.Option(help="Taxonomy reference root")
+    ] = Path("reference"),
+    with_status: Annotated[
+        bool,
+        typer.Option(
+            "--with-status/--no-with-status",
+            help="Also export <scheme>_status so an empty code can be explained in QGIS",
+        ),
+    ] = False,
+    check_taxonomy_fingerprint: Annotated[
+        bool,
+        typer.Option(
+            help="Require the reference taxonomy to match the fingerprint recorded by the run"
+        ),
+    ] = True,
+):
+    """Export a compact GeoParquet layer for direct use in QGIS."""
+    try:
+        written = export_gis_run(
+            run_dir,
+            output_path=output,
+            reference_dir=reference_dir,
+            include_status=with_status,
+            check_taxonomy_fingerprint=check_taxonomy_fingerprint,
+        )
+    except GISExportError as exc:
+        raise typer.BadParameter(str(exc)) from exc
+    console.print(f"Wrote [bold]{written}[/bold]")
 
 
 if __name__ == "__main__":
