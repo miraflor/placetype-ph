@@ -33,7 +33,7 @@ def test_high_precision_place_category_is_only_a_suggestion(toy_psic):
         toy_psic, TaxonomyRetriever(toy_psic), "osm", "man_made=bridge"
     )
     assert result.suggested_kind == "NOT_ACTIVITY"
-    assert result.review_status == "REVIEW_REQUIRED"
+    assert result.review_status == "REVIEW_DECISION"
 
 
 def test_ambiguous_retrieval_keeps_candidates_without_forcing_mapping(toy_psic):
@@ -165,7 +165,7 @@ def test_broad_ontology_buckets_are_explicitly_uncodeable(toy_psic):
         result = suggest_mapping(toy_psic, retriever, source, value)
         assert result.suggested_kind == "UNCODEABLE"
         assert result.candidate_codes == ""
-        assert result.review_status == "REVIEW_REQUIRED"
+        assert result.review_status == "REVIEW_DECISION"
 
 
 def test_strong_leaf_hit_is_exact_not_subtree():
@@ -310,7 +310,7 @@ def test_joint_first_pass_respects_scheme_evidence_policy():
         assert result.candidate_codes
         assert result.suggested_codes
         assert result.suggested_kind in {"EXACT", "SUBTREE"}
-        assert result.review_status == "REVIEW_REQUIRED"
+        assert result.review_status == "REVIEW_MAPPING"
         assert "guard:" not in result.suggestion_source
 
     assert pscc_result.candidate_codes
@@ -439,3 +439,40 @@ def test_v5_mixed_activity_and_non_activity_is_not_forced_non_activity(toy_psic)
     )
     assert result.suggested_kind != "NOT_ACTIVITY"
 
+def test_preparation_and_finalization_match_single_row_suggestion(toy_psic):
+    from placetype_ph.suggest import finalize_suggestion, prepare_suggestion
+
+    retriever = TaxonomyRetriever(toy_psic)
+    prepared = prepare_suggestion(toy_psic, "overture", "bakery")
+    hits = retriever.search_hierarchical(
+        prepared.query_text,
+        top_n=5,
+        branch_roots=prepared.branch_codes,
+    )
+    batched_path = finalize_suggestion(
+        toy_psic,
+        prepared,
+        hits,
+        min_score=0.45,
+        min_margin=0.12,
+    )
+    direct = suggest_mapping(
+        toy_psic,
+        retriever,
+        "overture",
+        "bakery",
+        top_n=5,
+        min_score=0.45,
+        min_margin=0.12,
+    )
+    assert batched_path.as_dict() == direct.as_dict()
+
+
+def test_preparation_preserves_terminal_rule_decisions(toy_psic):
+    from placetype_ph.suggest import finalize_suggestion, prepare_suggestion
+
+    prepared = prepare_suggestion(toy_psic, "osm", "man_made=bridge")
+    assert prepared.terminal is not None
+    result = finalize_suggestion(toy_psic, prepared, [])
+    assert result.suggested_kind == "NOT_ACTIVITY"
+    assert result.review_status == "REVIEW_DECISION"

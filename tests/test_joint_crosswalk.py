@@ -24,10 +24,7 @@ from placetype_ph.taxonomy import Taxonomy
 
 
 class ScriptedRetriever:
-    """Return one ranking for the control query and another once peer context is appended.
-
-    Every call is recorded so a test can assert what the retriever actually received.
-    """
+    """Return scripted rankings and record hierarchical versus bounded search calls."""
 
     def __init__(
         self,
@@ -36,12 +33,29 @@ class ScriptedRetriever:
     ):
         self.control = list(control)
         self.treatment = list(control if treatment is None else treatment)
-        self.calls: list[tuple[str, int, tuple[str, ...]]] = []
+        self.calls: list[tuple[str, str, int, tuple[str, ...]]] = []
+
+    def _ranking(self, query: str):
+        return self.treatment if PEER_CONTEXT_MARKER in query else self.control
 
     def search_hierarchical(self, query: str, *, top_n: int, branch_roots=()):
-        self.calls.append((query, top_n, tuple(branch_roots)))
-        ranking = self.treatment if PEER_CONTEXT_MARKER in query else self.control
-        return [SimpleNamespace(code=code, score=score) for code, score in ranking[:top_n]]
+        self.calls.append(("hierarchical", query, top_n, tuple(branch_roots)))
+        return [
+            SimpleNamespace(code=code, score=score)
+            for code, score in self._ranking(query)[:top_n]
+        ]
+
+    def search(self, query: str, top_n: int = 20, allowed_codes=None):
+        allowed = None if allowed_codes is None else {str(code) for code in allowed_codes}
+        marker = tuple(sorted(allowed)) if allowed is not None else ()
+        self.calls.append(("search", query, top_n, marker))
+        ranking = self._ranking(query)
+        if allowed is not None:
+            ranking = [(code, score) for code, score in ranking if code in allowed]
+        return [
+            SimpleNamespace(code=code, score=score)
+            for code, score in ranking[:top_n]
+        ]
 
 
 def _taxonomies():
@@ -69,6 +83,11 @@ def _taxonomies():
 
 
 def _row(scheme: str, version: str, suggested: str, **overrides):
+    candidate_codes = overrides.pop("candidate_codes", suggested)
+    candidate_scores = overrides.pop(
+        "candidate_scores",
+        "0.900000" if candidate_codes else "",
+    )
     record = {
         "source": "fsq",
         "source_value": "Restaurant",
@@ -78,7 +97,8 @@ def _row(scheme: str, version: str, suggested: str, **overrides):
         "mapping_kind": "",
         "codes": "",
         "suggested_codes": suggested,
-        "candidate_codes": suggested,
+        "candidate_codes": candidate_codes,
+        "candidate_scores": candidate_scores,
         "query_text": "restaurant service",
         "branch_codes": "",
     }
@@ -102,9 +122,27 @@ def _stable_retrievers():
 
 def _three_rows():
     return (
-        _row("psic", "rev5", "56"),
-        _row("pcpc", "2002", "63"),
-        _row("pscc", "2022", "2106"),
+        _row(
+            "psic",
+            "rev5",
+            "56",
+            candidate_codes="56|I",
+            candidate_scores="0.900000|0.400000",
+        ),
+        _row(
+            "pcpc",
+            "2002",
+            "63",
+            candidate_codes="63|64",
+            candidate_scores="0.900000|0.400000",
+        ),
+        _row(
+            "pscc",
+            "2022",
+            "2106",
+            candidate_codes="2106|21",
+            candidate_scores="0.900000|0.400000",
+        ),
     )
 
 
@@ -159,15 +197,21 @@ def test_first_pass_codes_prefers_reviewed_codes_and_keeps_every_code():
 # --- the controlled recheck ------------------------------------------------
 
 
-def test_control_and_treatment_differ_only_by_peer_context():
+def test_recheck_reuses_first_pass_control_and_scores_only_the_treatment():
     retrievers = _stable_retrievers()
-    recheck_joint_worklist(_frame(*_three_rows()), _taxonomies(), retrievers, top_n=2)
-    control, treatment = retrievers[("pcpc", "2002")].calls
-    assert PEER_CONTEXT_MARKER not in control[0]
-    assert PEER_CONTEXT_MARKER in treatment[0]
-    assert treatment[0].startswith(control[0])
-    assert control[1] == treatment[1] == 2
-    assert control[2] == treatment[2] == ()
+    out = recheck_joint_worklist(
+        _frame(*_three_rows()), _taxonomies(), retrievers, top_n=2
+    )
+    calls = retrievers[("pcpc", "2002")].calls
+    assert len(calls) == 1
+    method, query, requested, allowed = calls[0]
+    assert method == "search"
+    assert PEER_CONTEXT_MARKER in query
+    assert requested == 2
+    assert set(allowed) == {"63", "64"}
+    pcpc = out[out["scheme"] == "pcpc"].iloc[0]
+    assert pcpc["control_top_code"] == "63"
+    assert pcpc["recheck_top_code"] == "63"
 
 
 def test_peer_context_carries_the_other_schemes_titles():
@@ -188,16 +232,21 @@ def test_stable_when_peer_context_does_not_change_the_top():
     assert set(out["first_pass_status"]) == {"AGREES"}
 
 
-def test_shift_flagged_when_control_top_leaves_the_candidate_list():
+def test_recheck_cannot_introduce_codes_outside_first_pass_candidates():
     retrievers = _stable_retrievers()
     retrievers[("pcpc", "2002")] = ScriptedRetriever(
-        [("63", 0.90), ("64", 0.40)], treatment=[("64", 0.90)]
+        [("63", 0.90), ("64", 0.40)],
+        treatment=[("999", 0.99), ("64", 0.90), ("63", 0.40)],
     )
-    out = recheck_joint_worklist(_frame(*_three_rows()), _taxonomies(), retrievers, top_n=2)
+    out = recheck_joint_worklist(
+        _frame(*_three_rows()), _taxonomies(), retrievers, top_n=2
+    )
     pcpc = out[out["scheme"] == "pcpc"].iloc[0]
-    assert pcpc["suggested_codes"] == "63"  # the first pass is not overwritten
+    assert pcpc["suggested_codes"] == "63"
     assert pcpc["control_top_code"] == "63"
     assert pcpc["recheck_top_code"] == "64"
+    assert set(pcpc["recheck_candidate_codes"].split("|")) <= {"63", "64"}
+    assert "999" not in pcpc["recheck_candidate_codes"]
     assert pcpc["recheck_status"] == "SHIFT"
     assert set(out["joint_status"]) == {"RECHECK"}
 
@@ -229,9 +278,18 @@ def test_same_shift_is_escalated_once_the_margin_is_lowered():
 
 def test_multi_code_first_pass_agrees_when_any_code_is_the_control_top():
     rows = list(_three_rows())
-    rows[1] = _row("pcpc", "2002", "", codes="64|63", mapping_kind="subtree")
-    retrievers = _stable_retrievers()
-    out = recheck_joint_worklist(_frame(*rows), _taxonomies(), retrievers, top_n=2)
+    rows[1] = _row(
+        "pcpc",
+        "2002",
+        "",
+        codes="64|63",
+        mapping_kind="subtree",
+        candidate_codes="63|64",
+        candidate_scores="0.900000|0.400000",
+    )
+    out = recheck_joint_worklist(
+        _frame(*rows), _taxonomies(), _stable_retrievers(), top_n=2
+    )
     pcpc = out[out["scheme"] == "pcpc"].iloc[0]
     assert pcpc["selected_code_column"] == "codes"
     assert pcpc["selected_codes"] == "64|63"
@@ -241,8 +299,16 @@ def test_multi_code_first_pass_agrees_when_any_code_is_the_control_top():
 
 def test_first_pass_outside_control_top_n_is_reported_separately():
     rows = list(_three_rows())
-    rows[1] = _row("pcpc", "2002", "6")
-    out = recheck_joint_worklist(_frame(*rows), _taxonomies(), _stable_retrievers(), top_n=2)
+    rows[1] = _row(
+        "pcpc",
+        "2002",
+        "6",
+        candidate_codes="63|64",
+        candidate_scores="0.900000|0.400000",
+    )
+    out = recheck_joint_worklist(
+        _frame(*rows), _taxonomies(), _stable_retrievers(), top_n=2
+    )
     pcpc = out[out["scheme"] == "pcpc"].iloc[0]
     assert pcpc["first_pass_status"] == "OUTSIDE_CONTROL_TOPN"
     assert pcpc["recheck_status"] == "STABLE"
@@ -271,21 +337,34 @@ def test_missing_taxonomy_is_reported_and_excluded_from_the_group_test():
     assert "Food preparations" not in out.loc[out["scheme"] == "psic", "peer_context"].iloc[0]
 
 
-def test_group_is_partial_when_one_row_cannot_be_compared():
+def test_group_is_partial_when_one_evidence_row_has_no_treatment_hit():
     retrievers = _stable_retrievers()
-    retrievers[("pscc", "2022")] = ScriptedRetriever([])
-    out = recheck_joint_worklist(_frame(*_three_rows()), _taxonomies(), retrievers, top_n=2)
-    assert out[out["scheme"] == "pscc"].iloc[0]["recheck_status"] == "NO_CONTROL_HIT"
+    retrievers[("pscc", "2022")] = ScriptedRetriever(
+        [("2106", 0.90), ("21", 0.40)],
+        treatment=[],
+    )
+    out = recheck_joint_worklist(
+        _frame(*_three_rows()), _taxonomies(), retrievers, top_n=2
+    )
+    assert out[out["scheme"] == "pscc"].iloc[0]["recheck_status"] == "NO_RECHECK_HIT"
     assert set(out["joint_status"]) == {"PARTIAL"}
 
 
-def test_branch_codes_restrict_the_search_for_both_calls():
+def test_recheck_uses_first_pass_candidate_set_instead_of_branch_search():
     rows = list(_three_rows())
-    rows[1] = _row("pcpc", "2002", "63", branch_codes="6|999")
+    rows[1] = _row(
+        "pcpc",
+        "2002",
+        "63",
+        branch_codes="6|999",
+        candidate_codes="63|64",
+        candidate_scores="0.900000|0.400000",
+    )
     retrievers = _stable_retrievers()
     recheck_joint_worklist(_frame(*rows), _taxonomies(), retrievers, top_n=2)
-    for call in retrievers[("pcpc", "2002")].calls:
-        assert call[2] == ("6",)
+    method, _query, _requested, allowed = retrievers[("pcpc", "2002")].calls[0]
+    assert method == "search"
+    assert set(allowed) == {"63", "64"}
 
 
 # --- frame handling --------------------------------------------------------
@@ -513,7 +592,7 @@ def test_joint_first_pass_respects_scheme_evidence_policy():
     for result in (pcpc_result, psic_result):
         assert result.suggested_codes
         assert result.suggested_kind in {"EXACT", "SUBTREE"}
-        assert result.review_status == "REVIEW_REQUIRED"
+        assert result.review_status == "REVIEW_MAPPING"
 
     assert pscc_result.candidate_codes
     assert not pscc_result.suggested_codes
@@ -541,7 +620,7 @@ def test_a_one_token_query_is_refused_and_the_reason_is_named():
 
 
 def test_rule_based_rejections_carry_no_code_and_no_peer_evidence():
-    """NOT_ACTIVITY and UNCODEABLE have a truthy kind but must never count as a mapping."""
+    """Rule decisions are reviewable decisions, not mappings."""
     psic = Taxonomy(
         [
             TaxonomyNode("psic", "rev5", "R", "section", "Arts and recreation"),
@@ -552,6 +631,7 @@ def test_rule_based_rejections_carry_no_code_and_no_peer_evidence():
         psic, ScriptedRetriever([("910", 0.99)]), "overture", "historic_site"
     )
     assert result.suggested_kind == "NOT_ACTIVITY"
+    assert result.review_status == "REVIEW_DECISION"
     assert not result.suggested_codes
     assert first_pass_codes({"codes": "", "suggested_codes": result.suggested_codes}) == ([], "")
 
@@ -649,26 +729,35 @@ def test_no_evidence_group_status_when_nothing_is_accepted_yet():
 
 def test_partial_is_kept_for_a_group_where_only_one_row_has_evidence():
     rows = [
-        _row("psic", "rev5", "56"),
-        _row("pcpc", "2002", "", candidate_codes="63"),
-        _row("pscc", "2022", "", candidate_codes="2106"),
+        _row("psic", "rev5", "56", candidate_codes="56|I"),
+        _row("pcpc", "2002", "", candidate_codes="63|64"),
+        _row("pscc", "2022", "", candidate_codes="2106|21"),
     ]
-    out = recheck_joint_worklist(_frame(*rows), _taxonomies(), _stable_retrievers(), top_n=2)
+    out = recheck_joint_worklist(
+        _frame(*rows), _taxonomies(), _stable_retrievers(), top_n=2
+    )
     assert out[out["scheme"] == "psic"].iloc[0]["recheck_status"] == "NO_PEERS"
-    assert out[out["scheme"] == "pcpc"].iloc[0]["recheck_status"] == "STABLE"
+    assert out[out["scheme"] == "pcpc"].iloc[0]["recheck_status"] == "CANDIDATE_STABLE"
     assert set(out["joint_status"]) == {"PARTIAL"}
 
 
 def test_base_query_is_uniform_within_a_group():
     rows = list(_three_rows())
-    # a reviewed row whose query_text was blanked by an earlier suggest run
-    rows[0] = _row("psic", "rev5", "", codes="56", mapping_kind="SUBTREE", query_text="")
+    rows[0] = _row(
+        "psic",
+        "rev5",
+        "",
+        codes="56",
+        mapping_kind="SUBTREE",
+        query_text="",
+        candidate_codes="56|I",
+    )
     retrievers = _stable_retrievers()
     out = recheck_joint_worklist(_frame(*rows), _taxonomies(), retrievers, top_n=2)
     queries = {value for value in out["control_query"] if value}
     assert queries == {"Restaurant"}
     for call in retrievers[("pcpc", "2002")].calls:
-        assert call[0].startswith("Restaurant")
+        assert call[1].startswith("Restaurant")
 
 
 def test_query_text_is_used_when_every_backed_row_has_one():
@@ -676,3 +765,67 @@ def test_query_text_is_used_when_every_backed_row_has_one():
         _frame(*_three_rows()), _taxonomies(), _stable_retrievers(), top_n=2
     )
     assert {value for value in out["control_query"] if value} == {"restaurant service"}
+
+def test_candidate_only_shift_is_diagnostic_and_does_not_escalate_joint_status():
+    rows = list(_three_rows())
+    rows[2] = _row(
+        "pscc",
+        "2022",
+        "",
+        candidate_codes="2106|21",
+        candidate_scores="0.900000|0.400000",
+    )
+    retrievers = _stable_retrievers()
+    retrievers[("pscc", "2022")] = ScriptedRetriever(
+        [("2106", 0.90), ("21", 0.40)],
+        treatment=[("21", 0.90), ("2106", 0.40)],
+    )
+    out = recheck_joint_worklist(
+        _frame(*rows), _taxonomies(), retrievers, top_n=2, min_margin=0.12
+    )
+    pscc = out[out["scheme"] == "pscc"].iloc[0]
+    assert pscc["selected_codes"] == ""
+    assert pscc["recheck_status"] == "CANDIDATE_SHIFT"
+    assert pscc["recheck_top_code"] == "21"
+    assert set(out["joint_status"]) == {"STABLE"}
+
+def test_crosswalk_init_does_not_claim_an_empty_legacy_review(
+    tmp_path: Path, monkeypatch, capsys
+):
+    monkeypatch.chdir(tmp_path)
+    crosswalk_dir = tmp_path / "reference" / "crosswalks"
+    crosswalk_dir.mkdir(parents=True)
+    pd.DataFrame(
+        [
+            {
+                "source": "fsq",
+                "source_value": "Restaurant",
+                "row_count": "1",
+                "row_share": "1.0",
+                "scheme": "psic",
+                "version": "rev5",
+                "mapping_kind": "",
+                "codes": "",
+                "match_type": "exact",
+                "confidence": "",
+                "notes": "",
+                "source_field": "category",
+            }
+        ]
+    ).to_csv(crosswalk_dir / "psic_rev5.csv", index=False)
+
+    monkeypatch.setattr(
+        cli_module,
+        "read_openplaces",
+        lambda _path: pd.DataFrame(
+            {"canonical_id": ["x"], "fsq_category": ["Restaurant"]}
+        ),
+    )
+    cli_module.crosswalk_init(
+        Path("ignored.parquet"),
+        output=None,
+        schemes="psic,pcpc,pscc",
+        version=None,
+        adopt_legacy=True,
+    )
+    assert "Read reviewed rows from" not in capsys.readouterr().out

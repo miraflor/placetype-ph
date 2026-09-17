@@ -572,41 +572,69 @@ def suggest_mapping(
 ) -> Suggestion:
     """Generate one independent first-pass suggestion for one taxonomy.
 
-    All schemes are evaluated in the same joint pass, but evidence admissibility follows the
-    semantics of the classification. PSIC may use its curated activity-oriented query rewrites
-    and branch constraints. PCPC uses the normalized OpenPlaces category directly and may
-    propose a potential product/service family when retrieval is strong and separated. PSCC
-    also receives normalized category retrieval, but place-category text alone is not accepted
-    as commodity evidence: it remains candidate-only until a reviewer confirms a mapping or a
-    later workflow supplies explicit product/commodity evidence.
-
-    No first-pass suggestion becomes a reviewed crosswalk mapping without review. Every reason
-    a hit was kept candidate-only is recorded in ``suggestion_source`` as ``guard:<reason>``.
+    This compatibility wrapper keeps the public single-row API while V9's CLI separates
+    deterministic preparation from batched retrieval and finalisation.
     """
+    prepared = prepare_suggestion(taxonomy, source, source_value)
+    if prepared.terminal is not None:
+        return prepared.terminal
+    hits = retriever.search_hierarchical(
+        prepared.query_text,
+        top_n=top_n,
+        branch_roots=prepared.branch_codes,
+    )
+    return finalize_suggestion(
+        taxonomy,
+        prepared,
+        hits,
+        min_score=min_score,
+        min_margin=min_margin,
+    )
+
+@dataclass(frozen=True, slots=True)
+class PreparedSuggestion:
+    """Deterministic first-pass preparation before any taxonomy retrieval is performed."""
+
+    query_text: str
+    branch_codes: tuple[str, ...] = ()
+    branch_titles: tuple[str, ...] = ()
+    rule: str = "raw_category"
+    block_reason: str | None = None
+    terminal: Suggestion | None = None
+
+def prepare_suggestion(
+    taxonomy: Taxonomy,
+    source: str,
+    source_value: str,
+) -> PreparedSuggestion:
+    """Prepare source evidence and policy guards without performing retrieval."""
     if taxonomy.scheme == "psic":
         plan = category_plan(source, source_value)
     else:
-        # Construct this explicitly rather than relying on QueryPlan defaults. PCPC and PSCC
-        # cannot reuse PSIC branch roots because codes are not portable across taxonomies.
         plan = QueryPlan(
             query_text=category_query(source, source_value),
             rule="raw_category",
         )
+
     compound_source = _has_multiple_source_components(source, source_value)
     query = plan.query_text
     branches = _valid_branch_roots(taxonomy, plan.branch_roots)
-    branch_titles = [taxonomy.get(code).title for code in branches]
+    branch_titles = tuple(taxonomy.get(code).title for code in branches)
 
     if (
         taxonomy.scheme == "psic"
         and not compound_source
         and _is_non_activity(source, source_value)
     ):
-        return Suggestion(
+        return PreparedSuggestion(
             query_text=query,
-            suggested_kind="NOT_ACTIVITY",
-            suggestion_source="rule:high_precision_non_activity",
-            review_status="REVIEW_REQUIRED",
+            rule=plan.rule,
+            terminal=Suggestion(
+                query_text=query,
+                suggested_kind="NOT_ACTIVITY",
+                suggestion_source="rule:high_precision_non_activity",
+                review_status="REVIEW_DECISION",
+            ),
         )
 
     if (
@@ -614,20 +642,53 @@ def suggest_mapping(
         and not compound_source
         and _is_broad_uncodeable(source, source_value)
     ):
-        return Suggestion(
+        return PreparedSuggestion(
             query_text=query,
-            suggested_kind="UNCODEABLE",
-            suggestion_source="rule:broad_ontology_bucket",
-            review_status="REVIEW_REQUIRED",
+            rule=plan.rule,
+            terminal=Suggestion(
+                query_text=query,
+                suggested_kind="UNCODEABLE",
+                suggestion_source="rule:broad_ontology_bucket",
+                review_status="REVIEW_DECISION",
+            ),
         )
 
-    hits = retriever.search_hierarchical(query, top_n=top_n, branch_roots=branches)
+    query_tokens = [token for token in normalize_key(query).split() if len(token) > 2]
+    block_reason = _auto_proposal_block_reason(source, source_value, plan)
+    if block_reason is None and taxonomy.scheme == "pscc":
+        block_reason = "commodity_evidence_required"
+    elif block_reason is None and len(query_tokens) < 2:
+        block_reason = "short_query"
+
+    return PreparedSuggestion(
+        query_text=query,
+        branch_codes=branches,
+        branch_titles=branch_titles,
+        rule=plan.rule,
+        block_reason=block_reason,
+    )
+
+def finalize_suggestion(
+    taxonomy: Taxonomy,
+    prepared: PreparedSuggestion,
+    hits: list,
+    *,
+    min_score: float = 0.45,
+    min_margin: float = 0.12,
+) -> Suggestion:
+    """Turn precomputed retrieval hits into the same first-pass decision as suggest_mapping."""
+    if prepared.terminal is not None:
+        return prepared.terminal
+
+    query = prepared.query_text
+    branches = prepared.branch_codes
+    branch_titles = prepared.branch_titles
     if not hits:
         return Suggestion(
             query_text=query,
             branch_codes="|".join(branches),
             branch_titles=" || ".join(branch_titles),
-            suggestion_source=f"semantic:{plan.rule}",
+            suggestion_source=f"semantic:{prepared.rule}",
             review_status="NO_CANDIDATES",
         )
 
@@ -639,26 +700,18 @@ def suggest_mapping(
 
     suggested_kind = ""
     suggested_codes = ""
-    source_name = f"semantic:{plan.rule};retrieval:candidates"
+    source_name = f"semantic:{prepared.rule};retrieval:candidates"
     status = "REVIEW_CANDIDATES"
-    query_tokens = [token for token in normalize_key(query).split() if len(token) > 2]
-    block_reason = _auto_proposal_block_reason(source, source_value, plan)
 
-    # PSCC is present in the joint pass, produces candidates, receives peer-context rechecks,
-    # and may contribute reviewed codes as peer evidence. What it must not do is turn a POI
-    # category alone into an accepted commodity suggestion.
-    if block_reason is None and taxonomy.scheme == "pscc":
-        block_reason = "commodity_evidence_required"
-    elif block_reason is None and len(query_tokens) < 2:
-        block_reason = "short_query"
-
-    if block_reason is not None:
-        source_name = f"semantic:{plan.rule};retrieval:candidates;guard:{block_reason}"
-    if top >= min_score and margin >= min_margin and block_reason is None:
+    if prepared.block_reason is not None:
+        source_name = (
+            f"semantic:{prepared.rule};retrieval:candidates;guard:{prepared.block_reason}"
+        )
+    if top >= min_score and margin >= min_margin and prepared.block_reason is None:
         suggested_codes = codes[0]
         suggested_kind = "SUBTREE" if taxonomy.has_children(suggested_codes) else "EXACT"
-        source_name = f"semantic:{plan.rule};retrieval:strong_separated_hit"
-        status = "REVIEW_REQUIRED"
+        source_name = f"semantic:{prepared.rule};retrieval:strong_separated_hit"
+        status = "REVIEW_MAPPING"
 
     return Suggestion(
         query_text=query,

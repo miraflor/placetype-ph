@@ -9,6 +9,14 @@ from typing import Annotated
 import pandas as pd
 import typer
 from rich.console import Console
+from rich.progress import (
+    BarColumn,
+    Progress,
+    TaskProgressColumn,
+    TextColumn,
+    TimeElapsedColumn,
+    TimeRemainingColumn,
+)
 from rich.table import Table
 
 from . import __version__
@@ -18,7 +26,6 @@ from .crosswalk import Crosswalk
 from .evaluate import evaluate_predictions, load_gold
 from .gis import GISExportError, export_gis_run
 from .joint_crosswalk import (
-    RECHECK_INPUT_COLUMNS,
     ensure_joint_key,
     make_joint_key,
     recheck_joint_worklist,
@@ -26,7 +33,12 @@ from .joint_crosswalk import (
 from .openplaces import read_openplaces
 from .pipeline import classify_openplaces
 from .retrieval import TaxonomyRetriever
-from .suggest import SUGGESTION_COLUMNS, suggest_mapping
+from .suggest import (
+    SUGGESTION_COLUMNS,
+    finalize_suggestion,
+    prepare_suggestion,
+    suggest_mapping,
+)
 from .taxonomy import LEVEL_ORDER, StructuralReport, Taxonomy, TaxonomyError
 from .taxonomy_import import (
     EXPECTED_STRUCTURE,
@@ -343,16 +355,21 @@ def crosswalk_init(
     read_from: list[Path] = []
     reviewed: dict[tuple[str, str, str, str, str], dict] = {}
     if output.exists():
-        read_from.append(output)
-        for record in read_reviewed(output):
-            reviewed[review_key(record)] = record
+        records = read_reviewed(output)
+        if records:
+            read_from.append(output)
+            for record in records:
+                reviewed[review_key(record)] = record
     elif adopt_legacy:
         for scheme in selected:
             legacy = crosswalk_dir / f"{scheme}_{versions[scheme]}.csv"
             if legacy == output or not legacy.exists():
                 continue
+            records = read_reviewed(legacy)
+            if not records:
+                continue
             read_from.append(legacy)
-            for record in read_reviewed(legacy):
+            for record in records:
                 reviewed.setdefault(review_key(record), record)
 
     preserved = 0
@@ -435,17 +452,31 @@ def crosswalk_suggest(
         bool,
         typer.Option(
             "--recheck/--no-recheck",
-            help="Run the peer-context recheck; it doubles the number of retrieval calls",
+            help="Rerank first-pass candidates with accepted peer labels; no new codes are introduced",
+        ),
+    ] = True,
+    batch_size: Annotated[
+        int,
+        typer.Option(
+            "--batch-size",
+            help="Unique TF-IDF query texts scored together per taxonomy",
+        ),
+    ] = 256,
+    show_progress: Annotated[
+        bool,
+        typer.Option(
+            "--progress/--no-progress",
+            help="Show stage and progress bars during suggestion generation",
         ),
     ] = True,
 ):
-    """Suggest every taxonomy independently, then cross-check the joint result.
+    """Suggest every taxonomy independently, then rerank its candidates with peer context.
 
-    The first pass never uses another taxonomy as evidence. The second pass repeats the same
-    retrieval call with the peer schemes' selected labels appended, and compares that result
-    against a control call on the unmodified query, so a reported shift is attributable to
-    peer context alone. Reviewed mappings and first-pass suggestions are never overwritten.
+    V9 prepares every row without retrieval, then batches and deduplicates TF-IDF queries by
+    taxonomy. The first pass alone discovers codes. The second pass may reorder only those
+    first-pass candidates. Reviewed mappings and first-pass suggestions are never overwritten.
     """
+    console.print(f"[bold]1/5[/bold] Loading worklist and taxonomies: {input_path}")
     frame = pd.read_csv(input_path, dtype=str).fillna("")
     required = {"source", "source_value", "scheme", "version", "mapping_kind", "codes"}
     missing = required - set(frame.columns)
@@ -457,6 +488,8 @@ def crosswalk_suggest(
         raise typer.BadParameter("--min-score must be between 0 and 1")
     if min_margin < 0.0:
         raise typer.BadParameter("--min-margin must not be negative")
+    if batch_size < 1:
+        raise typer.BadParameter("--batch-size must be at least 1")
 
     ensure_joint_key(frame)
 
@@ -467,7 +500,8 @@ def crosswalk_suggest(
         )
 
     canonical: dict[tuple[str, str], tuple[str, str]] = {}
-    for raw in sorted({raw_scope(record) for record in frame.to_dict("records")}):
+    records = frame.to_dict("records")
+    for raw in sorted({raw_scope(record) for record in records}):
         canonical[raw] = (_check_scheme(raw[0]), raw[1])
 
     def scope_of(record: dict) -> tuple[str, str]:
@@ -512,12 +546,101 @@ def crosswalk_suggest(
         )
 
     retrievers = {scope: TaxonomyRetriever(taxonomy) for scope, taxonomy in taxonomies.items()}
+    console.print(
+        "  loaded "
+        + ", ".join(
+            f"{scheme} {version} ({len(taxonomies[(scheme, version)].nodes):,} nodes)"
+            for scheme, version in sorted(taxonomies)
+        )
+    )
 
     def row_count_of(record: dict) -> int:
         try:
             return int(float(str(record.get("row_count", "0")) or 0))
         except ValueError:
             return 0
+
+    prepared_rows: list[object] = [None] * len(records)
+    scopes: list[tuple[str, str]] = [("", "")] * len(records)
+    pending_by_scope: dict[tuple[str, str], list[int]] = {}
+
+    console.print(f"[bold]2/5[/bold] Preparing source evidence for {len(records):,} scheme rows")
+    with Progress(
+        TextColumn("{task.description}"),
+        BarColumn(),
+        TaskProgressColumn(),
+        TimeElapsedColumn(),
+        TimeRemainingColumn(),
+        console=console,
+        disable=not show_progress,
+    ) as progress_bar:
+        task = progress_bar.add_task("prepare", total=len(records))
+        for position, record in enumerate(records):
+            scope = scope_of(record)
+            taxonomy = taxonomies.get(scope)
+            if taxonomy is None:
+                raise typer.BadParameter(
+                    f"no taxonomy was loaded for scheme {scope[0]!r} version {scope[1]!r}"
+                )
+            prepared = prepare_suggestion(
+                taxonomy,
+                str(record.get("source", "")),
+                str(record.get("source_value", "")),
+            )
+            scopes[position] = scope
+            prepared_rows[position] = prepared
+            if prepared.terminal is None:
+                pending_by_scope.setdefault(scope, []).append(position)
+            progress_bar.advance(task)
+
+    unique_query_total = 0
+    for scope, positions in pending_by_scope.items():
+        unique_query_total += len(
+            {
+                prepared_rows[position].query_text.strip()
+                for position in positions
+                if prepared_rows[position].query_text.strip()
+            }
+        )
+
+    console.print(
+        f"[bold]3/5[/bold] Batched first-pass retrieval: "
+        f"{unique_query_total:,} unique query texts across {len(pending_by_scope):,} taxonomies "
+        f"(batch size {batch_size:,})"
+    )
+    hits_by_position: list[list] = [[] for _ in records]
+    with Progress(
+        TextColumn("{task.description}"),
+        BarColumn(),
+        TaskProgressColumn(),
+        TimeElapsedColumn(),
+        TimeRemainingColumn(),
+        console=console,
+        disable=not show_progress,
+    ) as progress_bar:
+        task = progress_bar.add_task("retrieve", total=unique_query_total)
+
+        def advance_retrieval(amount: int) -> None:
+            progress_bar.advance(task, advance=amount)
+
+        for scope in sorted(pending_by_scope):
+            positions = pending_by_scope[scope]
+            retriever = retrievers[scope]
+            requests = [
+                (
+                    prepared_rows[position].query_text,
+                    prepared_rows[position].branch_codes,
+                )
+                for position in positions
+            ]
+            batches = retriever.search_hierarchical_many(
+                requests,
+                top_n=top_n,
+                batch_size=batch_size,
+                batch_callback=advance_retrieval,
+            )
+            for position, hits in zip(positions, batches, strict=True):
+                hits_by_position[position] = hits
 
     suggestion_rows: list[dict[str, str]] = []
     counts: dict[str, int] = {}
@@ -526,56 +649,35 @@ def crosswalk_suggest(
     reviewed_coded_occurrences: dict[str, int] = {}
     suggested_occurrences: dict[str, int] = {}
 
-    for record in frame.to_dict("records"):
-        scope = scope_of(record)
-        taxonomy = taxonomies.get(scope)
-        retriever = retrievers.get(scope)
-        if taxonomy is None or retriever is None:
-            raise typer.BadParameter(
-                f"no taxonomy was loaded for scheme {scope[0]!r} version {scope[1]!r}"
-            )
-        scheme = scope[0]
+    for position, record in enumerate(records):
+        scope = scopes[position]
+        taxonomy = taxonomies[scope]
+        prepared = prepared_rows[position]
         count = row_count_of(record)
+        scheme = scope[0]
         occurrences[scheme] = occurrences.get(scheme, 0) + count
 
+        result = finalize_suggestion(
+            taxonomy,
+            prepared,
+            hits_by_position[position],
+            min_score=min_score,
+            min_margin=min_margin,
+        )
+        suggestion = result.as_dict()
+
         if str(record.get("mapping_kind", "")).strip():
-            # Re-run only the deterministic suggestion preparation/retrieval path so the
-            # reviewed row gets the same query_text and branch_codes it would have received
-            # before review. Its reviewed mapping remains authoritative and is never replaced.
-            prepared = suggest_mapping(
-                taxonomy,
-                retriever,
-                str(record.get("source", "")),
-                str(record.get("source_value", "")),
-                top_n=top_n,
-                min_score=min_score,
-                min_margin=min_margin,
-            ).as_dict()
-            suggestion = {name: "" for name in SUGGESTION_COLUMNS}
+            suggestion["suggested_kind"] = ""
+            suggestion["suggested_codes"] = ""
             suggestion["review_status"] = "REVIEWED"
-            for column in RECHECK_INPUT_COLUMNS:
-                suggestion[column] = prepared.get(column, "")
             reviewed_decisions[scheme] = reviewed_decisions.get(scheme, 0) + count
             if str(record.get("codes", "")).strip():
                 reviewed_coded_occurrences[scheme] = (
                     reviewed_coded_occurrences.get(scheme, 0) + count
                 )
-        else:
-            result = suggest_mapping(
-                taxonomy,
-                retriever,
-                str(record.get("source", "")),
-                str(record.get("source_value", "")),
-                top_n=top_n,
-                min_score=min_score,
-                min_margin=min_margin,
-            )
-            suggestion = result.as_dict()
-            # Count a code, not a kind. NOT_ACTIVITY and UNCODEABLE are rule-based
-            # rejections with a truthy ``suggested_kind`` and no code; counting them made
-            # the coverage line report rows the reviewer still has to decide.
-            if result.suggested_codes:
-                suggested_occurrences[scheme] = suggested_occurrences.get(scheme, 0) + count
+        elif result.suggested_codes:
+            suggested_occurrences[scheme] = suggested_occurrences.get(scheme, 0) + count
+
         status = suggestion["review_status"]
         counts[status] = counts.get(status, 0) + 1
         suggestion_rows.append(suggestion)
@@ -584,17 +686,39 @@ def crosswalk_suggest(
         frame[column] = [row[column] for row in suggestion_rows]
 
     if recheck:
-        frame = recheck_joint_worklist(
-            frame,
-            taxonomies,
-            retrievers,
-            top_n=top_n,
-            min_margin=min_margin,
-            scope_of=scope_of,
-            preferred_versions=DEFAULT_VERSIONS,
+        joint_groups = int(frame["joint_key"].nunique())
+        console.print(
+            f"[bold]4/5[/bold] Peer-context recheck across {joint_groups:,} joint groups"
         )
+        with Progress(
+            TextColumn("{task.description}"),
+            BarColumn(),
+            TaskProgressColumn(),
+            TimeElapsedColumn(),
+            TimeRemainingColumn(),
+            console=console,
+            disable=not show_progress,
+        ) as progress_bar:
+            task = progress_bar.add_task("recheck", total=joint_groups)
+
+            def advance_recheck(amount: int) -> None:
+                progress_bar.advance(task, advance=amount)
+
+            frame = recheck_joint_worklist(
+                frame,
+                taxonomies,
+                retrievers,
+                top_n=top_n,
+                min_margin=min_margin,
+                scope_of=scope_of,
+                preferred_versions=DEFAULT_VERSIONS,
+                progress_callback=advance_recheck,
+            )
+    else:
+        console.print("[bold]4/5[/bold] Peer-context recheck skipped (--no-recheck)")
 
     output = output or input_path.with_name(f"{input_path.stem}_suggested.csv")
+    console.print(f"[bold]5/5[/bold] Writing {len(frame):,} scheme rows to {output}")
     output.parent.mkdir(parents=True, exist_ok=True)
     frame.to_csv(output, index=False)
     console.print(f"Wrote joint suggestions for {len(frame):,} scheme rows to {output}")

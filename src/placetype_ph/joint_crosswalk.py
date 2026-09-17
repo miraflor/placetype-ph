@@ -204,35 +204,18 @@ def recheck_joint_worklist(
     min_margin: float = 0.12,
     scope_of: Callable[[Mapping[str, object]], tuple[str, str]] | None = None,
     preferred_versions: Mapping[str, str] | None = None,
+    progress_callback=None,
 ) -> pd.DataFrame:
-    """Controlled second-pass cross-taxonomy recheck for a joint crosswalk worklist.
+    """Bounded cross-taxonomy recheck for a joint crosswalk worklist.
 
-    For every row this runs the same retrieval call twice. The control call uses the row's
-    own query. The treatment call uses that query with the titles selected by the peer
-    systems appended. Only the appended text differs, so a change of top candidate is
-    attributable to peer context rather than to a different query, a different branch
-    restriction or a different score threshold. The first-pass code is reported separately,
-    in ``first_pass_status``, as a diagnostic on whether the two passes are comparable at all.
+    The first-pass retrieval owns candidate discovery. Peer context is allowed only to rerank
+    those already discovered candidates; it can never introduce a new code into the target
+    taxonomy. The first candidate is therefore the control, and only the treatment query is
+    scored during this pass.
 
-    The base query is built the same way for every row of one group: ``query_text`` is used
-    only when every taxonomy-backed row in the group has one, otherwise every row falls back
-    to ``source_value``. ``crosswalk-suggest`` prepares the same query and branch inputs for
-    reviewed and unreviewed rows before this function runs.
-
-    The pass never writes ``mapping_kind``, ``codes`` or ``suggested_codes``. It is a review
-    signal, not a concordance: PSIC, PCPC and PSCC classify different objects, so peer
-    context can mark a suspicious choice but must not force one taxonomy to agree with another.
-
-    ``recheck_status`` takes one of: ``MISSING_TAXONOMY``, ``NO_PEERS``, ``NO_CONTROL_HIT``,
-    ``NO_RECHECK_HIT``, ``STABLE``, ``SHIFT_WEAK``, ``SHIFT``. ``SHIFT`` is written only when
-    the control top candidate leaves the treatment candidate list, or when the treatment top
-    candidate leads it by at least ``min_margin``.
-
-    ``joint_status`` takes one of: ``RECHECK`` when any row in the group shifted,
-    ``SINGLE_SCHEME`` when fewer than two distinct classification systems had a taxonomy,
-    ``NO_EVIDENCE`` when no taxonomy-backed row in the group has an accepted or reviewed code
-    yet, ``STABLE`` when every taxonomy-backed row was compared and none shifted, and
-    ``PARTIAL`` otherwise.
+    Candidate-only rows may receive ``CANDIDATE_STABLE`` or ``CANDIDATE_SHIFT`` diagnostics,
+    but those diagnostics never escalate ``joint_status``. Only a shift on a reviewed code or
+    accepted first-pass suggestion can produce group-level ``RECHECK``.
     """
     scope_for = scope_of or default_scope
     original_index = frame.index
@@ -278,10 +261,10 @@ def recheck_joint_worklist(
                     query.append(query_label)
             peers_by_position[position] = (audit, query)
 
-        rows_with_taxonomy = 0
         schemes_with_taxonomy: set[str] = set()
-        compared = 0
-        shifted = 0
+        evidence_rows_with_taxonomy = 0
+        compared_evidence = 0
+        shifted_evidence = 0
 
         for position, scope, selection, record in zip(
             positions, scopes, selections, records, strict=True
@@ -301,30 +284,32 @@ def recheck_joint_worklist(
             if taxonomy is None or retriever is None:
                 result["recheck_status"] = "MISSING_TAXONOMY"
                 continue
-            rows_with_taxonomy += 1
+
             schemes_with_taxonomy.add(scope[0])
+            if codes:
+                evidence_rows_with_taxonomy += 1
+
             if not audit_peers:
                 result["recheck_status"] = "NO_PEERS"
                 continue
 
             base_query = str(
-                record.get("query_text", "") if use_query_text else record.get("source_value", "")
+                record.get("query_text", "")
+                if use_query_text
+                else record.get("source_value", "")
             ).strip()
-            branches = tuple(
-                code
-                for code in split_codes(record.get("branch_codes", ""))
-                if code in taxonomy.nodes
-            )
-
-            control_hits = list(
-                retriever.search_hierarchical(base_query, top_n=top_n, branch_roots=branches)
-            )
             result["control_query"] = base_query
-            if not control_hits:
+
+            candidate_codes = [
+                code
+                for code in split_codes(record.get("candidate_codes", ""))
+                if code in taxonomy.nodes
+            ]
+            if not candidate_codes:
                 result["recheck_status"] = "NO_CONTROL_HIT"
                 continue
-            control_top = control_hits[0].code
-            control_codes = [hit.code for hit in control_hits]
+
+            control_top = candidate_codes[0]
             result["control_top_code"] = control_top
             result["control_top_path"] = hierarchy_path(taxonomy, control_top)
 
@@ -332,7 +317,7 @@ def recheck_joint_worklist(
                 result["first_pass_status"] = "NO_FIRST_PASS"
             elif control_top in codes:
                 result["first_pass_status"] = "AGREES"
-            elif any(code in control_codes for code in codes):
+            elif any(code in candidate_codes for code in codes):
                 result["first_pass_status"] = "IN_CONTROL_TOPN"
             else:
                 result["first_pass_status"] = "OUTSIDE_CONTROL_TOPN"
@@ -342,14 +327,21 @@ def recheck_joint_worklist(
                 f"{result['peer_query_context']}"
             )
             hits = list(
-                retriever.search_hierarchical(recheck_query, top_n=top_n, branch_roots=branches)
+                retriever.search(
+                    recheck_query,
+                    top_n=len(candidate_codes),
+                    allowed_codes=set(candidate_codes),
+                )
             )
             result["recheck_query"] = recheck_query
             result["recheck_candidate_codes"] = "|".join(hit.code for hit in hits)
             result["recheck_candidate_titles"] = "|".join(
-                taxonomy.get(hit.code).title if hit.code in taxonomy.nodes else "" for hit in hits
+                taxonomy.get(hit.code).title if hit.code in taxonomy.nodes else ""
+                for hit in hits
             )
-            result["recheck_candidate_scores"] = "|".join(f"{float(hit.score):.6f}" for hit in hits)
+            result["recheck_candidate_scores"] = "|".join(
+                f"{float(hit.score):.6f}" for hit in hits
+            )
             if not hits:
                 result["recheck_status"] = "NO_RECHECK_HIT"
                 continue
@@ -358,36 +350,51 @@ def recheck_joint_worklist(
             result["recheck_top_code"] = top.code
             result["recheck_top_path"] = hierarchy_path(taxonomy, top.code)
             scores = {hit.code: float(hit.score) for hit in hits}
-            compared += 1
 
+            if not codes:
+                if top.code == control_top:
+                    result["recheck_margin"] = f"{0.0:.6f}"
+                    result["recheck_status"] = "CANDIDATE_STABLE"
+                else:
+                    result["recheck_margin"] = (
+                        f"{float(top.score) - scores[control_top]:.6f}"
+                        if control_top in scores
+                        else ""
+                    )
+                    result["recheck_status"] = "CANDIDATE_SHIFT"
+                continue
+
+            compared_evidence += 1
             if top.code == control_top:
                 result["recheck_margin"] = f"{0.0:.6f}"
                 result["recheck_status"] = "STABLE"
             elif control_top not in scores:
                 result["recheck_margin"] = ""
                 result["recheck_status"] = "SHIFT"
-                shifted += 1
+                shifted_evidence += 1
             else:
                 margin = float(top.score) - scores[control_top]
                 result["recheck_margin"] = f"{margin:.6f}"
                 if margin >= min_margin:
                     result["recheck_status"] = "SHIFT"
-                    shifted += 1
+                    shifted_evidence += 1
                 else:
                     result["recheck_status"] = "SHIFT_WEAK"
 
-        if shifted:
+        if shifted_evidence:
             group_status = "RECHECK"
         elif len(schemes_with_taxonomy) < 2:
             group_status = "SINGLE_SCHEME"
         elif not group_has_evidence:
             group_status = "NO_EVIDENCE"
-        elif compared == rows_with_taxonomy:
+        elif compared_evidence == evidence_rows_with_taxonomy:
             group_status = "STABLE"
         else:
             group_status = "PARTIAL"
         for position in positions:
             results[position]["joint_status"] = group_status
+        if progress_callback is not None:
+            progress_callback(1)
 
     addition = pd.DataFrame(results, columns=list(JOINT_RECHECK_COLUMNS), index=out.index)
     out = out.drop(columns=[name for name in JOINT_RECHECK_COLUMNS if name in out.columns])

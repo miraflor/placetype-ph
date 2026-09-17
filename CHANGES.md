@@ -1,18 +1,24 @@
+## Batched joint-crosswalk retrieval
+
+- `crosswalk-suggest` now prepares rows separately from retrieval and scores TF-IDF queries in bounded batches per taxonomy.
+- Repeated query text is vectorised once per taxonomy, while row-specific branch restrictions and ranking semantics are preserved.
+- `--batch-size` controls the number of unique query texts scored together; the default is 256.
+- Five visible stages and Rich progress bars now show preparation, retrieval and recheck progress; `--no-progress` disables them.
+- The V8 bounded peer rerank and PSCC commodity-evidence guard are unchanged.
+
 # Unreleased
 
 ## Joint multi-taxonomy crosswalk
 
-- `crosswalk-init` creates one joint PSIC/PCPC/PSCC review worklist by default, keyed by a stable `joint_key`, while preserving each scheme's full hierarchy.
-- Reviewed rows are never stranded: existing per-scheme crosswalks are adopted when the joint worklist is first created, and reviewed rows whose category no longer occurs are carried forward with `row_count` and `row_share` of zero.
-- Suggestion stays independent on the first pass. PSIC and PCPC may produce review-required category-based suggestions when retrieval is strong and separated; PSCC category-only hits remain candidates because a place category is not itself commodity evidence.
-- PSCC remains fully present in the joint workflow: it receives candidates and peer-context rechecks, and reviewed PSCC mappings can become peer evidence. Category-only PSCC rows record `guard:commodity_evidence_required`.
-- Every refusal to promote a hit is named in `suggestion_source` as `guard:<reason>`, including `guard:short_query` for one-token PSIC/PCPC queries.
-- Per-scheme reporting separates reviewed decisions from coded coverage. `NOT_ACTIVITY` and `UNCODEABLE` can be reviewed decisions without being counted as rows carrying a code.
-- Reviewed rows reconstruct the same query and branch inputs used before review, so the recheck compares reviewed and unreviewed rows on the same retrieval basis without changing the reviewed mapping.
-- A controlled peer-context recheck compares two identical retrieval calls, one with and one without the accepted labels of the other classification systems, and never overwrites a reviewed or first-pass decision.
-- Only reviewed codes and accepted suggestions become cross-taxonomy evidence; raw retrieval candidates do not. At most one row speaks for each classification system, so two versions of one system are treated as alternatives rather than as independent peers; reviewed evidence wins first, then the configured default version.
-- Multi-code mappings keep every accepted code and every hierarchy path in the recheck audit. Peer context is recorded twice: `peer_context` for reading, with versions and codes, and `peer_query_context` for retrieval, with titles only.
-- `placetype classify` defaults to PSIC, PCPC and PSCC together; `--schemes` still selects a subset.
+- The peer-context pass is now a bounded rerank of the source-only first-pass candidate set. Peer labels can reorder candidates but cannot introduce a new target-taxonomy code.
+- Candidate-only reorders use `CANDIDATE_STABLE` / `CANDIDATE_SHIFT` and never escalate `joint_status`; only accepted suggestions or reviewed mappings can trigger group-level `RECHECK`.
+- First-pass review status now distinguishes `REVIEW_MAPPING` from rule-based `REVIEW_DECISION`, while `REVIEW_CANDIDATES` remains candidate-only.
+- Category-only PSCC remains candidate-level and continues to require commodity evidence before promotion.
+- Recheck control results are reused from the first pass instead of repeating the same source-only retrieval.
+- Hierarchical retrieval computes TF-IDF similarities once per query and reuses that score vector for coarse and fine ranking; repeated branch closures are cached.
+- Reviewed rows retain their reconstructed source-only candidates for recheck without changing the reviewed mapping.
+- `crosswalk-init` reports a legacy source only when it actually contains reviewed rows that were read.
+- Joint worklists still preserve full PSIC/PCPC/PSCC hierarchy, reviewed legacy mappings, multi-code unions, one peer per classification system, and default three-scheme classification.
 
 ## QGIS export
 
