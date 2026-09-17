@@ -1,5 +1,19 @@
 # Unreleased
 
+## Joint multi-taxonomy crosswalk
+
+- `crosswalk-init` creates one joint PSIC/PCPC/PSCC review worklist by default, keyed by a stable `joint_key`, while preserving each scheme's full hierarchy.
+- Reviewed rows are never stranded: existing per-scheme crosswalks are adopted when the joint worklist is first created, and reviewed rows whose category no longer occurs are carried forward with `row_count` and `row_share` of zero.
+- Suggestion stays independent on the first pass. PSIC and PCPC may produce review-required category-based suggestions when retrieval is strong and separated; PSCC category-only hits remain candidates because a place category is not itself commodity evidence.
+- PSCC remains fully present in the joint workflow: it receives candidates and peer-context rechecks, and reviewed PSCC mappings can become peer evidence. Category-only PSCC rows record `guard:commodity_evidence_required`.
+- Every refusal to promote a hit is named in `suggestion_source` as `guard:<reason>`, including `guard:short_query` for one-token PSIC/PCPC queries.
+- Per-scheme reporting separates reviewed decisions from coded coverage. `NOT_ACTIVITY` and `UNCODEABLE` can be reviewed decisions without being counted as rows carrying a code.
+- Reviewed rows reconstruct the same query and branch inputs used before review, so the recheck compares reviewed and unreviewed rows on the same retrieval basis without changing the reviewed mapping.
+- A controlled peer-context recheck compares two identical retrieval calls, one with and one without the accepted labels of the other classification systems, and never overwrites a reviewed or first-pass decision.
+- Only reviewed codes and accepted suggestions become cross-taxonomy evidence; raw retrieval candidates do not. At most one row speaks for each classification system, so two versions of one system are treated as alternatives rather than as independent peers; reviewed evidence wins first, then the configured default version.
+- Multi-code mappings keep every accepted code and every hierarchy path in the recheck audit. Peer context is recorded twice: `peer_context` for reading, with versions and codes, and `peer_query_context` for retrieval, with titles only.
+- `placetype classify` defaults to PSIC, PCPC and PSCC together; `--schemes` still selects a subset.
+
 ## QGIS export
 
 - Added `placetype gis-export`, which writes a compact standalone GeoParquet next to a classification run for direct use in QGIS.

@@ -17,6 +17,12 @@ from .classifier import EntityClassifier
 from .crosswalk import Crosswalk
 from .evaluate import evaluate_predictions, load_gold
 from .gis import GISExportError, export_gis_run
+from .joint_crosswalk import (
+    RECHECK_INPUT_COLUMNS,
+    ensure_joint_key,
+    make_joint_key,
+    recheck_joint_worklist,
+)
 from .openplaces import read_openplaces
 from .pipeline import classify_openplaces
 from .retrieval import TaxonomyRetriever
@@ -45,14 +51,24 @@ _MAX_REPORTED = 20
 
 # Columns a reviewer fills in. Preserved when the worklist is regenerated.
 REVIEW_COLUMNS = ("mapping_kind", "codes", "match_type", "confidence", "notes", "source_field")
-WORKLIST_COLUMNS = (
-    "source",
-    "source_value",
-    "row_count",
-    "row_share",
-    "scheme",
-    "version",
-    *REVIEW_COLUMNS,
+# ``dict.fromkeys`` keeps the order and drops duplicates, so ``joint_key`` and
+# ``source_field`` appear exactly once whether or not REVIEW_COLUMNS already holds
+# them. A column absent here is silently dropped when the worklist frame is built,
+# which is how ``source_field`` could go missing before.
+WORKLIST_COLUMNS = tuple(
+    dict.fromkeys(
+        (
+            "source",
+            "source_value",
+            "source_field",
+            "joint_key",
+            "row_count",
+            "row_share",
+            "scheme",
+            "version",
+            *REVIEW_COLUMNS,
+        )
+    )
 )
 
 
@@ -208,18 +224,68 @@ def inspect_openplaces(
 def crosswalk_init(
     input_path: Annotated[Path, typer.Argument(help="openplaces-ph canonical_pois.parquet")],
     output: Annotated[Path | None, typer.Option()] = None,
-    scheme: Annotated[str, typer.Option()] = "psic",
-    version: Annotated[str | None, typer.Option()] = None,
+    schemes: Annotated[
+        str,
+        typer.Option(
+            "--schemes",
+            "--scheme",
+            help=(
+                "Comma-separated classification schemes. By default one joint worklist "
+                "is created for PSIC, PCPC and PSCC."
+            ),
+        ),
+    ] = "psic,pcpc,pscc",
+    version: Annotated[
+        str | None,
+        typer.Option(help="Version override; valid only when exactly one scheme is selected"),
+    ] = None,
+    adopt_legacy: Annotated[
+        bool,
+        typer.Option(
+            "--adopt-legacy/--no-adopt-legacy",
+            help=(
+                "When the joint worklist does not exist yet, read reviewed rows from the "
+                "per-scheme worklists written before the joint format was introduced."
+            ),
+        ),
+    ] = True,
 ):
-    """Create or refresh a distinct-category review worklist; no model calls are made.
+    """Create or refresh one joint hierarchical crosswalk review worklist.
 
-    If the output file already exists, reviewed rows are preserved. Regenerating after a
-    new OpenPlaces build used to overwrite the file and destroy the review work.
+    Each observed OpenPlaces category gets a stable ``joint_key``. The worklist then has
+    one row per selected classification scheme under that key, so PSIC, PCPC and PSCC are
+    reviewed together without flattening any taxonomy's hierarchy.
+
+    Reviewed rows are never lost. They are read from the output file when it exists, and
+    otherwise from the per-scheme files this command wrote before the joint format, unless
+    ``--no-adopt-legacy`` is given. A reviewed row whose category no longer appears in the
+    data is carried over with a row count and a row share of zero. No model calls are made.
     """
     frame = read_openplaces(input_path)
-    scheme = _check_scheme(scheme)
-    version = version or DEFAULT_VERSIONS[scheme]
-    output = output or Path("reference/crosswalks") / f"{scheme}_{version}.csv"
+    selected: list[str] = []
+    for raw in schemes.split(","):
+        if not raw.strip():
+            continue
+        scheme = _check_scheme(raw.strip())
+        if scheme not in selected:
+            selected.append(scheme)
+    if not selected:
+        raise typer.BadParameter("no scheme selected")
+    if version is not None and len(selected) != 1:
+        raise typer.BadParameter("--version can only be used when exactly one scheme is selected")
+
+    versions = {
+        scheme: (version if version is not None else DEFAULT_VERSIONS[scheme])
+        for scheme in selected
+    }
+    crosswalk_dir = Path("reference/crosswalks")
+    if output is None:
+        output = (
+            crosswalk_dir / "joint.csv"
+            if len(selected) > 1
+            else crosswalk_dir / f"{selected[0]}_{versions[selected[0]]}.csv"
+        )
+
     total = len(frame)
     rows: list[dict] = []
     for source in ("fsq", "overture", "osm"):
@@ -228,52 +294,73 @@ def crosswalk_init(
             continue
         counts = frame[col].dropna().astype(str).value_counts()
         for value, count in counts.items():
-            rows.append({
-                "source": source,
-                "source_value": value,
-                "row_count": int(count),
-                "row_share": float(count / total) if total else 0.0,
-                "scheme": scheme,
-                "version": version,
-                "mapping_kind": "",
-                "codes": "",
-                "match_type": "exact",
-                "confidence": "",
-                "notes": "",
-                "source_field": "category",
-            })
+            source_value = str(value)
+            joint_key = make_joint_key(source, source_value, "category")
+            for scheme in selected:
+                rows.append(
+                    {
+                        "source": source,
+                        "source_value": source_value,
+                        "source_field": "category",
+                        "joint_key": joint_key,
+                        "row_count": int(count),
+                        "row_share": float(count / total) if total else 0.0,
+                        "scheme": scheme,
+                        "version": versions[scheme],
+                        "mapping_kind": "",
+                        "codes": "",
+                        "match_type": "exact",
+                        "confidence": "",
+                        "notes": "",
+                    }
+                )
     work = pd.DataFrame(rows, columns=list(WORKLIST_COLUMNS))
 
-    preserved = 0
-    carried_over = 0
-    if output.exists():
-        existing = pd.read_csv(output, dtype=str).fillna("")
+    def review_key(record: dict) -> tuple[str, str, str, str, str]:
+        return (
+            str(record.get("scheme", "")).strip().casefold(),
+            str(record.get("version", "")).strip(),
+            str(record.get("source", "")).strip().casefold(),
+            str(record.get("source_field", "category") or "category").strip().casefold(),
+            str(record.get("source_value", "")).strip(),
+        )
+
+    def read_reviewed(path: Path) -> list[dict]:
+        existing = pd.read_csv(path, dtype=str).fillna("")
+        for column in ("scheme", "version", "source", "source_value"):
+            if column not in existing.columns:
+                raise typer.BadParameter(f"crosswalk {path} is missing {column!r}")
         for column in REVIEW_COLUMNS:
             if column not in existing.columns:
                 existing[column] = ""
-        for column in ("scheme", "version", "source", "source_value"):
-            if column not in existing.columns:
-                raise typer.BadParameter(f"existing crosswalk {output} is missing {column!r}")
-
-        def review_key(r: dict) -> tuple[str, str, str, str, str]:
-            return (
-                str(r.get("scheme", "")).casefold(),
-                str(r.get("version", "")),
-                str(r.get("source", "")).casefold(),
-                str(r.get("source_field", "category") or "category").casefold(),
-                str(r.get("source_value", "")),
-            )
-
-        reviewed_records = [
-            r
-            for r in existing.to_dict("records")
-            if str(r.get("mapping_kind", "")).strip()
+        ensure_joint_key(existing)
+        return [
+            record
+            for record in existing.to_dict("records")
+            if str(record.get("mapping_kind", "")).strip()
         ]
-        reviewed = {review_key(r): r for r in reviewed_records}
+
+    read_from: list[Path] = []
+    reviewed: dict[tuple[str, str, str, str, str], dict] = {}
+    if output.exists():
+        read_from.append(output)
+        for record in read_reviewed(output):
+            reviewed[review_key(record)] = record
+    elif adopt_legacy:
+        for scheme in selected:
+            legacy = crosswalk_dir / f"{scheme}_{versions[scheme]}.csv"
+            if legacy == output or not legacy.exists():
+                continue
+            read_from.append(legacy)
+            for record in read_reviewed(legacy):
+                reviewed.setdefault(review_key(record), record)
+
+    preserved = 0
+    carried_over = 0
+    if reviewed:
         merged: list[dict] = []
         for row in work.to_dict("records"):
-            key = review_key(row)
-            match = reviewed.get(key)
+            match = reviewed.get(review_key(row))
             if match is not None:
                 for column in REVIEW_COLUMNS:
                     value = str(match.get(column, "") or "")
@@ -281,14 +368,17 @@ def crosswalk_init(
                         row[column] = value
                 preserved += 1
             merged.append(row)
-        # Reviewed rows that are absent from this worklist are carried over unchanged.
-        # This includes retired categories, name-keyed rules, and rows for other
-        # scheme/version pairs when a reviewer deliberately uses one shared CSV.
-        current = {review_key(r) for r in merged}
+
+        current = {review_key(record) for record in merged}
         for key, match in reviewed.items():
             if key in current:
                 continue
-            carried = {c: str(match.get(c, "") or "") for c in WORKLIST_COLUMNS}
+            carried = {column: str(match.get(column, "") or "") for column in WORKLIST_COLUMNS}
+            carried["joint_key"] = str(match.get("joint_key", "")) or make_joint_key(
+                str(match.get("source", "")),
+                str(match.get("source_value", "")),
+                str(match.get("source_field", "category") or "category"),
+            )
             carried["row_count"] = 0
             carried["row_share"] = 0.0
             merged.append(carried)
@@ -296,10 +386,20 @@ def crosswalk_init(
         work = pd.DataFrame(merged, columns=list(WORKLIST_COLUMNS))
 
     work["row_count"] = pd.to_numeric(work["row_count"], errors="coerce").fillna(0).astype(int)
-    work = work.sort_values(["row_count", "source"], ascending=[False, True], kind="stable")
+    work["row_share"] = pd.to_numeric(work["row_share"], errors="coerce").fillna(0.0).astype(float)
+    work = work.sort_values(
+        ["row_count", "source", "source_value", "joint_key", "scheme", "version"],
+        ascending=[False, True, True, True, True, True],
+        kind="stable",
+    )
     output.parent.mkdir(parents=True, exist_ok=True)
     work.to_csv(output, index=False)
-    console.print(f"Wrote {len(work):,} distinct source categories to {output}")
+    console.print(
+        f"Wrote {len(work):,} scheme rows in "
+        f"{work['joint_key'].nunique():,} joint source-category groups to {output}"
+    )
+    if read_from:
+        console.print("Read reviewed rows from " + ", ".join(str(path) for path in read_from))
     if preserved or carried_over:
         console.print(
             f"Preserved [bold]{preserved:,}[/bold] reviewed rows; "
@@ -309,92 +409,226 @@ def crosswalk_init(
 
 @app.command("crosswalk-suggest")
 def crosswalk_suggest(
-    input_path: Annotated[Path, typer.Argument(help="Crosswalk worklist CSV")],
+    input_path: Annotated[Path, typer.Argument(help="Joint crosswalk worklist CSV")],
     output: Annotated[Path | None, typer.Option()] = None,
-    taxonomy_path: Annotated[Path | None, typer.Option("--taxonomy")] = None,
-    top_n: Annotated[int, typer.Option(help="Retrieval candidates per category")] = 5,
+    taxonomy_paths: Annotated[
+        list[Path] | None,
+        typer.Option(
+            "--taxonomy",
+            help="Optional taxonomy override; repeat once per scheme/version as needed",
+        ),
+    ] = None,
+    top_n: Annotated[int, typer.Option(help="Retrieval candidates per category and scheme")] = 5,
     min_score: Annotated[
         float, typer.Option(help="Minimum score for an automatic SUBTREE suggestion")
     ] = 0.45,
     min_margin: Annotated[
-        float, typer.Option(help="Required lead over the second retrieval hit")
+        float,
+        typer.Option(
+            help=(
+                "Required lead over the second retrieval hit in the first pass, and over the "
+                "control candidate in the peer-context recheck"
+            )
+        ),
     ] = 0.12,
+    recheck: Annotated[
+        bool,
+        typer.Option(
+            "--recheck/--no-recheck",
+            help="Run the peer-context recheck; it doubles the number of retrieval calls",
+        ),
+    ] = True,
 ):
-    """Add reviewable taxonomy suggestions to a crosswalk worklist.
+    """Suggest every taxonomy independently, then cross-check the joint result.
 
-    Existing mapping_kind/codes are never modified. Suggestions are separate columns
-    and become classifier evidence only after a reviewer copies/accepts them.
+    The first pass never uses another taxonomy as evidence. The second pass repeats the same
+    retrieval call with the peer schemes' selected labels appended, and compares that result
+    against a control call on the unmodified query, so a reported shift is attributable to
+    peer context alone. Reviewed mappings and first-pass suggestions are never overwritten.
     """
     frame = pd.read_csv(input_path, dtype=str).fillna("")
     required = {"source", "source_value", "scheme", "version", "mapping_kind", "codes"}
     missing = required - set(frame.columns)
     if missing:
         raise typer.BadParameter(f"worklist is missing columns {sorted(missing)}")
-    scopes = {(str(r.scheme).casefold(), str(r.version)) for r in frame.itertuples()}
-    if len(scopes) != 1:
-        raise typer.BadParameter("crosswalk-suggest requires one scheme/version per worklist")
-    scheme, version = next(iter(scopes))
-    scheme = _check_scheme(scheme)
-    taxonomy_path = taxonomy_path or _taxonomy_path(scheme, version)
-    if not taxonomy_path.exists():
-        raise typer.BadParameter(f"missing taxonomy {taxonomy_path}")
-    taxonomy = Taxonomy.load(taxonomy_path)
-    if (taxonomy.scheme, taxonomy.version) != (scheme, version):
-        raise typer.BadParameter(
-            f"{taxonomy_path} contains {taxonomy.scheme} {taxonomy.version}, "
-            f"but the worklist requests {scheme} {version}"
-        )
     if top_n < 1:
         raise typer.BadParameter("--top-n must be at least 1")
-    retriever = TaxonomyRetriever(taxonomy)
+    if not 0.0 <= min_score <= 1.0:
+        raise typer.BadParameter("--min-score must be between 0 and 1")
+    if min_margin < 0.0:
+        raise typer.BadParameter("--min-margin must not be negative")
+
+    ensure_joint_key(frame)
+
+    def raw_scope(record: dict) -> tuple[str, str]:
+        return (
+            str(record.get("scheme", "")).strip(),
+            str(record.get("version", "")).strip(),
+        )
+
+    canonical: dict[tuple[str, str], tuple[str, str]] = {}
+    for raw in sorted({raw_scope(record) for record in frame.to_dict("records")}):
+        canonical[raw] = (_check_scheme(raw[0]), raw[1])
+
+    def scope_of(record: dict) -> tuple[str, str]:
+        raw = raw_scope(record)
+        return canonical.get(raw, (raw[0].casefold(), raw[1]))
+
+    overrides: dict[tuple[str, str], Taxonomy] = {}
+    for path in taxonomy_paths or []:
+        if not path.exists():
+            raise typer.BadParameter(f"missing taxonomy {path}")
+        taxonomy = Taxonomy.load(path)
+        scope = (str(taxonomy.scheme).strip().casefold(), str(taxonomy.version).strip())
+        if scope in overrides:
+            raise typer.BadParameter(
+                f"more than one --taxonomy override was supplied for {scope[0]} {scope[1]}"
+            )
+        overrides[scope] = taxonomy
+
+    taxonomies: dict[tuple[str, str], Taxonomy] = {}
+    for scope in sorted(set(canonical.values())):
+        scheme, version = scope
+        if scope in overrides:
+            taxonomies[scope] = overrides[scope]
+            continue
+        path = _taxonomy_path(scheme, version)
+        if not path.exists():
+            raise typer.BadParameter(f"missing taxonomy {path}")
+        taxonomy = Taxonomy.load(path)
+        loaded = (str(taxonomy.scheme).strip().casefold(), str(taxonomy.version).strip())
+        if loaded != scope:
+            raise typer.BadParameter(
+                f"{path} contains {taxonomy.scheme} {taxonomy.version}, "
+                f"but the worklist requests {scheme} {version}"
+            )
+        taxonomies[scope] = taxonomy
+
+    unused = sorted(set(overrides) - set(taxonomies))
+    for scheme, version in unused:
+        console.print(
+            f"[yellow]--taxonomy override for {scheme} {version} was not used; "
+            f"no worklist row requests it[/yellow]"
+        )
+
+    retrievers = {scope: TaxonomyRetriever(taxonomy) for scope, taxonomy in taxonomies.items()}
+
+    def row_count_of(record: dict) -> int:
+        try:
+            return int(float(str(record.get("row_count", "0")) or 0))
+        except ValueError:
+            return 0
 
     suggestion_rows: list[dict[str, str]] = []
     counts: dict[str, int] = {}
-    weighted = 0
-    total_rows = 0
-    for row in frame.to_dict("records"):
-        reviewed = bool(str(row.get("mapping_kind", "")).strip())
-        if reviewed:
+    occurrences: dict[str, int] = {}
+    reviewed_decisions: dict[str, int] = {}
+    reviewed_coded_occurrences: dict[str, int] = {}
+    suggested_occurrences: dict[str, int] = {}
+
+    for record in frame.to_dict("records"):
+        scope = scope_of(record)
+        taxonomy = taxonomies.get(scope)
+        retriever = retrievers.get(scope)
+        if taxonomy is None or retriever is None:
+            raise typer.BadParameter(
+                f"no taxonomy was loaded for scheme {scope[0]!r} version {scope[1]!r}"
+            )
+        scheme = scope[0]
+        count = row_count_of(record)
+        occurrences[scheme] = occurrences.get(scheme, 0) + count
+
+        if str(record.get("mapping_kind", "")).strip():
+            # Re-run only the deterministic suggestion preparation/retrieval path so the
+            # reviewed row gets the same query_text and branch_codes it would have received
+            # before review. Its reviewed mapping remains authoritative and is never replaced.
+            prepared = suggest_mapping(
+                taxonomy,
+                retriever,
+                str(record.get("source", "")),
+                str(record.get("source_value", "")),
+                top_n=top_n,
+                min_score=min_score,
+                min_margin=min_margin,
+            ).as_dict()
             suggestion = {name: "" for name in SUGGESTION_COLUMNS}
             suggestion["review_status"] = "REVIEWED"
+            for column in RECHECK_INPUT_COLUMNS:
+                suggestion[column] = prepared.get(column, "")
+            reviewed_decisions[scheme] = reviewed_decisions.get(scheme, 0) + count
+            if str(record.get("codes", "")).strip():
+                reviewed_coded_occurrences[scheme] = (
+                    reviewed_coded_occurrences.get(scheme, 0) + count
+                )
         else:
             result = suggest_mapping(
                 taxonomy,
                 retriever,
-                str(row.get("source", "")),
-                str(row.get("source_value", "")),
+                str(record.get("source", "")),
+                str(record.get("source_value", "")),
                 top_n=top_n,
                 min_score=min_score,
                 min_margin=min_margin,
             )
             suggestion = result.as_dict()
-            if result.suggested_kind:
-                try:
-                    row_count = int(float(str(row.get("row_count", "0")) or 0))
-                except ValueError:
-                    row_count = 0
-                weighted += row_count
+            # Count a code, not a kind. NOT_ACTIVITY and UNCODEABLE are rule-based
+            # rejections with a truthy ``suggested_kind`` and no code; counting them made
+            # the coverage line report rows the reviewer still has to decide.
+            if result.suggested_codes:
+                suggested_occurrences[scheme] = suggested_occurrences.get(scheme, 0) + count
         status = suggestion["review_status"]
         counts[status] = counts.get(status, 0) + 1
-        try:
-            total_rows += int(float(str(row.get("row_count", "0")) or 0))
-        except ValueError:
-            pass
         suggestion_rows.append(suggestion)
 
     for column in SUGGESTION_COLUMNS:
         frame[column] = [row[column] for row in suggestion_rows]
+
+    if recheck:
+        frame = recheck_joint_worklist(
+            frame,
+            taxonomies,
+            retrievers,
+            top_n=top_n,
+            min_margin=min_margin,
+            scope_of=scope_of,
+            preferred_versions=DEFAULT_VERSIONS,
+        )
+
     output = output or input_path.with_name(f"{input_path.stem}_suggested.csv")
     output.parent.mkdir(parents=True, exist_ok=True)
     frame.to_csv(output, index=False)
-    console.print(f"Wrote suggestions for {len(frame):,} categories to {output}")
-    console.print(
-        "Suggested mappings cover "
-        f"{weighted:,} source-category occurrences before review "
-        f"({weighted / total_rows:.1%} of worklist occurrences)" if total_rows else ""
-    )
+    console.print(f"Wrote joint suggestions for {len(frame):,} scheme rows to {output}")
+
+    for scheme in sorted(occurrences):
+        total = occurrences[scheme]
+        reviewed = reviewed_decisions.get(scheme, 0)
+        already = reviewed_coded_occurrences.get(scheme, 0)
+        fresh = suggested_occurrences.get(scheme, 0)
+        if total:
+            console.print(
+                f"  {scheme}: {reviewed:,} reviewed decisions; "
+                f"{already:,} reviewed codes and {fresh:,} newly suggested codes of "
+                f"{total:,} source-category occurrences "
+                f"({(already + fresh) / total:.1%} carrying a code)"
+            )
+        else:
+            console.print(f"  {scheme}: no source-category occurrences recorded")
     for status, count in sorted(counts.items()):
-        console.print(f"  {status}: {count:,}")
+        console.print(f"  first pass {status}: {count:,}")
+    if recheck and "recheck_status" in frame.columns:
+        for status, count in sorted(frame["recheck_status"].value_counts().items()):
+            if status:
+                console.print(f"  recheck {status}: {int(count):,}")
+        if set(frame["recheck_status"]) <= {"NO_PEERS", ""}:
+            console.print(
+                "[yellow]  no row had peer evidence yet: only reviewed codes and accepted "
+                "suggestions cross a taxonomy boundary[/yellow]"
+            )
+        joint_counts = (
+            frame[["joint_key", "joint_status"]].drop_duplicates()["joint_status"].value_counts()
+        )
+        for status, count in sorted(joint_counts.items()):
+            console.print(f"  joint {status}: {int(count):,}")
 
 
 def _print_diagnostic_report(
@@ -767,7 +1001,9 @@ def evaluate(
 def classify(
     input_path: Annotated[Path, typer.Argument(help="openplaces-ph canonical_pois.parquet")],
     output_dir: Annotated[Path, typer.Option()] = Path("output"),
-    schemes: Annotated[str, typer.Option(help="Comma-separated: psic,pcpc,pscc")] = "psic",
+    schemes: Annotated[str, typer.Option(help="Comma-separated: psic,pcpc,pscc")] = (
+        "psic,pcpc,pscc"
+    ),
     version: Annotated[
         str | None, typer.Option(help="Override the default version for every scheme")
     ] = None,

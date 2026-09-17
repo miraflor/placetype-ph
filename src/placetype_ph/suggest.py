@@ -266,13 +266,17 @@ def _auto_proposal_block_reason(
     source_value: str,
     plan: QueryPlan,
 ) -> str | None:
-    """Return why semantic retrieval must remain candidate-only."""
+    """Return evidence-quality reasons semantic retrieval must remain candidate-only.
+
+    These guards describe the source evidence itself. ``raw_category`` is not one of them:
+    normalized category text is legitimate retrieval evidence. Scheme-specific admissibility
+    is handled separately in ``suggest_mapping``; in particular, PSCC requires commodity
+    evidence before a category-derived candidate may be promoted.
+    """
     if _has_multiple_source_components(source, source_value):
         return "compound_source"
-    if plan.rule == "raw_category":
-        return "raw_category"
     if plan.rule == "overture:store_suffix":
-        # This is a lexical heuristic, not a curated ontology rule.  The audit
+        # This is a lexical heuristic, not a curated ontology rule. The audit
         # showed systematic over-specialization for compound and pet stores.
         return "heuristic_store_suffix"
     if _is_ambiguous_pet_shop(source, source_value):
@@ -566,13 +570,28 @@ def suggest_mapping(
     min_score: float = 0.45,
     min_margin: float = 0.12,
 ) -> Suggestion:
-    # Curated source-ontology rewrites encode PSIC economic-activity semantics.
-    # PCPC and PSCC use raw source categories only and remain candidate-only.
-    plan = (
-        category_plan(source, source_value)
-        if taxonomy.scheme == "psic"
-        else QueryPlan(category_query(source, source_value))
-    )
+    """Generate one independent first-pass suggestion for one taxonomy.
+
+    All schemes are evaluated in the same joint pass, but evidence admissibility follows the
+    semantics of the classification. PSIC may use its curated activity-oriented query rewrites
+    and branch constraints. PCPC uses the normalized OpenPlaces category directly and may
+    propose a potential product/service family when retrieval is strong and separated. PSCC
+    also receives normalized category retrieval, but place-category text alone is not accepted
+    as commodity evidence: it remains candidate-only until a reviewer confirms a mapping or a
+    later workflow supplies explicit product/commodity evidence.
+
+    No first-pass suggestion becomes a reviewed crosswalk mapping without review. Every reason
+    a hit was kept candidate-only is recorded in ``suggestion_source`` as ``guard:<reason>``.
+    """
+    if taxonomy.scheme == "psic":
+        plan = category_plan(source, source_value)
+    else:
+        # Construct this explicitly rather than relying on QueryPlan defaults. PCPC and PSCC
+        # cannot reuse PSIC branch roots because codes are not portable across taxonomies.
+        plan = QueryPlan(
+            query_text=category_query(source, source_value),
+            rule="raw_category",
+        )
     compound_source = _has_multiple_source_components(source, source_value)
     query = plan.query_text
     branches = _valid_branch_roots(taxonomy, plan.branch_roots)
@@ -618,29 +637,26 @@ def suggest_mapping(
     top = scores[0]
     margin = top - scores[1] if len(scores) > 1 else top
 
-    # Retrieval stays a candidate generator. A semantic branch constraint may remove
-    # obvious false domains, but it does not make a fine-grained label true. Automatic
-    # proposals still require a strong, separated hit and remain review-only columns.
     suggested_kind = ""
     suggested_codes = ""
     source_name = f"semantic:{plan.rule};retrieval:candidates"
     status = "REVIEW_CANDIDATES"
-    query_tokens = [t for t in normalize_key(query).split() if len(t) > 2]
-    auto_block_reason = _auto_proposal_block_reason(source, source_value, plan)
-    if auto_block_reason is not None:
-        source_name = (
-            f"semantic:{plan.rule};retrieval:candidates;guard:{auto_block_reason}"
-        )
-    if (
-        top >= min_score
-        and margin >= min_margin
-        and len(query_tokens) >= 2
-        and auto_block_reason is None
-    ):
+    query_tokens = [token for token in normalize_key(query).split() if len(token) > 2]
+    block_reason = _auto_proposal_block_reason(source, source_value, plan)
+
+    # PSCC is present in the joint pass, produces candidates, receives peer-context rechecks,
+    # and may contribute reviewed codes as peer evidence. What it must not do is turn a POI
+    # category alone into an accepted commodity suggestion.
+    if block_reason is None and taxonomy.scheme == "pscc":
+        block_reason = "commodity_evidence_required"
+    elif block_reason is None and len(query_tokens) < 2:
+        block_reason = "short_query"
+
+    if block_reason is not None:
+        source_name = f"semantic:{plan.rule};retrieval:candidates;guard:{block_reason}"
+    if top >= min_score and margin >= min_margin and block_reason is None:
         suggested_codes = codes[0]
-        suggested_kind = (
-            "SUBTREE" if taxonomy.has_children(suggested_codes) else "EXACT"
-        )
+        suggested_kind = "SUBTREE" if taxonomy.has_children(suggested_codes) else "EXACT"
         source_name = f"semantic:{plan.rule};retrieval:strong_separated_hit"
         status = "REVIEW_REQUIRED"
 

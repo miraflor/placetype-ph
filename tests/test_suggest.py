@@ -244,30 +244,32 @@ def test_fsq_spa_in_multi_category_value_still_matches_beauty():
 
 
 
-def test_non_psic_suggestions_use_raw_category_and_never_auto_promote():
+def test_joint_first_pass_respects_scheme_evidence_policy():
+    """All three schemes run independently, but PSCC requires commodity evidence to promote."""
+
+    class Hit:
+        def __init__(self, code, score):
+            self.code = code
+            self.score = score
+
+    class ScriptedHits:
+        def __init__(self, ranking):
+            self.ranking = list(ranking)
+
+        def search_hierarchical(self, query, *, top_n=5, branch_roots=()):
+            return [Hit(code, score) for code, score in self.ranking[:top_n]]
+
     pcpc = Taxonomy(
         [
             TaxonomyNode("pcpc", "2002", "8", "section", "Services"),
-            TaxonomyNode(
-                "pcpc", "2002", "85", "division", "Health services", "8"
-            ),
-            TaxonomyNode(
-                "pcpc", "2002", "851", "group", "Hospital services", "85"
-            ),
+            TaxonomyNode("pcpc", "2002", "851", "group", "Hospital services", "8"),
+            TaxonomyNode("pcpc", "2002", "852", "group", "Dental services", "8"),
         ]
     )
-
     pscc = Taxonomy(
         [
             TaxonomyNode("pscc", "2022", "94", "chapter", "Furniture"),
-            TaxonomyNode(
-                "pscc",
-                "2022",
-                "9402",
-                "heading",
-                "Medical and hospital furniture",
-                "94",
-            ),
+            TaxonomyNode("pscc", "2022", "9402", "heading", "Medical furniture", "94"),
             TaxonomyNode(
                 "pscc",
                 "2022",
@@ -278,37 +280,76 @@ def test_non_psic_suggestions_use_raw_category_and_never_auto_promote():
             ),
         ]
     )
+    psic = Taxonomy(
+        [
+            TaxonomyNode("psic", "rev5", "Q", "section", "Human health activities"),
+            TaxonomyNode("psic", "rev5", "861", "group", "Hospital activities", "Q"),
+        ]
+    )
 
-    for taxonomy in (pcpc, pscc):
-        result = suggest_mapping(
-            taxonomy,
-            TaxonomyRetriever(taxonomy),
-            "overture",
-            "hospital",
-            min_score=0.0,
-            min_margin=-1.0,
-        )
+    pcpc_result = suggest_mapping(
+        pcpc,
+        ScriptedHits([("851", 0.95), ("852", 0.20)]),
+        "fsq",
+        "[Health and Medicine > Hospital]",
+    )
+    psic_result = suggest_mapping(
+        psic,
+        ScriptedHits([("861", 0.95), ("Q", 0.20)]),
+        "fsq",
+        "[Health and Medicine > Hospital]",
+    )
+    pscc_result = suggest_mapping(
+        pscc,
+        ScriptedHits([("94029015000", 0.95), ("9402", 0.20)]),
+        "fsq",
+        "[Retail > Medical Furniture]",
+    )
 
+    for result in (pcpc_result, psic_result):
         assert result.candidate_codes
-        assert result.suggested_kind == ""
-        assert result.suggested_codes == ""
-        assert "semantic:raw_category" in result.suggestion_source
-        assert "guard:raw_category" in result.suggestion_source
+        assert result.suggested_codes
+        assert result.suggested_kind in {"EXACT", "SUBTREE"}
+        assert result.review_status == "REVIEW_REQUIRED"
+        assert "guard:" not in result.suggestion_source
 
-        non_activity = suggest_mapping(
-            taxonomy,
-            TaxonomyRetriever(taxonomy),
-            "overture",
-            "historic_site",
-            min_score=0.0,
-            min_margin=-1.0,
-        )
+    assert pscc_result.candidate_codes
+    assert not pscc_result.suggested_codes
+    assert pscc_result.suggested_kind == ""
+    assert pscc_result.review_status == "REVIEW_CANDIDATES"
+    assert "guard:commodity_evidence_required" in pscc_result.suggestion_source
 
-        assert non_activity.suggested_kind == ""
-        assert (
-            non_activity.suggestion_source
-            != "rule:high_precision_non_activity"
-        )
+    # The short-query guard applies to the prepared query, not the raw source label.
+    # PCPC keeps Overture "hospital" as one token, so it is blocked. PSIC rewrites the same
+    # source label to "hospital activities", so use an uncurated one-token PSIC category to
+    # test the same guard there.
+    blocked_pcpc = suggest_mapping(
+        pcpc,
+        ScriptedHits([("851", 0.99)]),
+        "overture",
+        "hospital",
+        min_score=0.0,
+        min_margin=-1.0,
+    )
+    assert not blocked_pcpc.suggested_codes
+    assert "guard:short_query" in blocked_pcpc.suggestion_source
+
+    blocked_psic = suggest_mapping(
+        psic,
+        ScriptedHits([("861", 0.99)]),
+        "overture",
+        "museum",
+        min_score=0.0,
+        min_margin=-1.0,
+    )
+    assert not blocked_psic.suggested_codes
+    assert "guard:short_query" in blocked_psic.suggestion_source
+
+    # The PSIC-only semantic rejection remains PSIC-only.
+    non_activity = suggest_mapping(
+        pcpc, ScriptedHits([("851", 0.99)]), "overture", "historic_site"
+    )
+    assert non_activity.suggested_kind != "NOT_ACTIVITY"
 
 def test_v5_compound_source_detection():
     assert _has_multiple_source_components(
@@ -334,13 +375,15 @@ def test_v5_compound_source_detection():
     )
 
 
-def test_v5_candidate_only_guards():
+def test_v7_candidate_only_guards():
+    # Raw categories are legitimate text evidence for PSIC/PCPC retrieval. Whether PSCC may
+    # promote them is decided in suggest_mapping by its commodity-evidence policy.
     raw = category_plan("overture", "insurance_agency")
     assert _auto_proposal_block_reason(
         "overture",
         "insurance_agency",
         raw,
-    ) == "raw_category"
+    ) is None
 
     compound = category_plan(
         "fsq",
