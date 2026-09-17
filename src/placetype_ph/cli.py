@@ -37,7 +37,6 @@ from .suggest import (
     SUGGESTION_COLUMNS,
     finalize_suggestion,
     prepare_suggestion,
-    suggest_mapping,
 )
 from .taxonomy import LEVEL_ORDER, StructuralReport, Taxonomy, TaxonomyError
 from .taxonomy_import import (
@@ -452,7 +451,10 @@ def crosswalk_suggest(
         bool,
         typer.Option(
             "--recheck/--no-recheck",
-            help="Rerank first-pass candidates with accepted peer labels; no new codes are introduced",
+            help=(
+                "Rerank first-pass candidates with accepted peer labels; "
+                "no new codes are introduced"
+            ),
         ),
     ] = True,
     batch_size: Annotated[
@@ -594,7 +596,7 @@ def crosswalk_suggest(
             progress_bar.advance(task)
 
     unique_query_total = 0
-    for scope, positions in pending_by_scope.items():
+    for _scope, positions in pending_by_scope.items():
         unique_query_total += len(
             {
                 prepared_rows[position].query_text.strip()
