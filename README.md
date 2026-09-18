@@ -620,11 +620,14 @@ placetype gis-export .\output\metro-manila-workers-8
 ```
 
 It keeps `canonical_id`, `geometry`, each scheme's assigned code, and one column for every level
-of that scheme: `psic_5digit`, `psic_4digit`, `psic_3digit`, `psic_2digit`, `psic_section`, and
-the equivalent columns for PCPC (including `pcpc_6digit`) and PSCC (`pscc_11digit` down to
-`pscc_2digit`). Ancestor codes come from the taxonomy tree recorded in `run.json`, not from
-truncating the assigned code, so a class-level assignment leaves `psic_5digit` empty rather than
-presenting a subclass the classifier never chose.
+of that scheme, named by the taxonomy level rather than by code width:
+`psic_section`, `psic_division`, `psic_group`, `psic_class`, `psic_subclass`;
+`pcpc_section`, `pcpc_division`, `pcpc_group`, `pcpc_class`, `pcpc_subclass`, `pcpc_item`; and
+`pscc_chapter`, `pscc_heading`, `pscc_hs_subheading`, `pscc_ahtn_subheading`,
+`pscc_commodity`. Ancestor codes come from the taxonomy tree recorded in `run.json`, not from
+truncating the assigned code, so a class-level PSIC assignment leaves `psic_subclass` empty rather
+than presenting a subclass the classifier never chose. The separate `psic_code`, `pcpc_code`, and
+`pscc_code` columns remain the actual assigned classifications and may therefore stop at any level.
 
 Names, coordinates, taxonomy titles, candidate codes and audit fields are left out. `geometry` is
 kept because the file is meant to be a standalone layer rather than a join table. Add

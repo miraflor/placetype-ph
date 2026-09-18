@@ -26,28 +26,28 @@ _WKB_BINARY = pa.binary()
 
 PSIC_COLUMNS = [
     "psic_code",
-    "psic_5digit",
-    "psic_4digit",
-    "psic_3digit",
-    "psic_2digit",
+    "psic_subclass",
+    "psic_class",
+    "psic_group",
+    "psic_division",
     "psic_section",
 ]
 PCPC_COLUMNS = [
     "pcpc_code",
-    "pcpc_6digit",
-    "pcpc_5digit",
-    "pcpc_4digit",
-    "pcpc_3digit",
-    "pcpc_2digit",
+    "pcpc_item",
+    "pcpc_subclass",
+    "pcpc_class",
+    "pcpc_group",
+    "pcpc_division",
     "pcpc_section",
 ]
 PSCC_COLUMNS = [
     "pscc_code",
-    "pscc_11digit",
-    "pscc_8digit",
-    "pscc_6digit",
-    "pscc_4digit",
-    "pscc_2digit",
+    "pscc_commodity",
+    "pscc_ahtn_subheading",
+    "pscc_hs_subheading",
+    "pscc_heading",
+    "pscc_chapter",
 ]
 
 
@@ -229,16 +229,16 @@ def test_export_gis_run_is_compact_hierarchical_geoparquet(tmp_path: Path):
     ]
 
     # A coarse assignment populates its own level and its ancestors; deeper levels stay null.
-    assert pd.isna(result.loc[1, "psic_5digit"])
-    coarse = ["psic_4digit", "psic_3digit", "psic_2digit", "psic_section"]
+    assert pd.isna(result.loc[1, "psic_subclass"])
+    coarse = ["psic_class", "psic_group", "psic_division", "psic_section"]
     assert result.loc[1, coarse].tolist() == ["1011", "101", "10", "A"]
-    assert pd.isna(result.loc[1, "pcpc_6digit"])
-    assert pd.isna(result.loc[1, "pcpc_5digit"])
-    assert result.loc[1, "pcpc_4digit"] == "1234"
-    assert pd.isna(result.loc[1, "pscc_11digit"])
-    assert pd.isna(result.loc[1, "pscc_8digit"])
-    assert pd.isna(result.loc[1, "pscc_6digit"])
-    assert result.loc[1, "pscc_4digit"] == "1234"
+    assert pd.isna(result.loc[1, "pcpc_item"])
+    assert pd.isna(result.loc[1, "pcpc_subclass"])
+    assert result.loc[1, "pcpc_class"] == "1234"
+    assert pd.isna(result.loc[1, "pscc_commodity"])
+    assert pd.isna(result.loc[1, "pscc_ahtn_subheading"])
+    assert pd.isna(result.loc[1, "pscc_hs_subheading"])
+    assert result.loc[1, "pscc_heading"] == "1234"
 
     # An unclassified row carries geometry and nothing else.
     assert result.loc[2, [c for c in result.columns if c.startswith("psic_")]].isna().all()
@@ -263,7 +263,7 @@ def test_export_declares_string_columns_even_when_a_level_is_never_reached(tmp_p
 
     output = export_gis_run(run_dir, reference_dir=tmp_path / "reference")
     schema = pq.read_schema(output)
-    assert schema.field("psic_5digit").type == pa.string()
+    assert schema.field("psic_subclass").type == pa.string()
     assert schema.field("psic_code").type == pa.string()
 
 
