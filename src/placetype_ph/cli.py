@@ -24,6 +24,25 @@ from .cache import DecisionCache
 from .classifier import EntityClassifier
 from .crosswalk import Crosswalk
 from .evaluate import evaluate_predictions, load_gold
+from .express import (
+    CLASSIFY_PARAMS,
+    EXPRESS_AUTOMATIC_COLUMNS,
+    EXPRESS_SUGGESTION_COLUMNS,
+    SUGGEST_PARAMS,
+    classification_run_ready,
+    crosswalk_has_mappings,
+    csv_ready,
+    default_output_path,
+    file_state,
+    find_local_taxonomy_source,
+    input_cache_key,
+    pipeline_state,
+    promote_auto_suggestions,
+    promoted_total,
+    reference_is_joint_format,
+    seed_joint_worklist,
+    summarize_automatic_crosswalk,
+)
 from .gis import GISExportError, export_gis_run
 from .joint_crosswalk import (
     ensure_joint_key,
@@ -1121,6 +1140,344 @@ def evaluate(
     console.print(metrics.to_string(index=False))
     console.print(summary)
     console.print(f"Wrote {metrics_path} and {summary_path}")
+
+
+def _bootstrap_express_taxonomy(
+    scheme: str,
+    version: str,
+    *,
+    token: str | None,
+    reference_dir: Path,
+) -> Taxonomy:
+    """Load an existing tree, rebuild it locally, or finally fetch it."""
+    path = reference_dir / f"{scheme}_{version}" / "nodes.parquet"
+    if path.is_file():
+        taxonomy = Taxonomy.load(path)
+        if (taxonomy.scheme, taxonomy.version) != (scheme, version):
+            console.print(
+                f"[red]{path} contains {taxonomy.scheme} {taxonomy.version}, "
+                f"but {scheme} {version} was requested[/red]"
+            )
+            raise typer.Exit(1)
+        console.print(
+            f"Reusing {scheme.upper()} {version} taxonomy: [dim]{path}[/dim]"
+        )
+        return taxonomy
+
+    local_source = find_local_taxonomy_source(reference_dir, scheme, version)
+    if local_source is not None:
+        console.print(
+            f"Building missing {scheme.upper()} {version} taxonomy from "
+            f"[dim]{local_source}[/dim]"
+        )
+        try:
+            taxonomy, report = _import_workbook(
+                path=local_source,
+                scheme=scheme,
+                version=version,
+                source_url=OFFICIAL_FILES.get((scheme, version), ""),
+                strict=True,
+                strict_levels=False,
+            )
+        except TaxonomyError as exc:
+            console.print(
+                f"[yellow]Local taxonomy source could not be normalized:[/yellow] {exc}"
+            )
+        else:
+            _report_discards(report)
+            _warn_level_gaps(taxonomy.structural_report())
+            if (scheme, version) in EXPECTED_STRUCTURE:
+                _require_official_structure(
+                    taxonomy, allow_structure_deviation=False
+                )
+            path.parent.mkdir(parents=True, exist_ok=True)
+            taxonomy.save(path)
+            console.print(
+                f"Wrote {len(taxonomy.nodes):,} {scheme.upper()} nodes to {path}"
+            )
+            return taxonomy
+
+    console.print(
+        f"No reusable local tree/source for {scheme.upper()} {version}; fetching it..."
+    )
+    fetch_taxonomy(
+        scheme=scheme,
+        version=version,
+        output=path,
+        token=token,
+        allow_orphan_nodes=False,
+        strict_levels=False,
+        level_column=None,
+        allow_structure_deviation=False,
+    )
+    return _load_taxonomy(scheme, version)
+
+
+@app.command("express")
+def express(
+    input_path: Annotated[
+        Path, typer.Argument(help="openplaces-ph canonical_pois.parquet")
+    ],
+    output: Annotated[
+        Path | None,
+        typer.Option(help="Final QGIS-ready GeoParquet"),
+    ] = None,
+    schemes: Annotated[
+        str,
+        typer.Option(
+            help="Comma-separated schemes; defaults to the joint PSIC, PCPC and PSCC workflow"
+        ),
+    ] = "psic,pcpc,pscc",
+    product_column: Annotated[
+        str | None,
+        typer.Option(
+            help=(
+                "Product/commodity text passed through to classify. With Express's "
+                "deterministic llm=none default, this does not itself infer a taxonomy code"
+            )
+        ),
+    ] = None,
+    promote_unchecked: Annotated[
+        bool,
+        typer.Option(
+            "--promote-unchecked/--no-promote-unchecked",
+            help=(
+                "Promote a first-pass suggestion when the peer recheck reached no verdict "
+                "for it. Use --no-promote-unchecked to accept only suggestions the recheck "
+                "actually cleared"
+            ),
+        ),
+    ] = True,
+    hold_inconclusive: Annotated[
+        bool,
+        typer.Option(
+            "--hold-inconclusive/--no-hold-inconclusive",
+            help=(
+                "Hold a suggestion the peer recheck argued against without being decisive "
+                "(SHIFT_WEAK), while still promoting suggestions the recheck never saw. "
+                "Candidate-only shifts remain diagnostic"
+            ),
+        ),
+    ] = False,
+    workers: Annotated[
+        int,
+        typer.Option(
+            min=1,
+            help="Parallel worker processes for deterministic classification",
+        ),
+    ] = 1,
+    with_status: Annotated[
+        bool,
+        typer.Option(
+            "--with-status/--no-with-status",
+            help="Include <scheme>_status columns in the QGIS layer",
+        ),
+    ] = True,
+    token: Annotated[
+        str | None,
+        typer.Option(
+            help=(
+                "PSA classification API token if PCPC must be fetched because neither "
+                "its nodes nor its local source workbook exists"
+            )
+        ),
+    ] = None,
+):
+    """Run the normal OpenPlaces-to-QGIS workflow with sensible automatic defaults.
+
+    Express is intentionally an orchestration layer. It reuses the existing taxonomy
+    importer, joint crosswalk workflow, classifier, and GIS exporter rather than defining
+    a second classification path.
+    """
+    if not input_path.is_file():
+        raise typer.BadParameter(f"input does not exist: {input_path}")
+
+    selected: list[str] = []
+    for raw in schemes.split(","):
+        if not raw.strip():
+            continue
+        scheme = _check_scheme(raw.strip())
+        if scheme not in selected:
+            selected.append(scheme)
+    if not selected:
+        raise typer.BadParameter("no scheme selected")
+    # Sorted so that --schemes pcpc,psic and --schemes psic,pcpc are one cached run.
+    selected.sort()
+
+    if len(selected) == 1:
+        console.print(
+            "[yellow]One scheme selected: the peer recheck has no peer taxonomy to compare "
+            "against, so every suggestion will be unchecked.[/yellow]"
+        )
+
+    reference_dir = Path("reference")
+    versions = {scheme: DEFAULT_VERSIONS[scheme] for scheme in selected}
+    taxonomies: dict[str, Taxonomy] = {}
+    for scheme in selected:
+        taxonomies[scheme] = _bootstrap_express_taxonomy(
+            scheme,
+            versions[scheme],
+            token=token,
+            reference_dir=reference_dir,
+        )
+
+    crosswalk_dir = reference_dir / "crosswalks"
+    joint_reference = crosswalk_dir / "joint.csv"
+    # The seed path can fall back from joint.csv to legacy per-scheme files. Fingerprint
+    # both so changing either possible source invalidates the cached express run.
+    reference_states = [
+        file_state(joint_reference),
+        *[
+            file_state(crosswalk_dir / f"{scheme}_{versions[scheme]}.csv")
+            for scheme in selected
+        ],
+    ]
+
+    states = [
+        f"package:{__version__}",
+        f"schemes:{','.join(selected)}",
+        f"product_column:{product_column or ''}",
+        f"promote_unchecked:{bool(promote_unchecked)}",
+        f"hold_inconclusive:{bool(hold_inconclusive)}",
+        pipeline_state(),
+        *[
+            f"taxonomy:{scheme}:{versions[scheme]}:{taxonomies[scheme].fingerprint}"
+            for scheme in selected
+        ],
+        *reference_states,
+    ]
+    key = input_cache_key(input_path, states)
+    work_dir = Path("data") / "work" / "express" / key
+    run_dir = Path("output") / "express" / key
+
+    worklist = work_dir / "joint.csv"
+    suggested = work_dir / "joint_suggested.csv"
+    automatic = work_dir / "joint_auto.csv"
+
+    if csv_ready(automatic, EXPRESS_AUTOMATIC_COLUMNS):
+        console.print(f"Reusing automatic joint crosswalk: [dim]{automatic}[/dim]")
+    else:
+        if csv_ready(suggested, EXPRESS_SUGGESTION_COLUMNS):
+            console.print(f"Reusing joint suggestions: [dim]{suggested}[/dim]")
+        else:
+            if joint_reference.is_file() and not reference_is_joint_format(joint_reference):
+                console.print(
+                    f"[yellow]{joint_reference} is not a usable joint worklist; leaving it "
+                    f"to the legacy adoption path in crosswalk-init[/yellow]"
+                )
+            elif not worklist.exists() and seed_joint_worklist(
+                joint_reference, worklist, schemes=set(selected)
+            ):
+                console.print(
+                    f"Seeded express worklist from reviewed mappings in "
+                    f"[dim]{joint_reference}[/dim]"
+                )
+
+            crosswalk_init(
+                input_path=input_path,
+                output=worklist,
+                schemes=",".join(selected),
+                version=None,
+                adopt_legacy=True,
+            )
+            crosswalk_suggest(
+                input_path=worklist,
+                output=suggested,
+                taxonomy_paths=None,
+                top_n=SUGGEST_PARAMS["top_n"],
+                min_score=SUGGEST_PARAMS["min_score"],
+                min_margin=SUGGEST_PARAMS["min_margin"],
+                recheck=SUGGEST_PARAMS["recheck"],
+                batch_size=SUGGEST_PARAMS["batch_size"],
+                show_progress=True,
+            )
+
+        promote_auto_suggestions(
+            suggested,
+            automatic,
+            promote_unchecked=promote_unchecked,
+            hold_inconclusive=hold_inconclusive,
+        )
+
+    # Report the same evidence state on both a fresh run and a resumed run. Otherwise a
+    # reused AUTO_ACCEPTED_UNCHECKED crosswalk would silently lose its warning.
+    summary = summarize_automatic_crosswalk(automatic)
+    console.print(
+        "Express crosswalk: "
+        f"{summary['reviewed']:,} reviewed, "
+        f"{promoted_total(summary):,} auto-accepted, "
+        f"{summary['held_recheck'] + summary['held_inconclusive'] + summary['held_no_verdict']:,}"
+        " held, "
+        f"{summary['unresolved']:,} unresolved"
+    )
+    console.print(
+        f"  accepted: {summary['promoted_cleared']:,} cleared by the recheck, "
+        f"{summary['promoted_inconclusive']:,} despite an inconclusive recheck, "
+        f"{summary['promoted_unchecked']:,} with no verdict"
+    )
+    console.print(
+        f"  held: {summary['held_recheck']:,} contradicted, "
+        f"{summary['held_inconclusive']:,} inconclusive, "
+        f"{summary['held_no_verdict']:,} for want of a verdict"
+    )
+    if summary["without_code"]:
+        console.print(
+            f"  of the promotions, {summary['without_code']:,} assign no taxonomy code "
+            f"(NOT_ACTIVITY and similar kinds)"
+        )
+    if summary["held_unclearable"]:
+        console.print(
+            f"[yellow]  {summary['held_unclearable']:,} held rows assign no code; the peer "
+            f"recheck cannot clear them. Review directly or allow unchecked promotion.[/yellow]"
+        )
+    if promoted_total(summary) and summary["promoted_cleared"] == 0:
+        console.print(
+            "[yellow]No automatic mapping in this run was cleared by the peer recheck. "
+            "Review joint_auto.csv before trusting the layer, or rerun with "
+            "--no-promote-unchecked.[/yellow]"
+        )
+
+    # Checked on both paths: a reused crosswalk can be just as empty as a fresh one.
+    if not crosswalk_has_mappings(automatic):
+        console.print(
+            "[red]No reviewed or automatic mapping survived; classification would "
+            f"produce an empty layer. Review {suggested} before continuing.[/red]"
+        )
+        raise typer.Exit(1)
+
+    if classification_run_ready(run_dir):
+        console.print(f"Reusing completed classification run: [dim]{run_dir}[/dim]")
+    else:
+        classify(
+            input_path=input_path,
+            output_dir=run_dir,
+            schemes=",".join(selected),
+            version=None,
+            crosswalk=[automatic],
+            llm=CLASSIFY_PARAMS["llm"],
+            model=None,
+            passes=CLASSIFY_PARAMS["passes"],
+            product_column=product_column,
+            limit=None,
+            workers=workers,
+            cache_path=run_dir / "decisions.sqlite",
+            fail_on_ambiguous_crosswalk=CLASSIFY_PARAMS["fail_on_ambiguous_crosswalk"],
+        )
+
+    final_output = output or default_output_path(input_path)
+    try:
+        written = export_gis_run(
+            run_dir,
+            output_path=final_output,
+            reference_dir=reference_dir,
+            include_status=with_status,
+            check_taxonomy_fingerprint=True,
+        )
+    except GISExportError as exc:
+        console.print(f"[red]GIS export failed:[/red] {exc}")
+        raise typer.Exit(1) from exc
+
+    console.print(f"[green]Express complete:[/green] [bold]{written}[/bold]")
 
 
 @app.command("classify")

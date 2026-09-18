@@ -308,6 +308,124 @@ placetype inspect $iloilo --top 30
 
 This reports the distinct FSQ, Overture and OSM category vocabularies and their frequencies.
 
+## Express: OpenPlaces straight to QGIS
+
+For the normal zero-intervention path, point `express` directly at an OpenPlaces
+`canonical_pois.parquet`:
+
+```powershell
+placetype express `
+  ..\openplaces-ph\data\output\areas_metro_manila\canonical_pois.parquet
+```
+
+By default Express uses the current joint **PSIC + PCPC + PSCC** workflow and writes:
+
+```text
+output\areas_metro_manila_placetype.parquet
+```
+
+The upstream OpenPlaces file is read only. Express writes its temporary work under
+`data/work/express/` and its reusable classification run under `output/express/`.
+
+Express is an orchestration layer over the normal commands. It:
+
+1. reuses each normalized taxonomy when its `nodes.parquet` already exists;
+2. if a tree is missing, first rebuilds it from an already-downloaded PSA workbook;
+3. only if neither exists does it use the normal taxonomy fetch path;
+4. creates one joint PSIC/PCPC/PSCC worklist for the current OpenPlaces input;
+5. seeds that worklist from `reference/crosswalks/joint.csv` when available, otherwise
+   retaining the legacy per-scheme migration behavior;
+6. runs the current batched first-pass suggestion and bounded peer-context recheck;
+7. promotes a first-pass suggestion only when the peer recheck did not contradict it;
+8. leaves candidate-only and contradicted suggestions unresolved rather than
+   manufacturing a taxonomy code;
+9. runs deterministic POI classification with the resulting joint crosswalk; and
+10. writes the normal compact QGIS GeoParquet with status columns by default.
+
+Reviewed mappings always outrank automatic suggestions. The recheck remains diagnostic:
+Express never turns `recheck_top_code` into a new mapping.
+
+### What the recheck can and cannot tell you
+
+The peer recheck compares a suggestion against the same retrieval call with peer labels
+from the other taxonomies appended. It can only do that when the peer rows in the same
+joint group already carry a code. On a cold start almost none of them do, so most rows
+come back `NO_PEERS`: the comparison never ran. `NO_CONTROL_HIT`, `NO_RECHECK_HIT` and
+`MISSING_TAXONOMY` mean the same thing for a different reason.
+
+Express therefore separates four outcomes, and reports them separately:
+
+| Recheck outcome | `recheck_status` | Express |
+| --- | --- | --- |
+| Cleared | `STABLE` | `AUTO_ACCEPTED` |
+| Contradicted | `SHIFT` | `HELD_RECHECK` |
+| Inconclusive | `SHIFT_WEAK` | `AUTO_ACCEPTED_INCONCLUSIVE`, or `HELD_INCONCLUSIVE` under `--hold-inconclusive` or `--no-promote-unchecked` |
+| No verdict / candidate diagnostic | `CANDIDATE_STABLE`, `CANDIDATE_SHIFT`, `NO_PEERS`, `NO_CONTROL_HIT`, `NO_RECHECK_HIT`, `MISSING_TAXONOMY`, anything unrecognized | candidate-only rows stay `UNRESOLVED`; otherwise `AUTO_ACCEPTED_UNCHECKED`, or `HELD_NO_VERDICT` under `--no-promote-unchecked` |
+
+Inconclusive and no verdict are kept apart because they are different states. `SHIFT_WEAK`
+means the comparison ran and the top candidate moved, just by less than `min_margin`.
+`NO_PEERS` means no comparison happened. Both are promoted by default, but only the first
+is evidence, and only the first can be held on its own:
+
+```powershell
+placetype express canonical_pois.parquet --hold-inconclusive
+```
+
+That holds suggestions the recheck argued against while still promoting the ones it never
+saw, which is usually what you want once part of the crosswalk is reviewed.
+
+One consequence worth knowing. The comparison runs over first-pass codes, so a suggestion
+that assigns no code, such as `NOT_ACTIVITY`, cannot reach `STABLE` through the peer
+recheck. Under `--no-promote-unchecked` those rows stay held until reviewed directly or
+unchecked promotion is allowed. Express reports how many held rows are in that position.
+
+Only `STABLE` and `SHIFT` are decisive for Express. Candidate-only statuses describe rows
+that did not yet carry an accepted first-pass code, so they stay diagnostic rather than
+entering the promotion-policy verdict. `SHIFT_WEAK` is different: the comparison ran but
+did not meet the configured margin, so Express records it as `INCONCLUSIVE`.
+
+By default a row with no verdict is still promoted, because otherwise a first run against
+an unreviewed input would produce nothing. It is recorded as `AUTO_ACCEPTED_UNCHECKED` in
+`express_status`, and the run prints how many mappings rest on no evidence. To accept only
+suggestions the recheck actually cleared:
+
+```powershell
+placetype express canonical_pois.parquet --no-promote-unchecked
+```
+
+Selecting a single scheme removes the peer comparison entirely, since a joint group then
+holds one row and there is no peer taxonomy to compare against. Express says so before it
+starts.
+
+The workflow is resumable. Its cache key includes the OpenPlaces file state, selected
+schemes, package version, taxonomy fingerprints, the reviewed crosswalk state, the
+product column, the promotion policy, and every threshold Express passes to
+`crosswalk-suggest` and `classify`. Changing any of them starts a new run rather than
+reusing an old one. Small inputs are keyed by content, so copying or re-cloning the
+repository does not invalidate a valid run. An unchanged automatic crosswalk and
+completed classification run are reused.
+
+Advanced users can still select schemes explicitly:
+
+```powershell
+placetype express canonical_pois.parquet --schemes psic
+```
+
+For PCPC/PSCC, explicit product or commodity text can be passed through to `classify`:
+
+```powershell
+placetype express enriched_places.parquet `
+  --product-column product_text
+```
+
+Express deliberately uses deterministic `--llm none`. The product column therefore does
+not by itself infer a PCPC or PSCC code; it supplies product evidence to the underlying
+scheme policy. Use the lower-level `classify` command with a traversal backend when you
+want free product text to drive taxonomy retrieval and classification.
+
+If PCPC must be fetched because both its normalized tree and retained local workbook are
+absent, set `PSA_CLASSIFICATION_TOKEN` or pass `--token`.
+
 ## 3. Create the crosswalk worklist
 
 The expensive unit is the **distinct category value**, not the POI row.
