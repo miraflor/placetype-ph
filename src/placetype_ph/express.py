@@ -9,10 +9,9 @@ from pathlib import Path
 
 import pandas as pd
 
-# "joint-v5" keeps candidate-only recheck statuses outside the promotion-policy verdict,
-# so Express state written by the v5 draft must not be reused. Bump this again whenever
-# semantics change in a way not represented by pipeline_state() or another cache-key state.
-EXPRESS_CACHE_VERSION = "joint-v7-joint-economic-roles"
+# The cache version changes whenever suggestion semantics change in a way that would make
+# an older automatic crosswalk unsafe to reuse. V8 adds trusted coarse PSIC floors.
+EXPRESS_CACHE_VERSION = "joint-v8-psic-trusted-floor"
 
 # Files at or below this size are keyed by content. Larger inputs keep the cheap
 # size/mtime identity, because hashing a full canonical_pois.parquet on every run costs

@@ -1285,6 +1285,13 @@ def express(
             help="Include <scheme>_status columns in the QGIS layer",
         ),
     ] = True,
+    with_canonical_name: Annotated[
+        bool,
+        typer.Option(
+            "--with-canonical-name/--no-with-canonical-name",
+            help="Include canonical_name in the final QGIS layer",
+        ),
+    ] = False,
     token: Annotated[
         str | None,
         typer.Option(
@@ -1483,6 +1490,7 @@ def express(
             output_path=final_output,
             reference_dir=reference_dir,
             include_status=with_status,
+            include_canonical_name=with_canonical_name,
             check_taxonomy_fingerprint=True,
         )
     except GISExportError as exc:
@@ -1610,6 +1618,13 @@ def gis_export(
             help="Also export <scheme>_status so an empty code can be explained in QGIS",
         ),
     ] = False,
+    with_canonical_name: Annotated[
+        bool,
+        typer.Option(
+            "--with-canonical-name/--no-with-canonical-name",
+            help="Also export canonical_name for labeling and inspection in QGIS",
+        ),
+    ] = False,
     check_taxonomy_fingerprint: Annotated[
         bool,
         typer.Option(
@@ -1624,6 +1639,7 @@ def gis_export(
             output_path=output,
             reference_dir=reference_dir,
             include_status=with_status,
+            include_canonical_name=with_canonical_name,
             check_taxonomy_fingerprint=check_taxonomy_fingerprint,
         )
     except GISExportError as exc:

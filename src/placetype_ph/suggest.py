@@ -166,6 +166,80 @@ _OSM_SHOP_RULES: dict[str, tuple[str, tuple[str, ...]]] = {
 }
 
 
+# A floor is stronger than a retrieval branch: it is a coarse PSIC classification that
+# the source ontology itself supports well enough to retain when semantic retrieval cannot
+# justify a refinement. Keep this allowlist deliberately narrower than _OVERTURE_RULES.
+# Broad buckets such as health_care and shopping, genuinely ambiguous categories such as
+# bakery, and multi-purpose categories such as party_and_event_planning remain retrieval-only.
+_TRUSTED_OVERTURE_FLOOR_CATEGORIES = frozenset(
+    {
+        "restaurant",
+        "fast_food_restaurant",
+        "filipino_restaurant",
+        "seafood_restaurant",
+        "barbecue_restaurant",
+        "coffee_shop",
+        "cafe",
+        "bar",
+        "hotel",
+        "lodging",
+        "real_estate_service",
+        "government_office",
+        "school",
+        "elementary_school",
+        "college_university",
+        "education",
+        "pharmacy",
+        "dental_clinic",
+        "hospital",
+        "christian_place_of_worship",
+        "roman_catholic_place_of_worship",
+        "religious_organization",
+        "beauty_salon",
+        "spa",
+        "barber",
+        "laundromat",
+        "hardware_store",
+        "clothing_store",
+        "convenience_store",
+        "grocery_store",
+        "auto_dealer",
+        "auto_parts_store",
+        "gas_station",
+        "automotive_repair",
+        "printing_service",
+        "electronics_store",
+        "travel_service",
+        "gym",
+        "professional_service",
+    }
+)
+
+_TRUSTED_FSQ_FLOOR_RULES = frozenset(
+    {
+        "fsq:retail_pharmacy",
+        "fsq:retail_convenience",
+        "fsq:retail_hardware",
+        "fsq:retail_electronics",
+        "fsq:retail_clothing",
+        "fsq:restaurant",
+        "fsq:beverage",
+        "fsq:pharmacy",
+        "fsq:hospital",
+        "fsq:medical_practice",
+        "fsq:education",
+        "fsq:religion",
+        "fsq:government",
+        "fsq:fitness",
+        "fsq:bank",
+        "fsq:beauty",
+        "fsq:auto_repair",
+        "fsq:lodging",
+        "fsq:fuel",
+    }
+)
+
+
 @dataclass(frozen=True, slots=True)
 class QueryPlan:
     query_text: str
@@ -473,7 +547,12 @@ def _fsq_plan(value: str) -> QueryPlan | None:
         return QueryPlan(text)
 
     if folded[0] == "business and professional services":
-        if "bank" in joined or "banking" in joined:
+        if folded[-1] in {
+            "bank",
+            "credit union",
+            "banking and finance",
+            "banking and finances",
+        }:
             return QueryPlan("banking activities", ("64",), "fsq:bank")
         if "hair salon" in joined or "spa" in joined.replace(",", " ").split():
             return QueryPlan(
@@ -556,6 +635,40 @@ def category_plan(source: str, value: str) -> QueryPlan:
     return QueryPlan(category_query(source, value))
 
 
+def _trusted_floor_code(source: str, source_value: str, plan: QueryPlan) -> str | None:
+    """Return a conservative coarse PSIC floor established by source ontology evidence.
+
+    `branch_roots` remain search constraints. Only an explicitly trusted rule with one root
+    becomes a floor. Compound source values never establish a floor because they may describe
+    several independent activities.
+    """
+    if len(plan.branch_roots) != 1:
+        return None
+    if _has_multiple_source_components(source, source_value):
+        return None
+
+    rule = plan.rule
+    trusted = False
+    if source.casefold().strip() == "overture":
+        folded = _unwrap_category(source_value).casefold().strip()
+        trusted = (
+            folded in _TRUSTED_OVERTURE_FLOOR_CATEGORIES
+            or rule == "overture:restaurant_suffix"
+        )
+    elif source.casefold().strip() == "fsq":
+        trusted = rule in _TRUSTED_FSQ_FLOOR_RULES
+    elif source.casefold().strip() == "osm":
+        # These rule names are produced only after a value matched one of the explicit
+        # curated OSM dictionaries above. Generic `shop=*` uses the distinct rule "osm:shop".
+        trusted = (
+            rule.startswith("osm:amenity=")
+            or rule.startswith("osm:shop=")
+            or rule in {"osm:government", "osm:hotel", "osm:lodging"}
+        )
+
+    return plan.branch_roots[0] if trusted else None
+
+
 def _valid_branch_roots(taxonomy: Taxonomy, roots: tuple[str, ...]) -> tuple[str, ...]:
     return tuple(code for code in roots if code in taxonomy.nodes)
 
@@ -601,6 +714,7 @@ class PreparedSuggestion:
     rule: str = "raw_category"
     block_reason: str | None = None
     terminal: Suggestion | None = None
+    floor_code: str | None = None
 
 def prepare_suggestion(
     taxonomy: Taxonomy,
@@ -620,6 +734,14 @@ def prepare_suggestion(
     query = plan.query_text
     branches = _valid_branch_roots(taxonomy, plan.branch_roots)
     branch_titles = tuple(taxonomy.get(code).title for code in branches)
+    proposed_floor = (
+        _trusted_floor_code(source, source_value, plan)
+        if taxonomy.scheme == "psic"
+        else None
+    )
+    floor_code = (
+        proposed_floor if proposed_floor is not None and proposed_floor in branches else None
+    )
 
     if (
         taxonomy.scheme == "psic"
@@ -665,8 +787,21 @@ def prepare_suggestion(
         branch_codes=branches,
         branch_titles=branch_titles,
         rule=plan.rule,
+        floor_code=floor_code,
         block_reason=block_reason,
     )
+
+
+def _floor_source(prepared: PreparedSuggestion, retrieval_state: str) -> str:
+    parts = [
+        f"rule:{prepared.rule}",
+        "floor:trusted_source_ontology",
+        f"retrieval:{retrieval_state}",
+    ]
+    if prepared.block_reason is not None:
+        parts.append(f"guard:{prepared.block_reason}")
+    return ";".join(parts)
+
 
 def finalize_suggestion(
     taxonomy: Taxonomy,
@@ -684,6 +819,17 @@ def finalize_suggestion(
     branches = prepared.branch_codes
     branch_titles = prepared.branch_titles
     if not hits:
+        if prepared.floor_code is not None:
+            floor = prepared.floor_code
+            return Suggestion(
+                query_text=query,
+                branch_codes="|".join(branches),
+                branch_titles=" || ".join(branch_titles),
+                suggested_kind="SUBTREE" if taxonomy.has_children(floor) else "EXACT",
+                suggested_codes=floor,
+                suggestion_source=_floor_source(prepared, "no_candidates"),
+                review_status="REVIEW_MAPPING",
+            )
         return Suggestion(
             query_text=query,
             branch_codes="|".join(branches),
@@ -711,6 +857,11 @@ def finalize_suggestion(
         suggested_codes = codes[0]
         suggested_kind = "SUBTREE" if taxonomy.has_children(suggested_codes) else "EXACT"
         source_name = f"semantic:{prepared.rule};retrieval:strong_separated_hit"
+        status = "REVIEW_MAPPING"
+    elif prepared.floor_code is not None:
+        suggested_codes = prepared.floor_code
+        suggested_kind = "SUBTREE" if taxonomy.has_children(suggested_codes) else "EXACT"
+        source_name = _floor_source(prepared, "insufficient_for_refinement")
         status = "REVIEW_MAPPING"
 
     return Suggestion(

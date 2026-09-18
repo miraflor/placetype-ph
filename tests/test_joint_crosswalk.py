@@ -251,6 +251,110 @@ def test_recheck_cannot_introduce_codes_outside_first_pass_candidates():
     assert set(out["joint_status"]) == {"RECHECK"}
 
 
+def test_trusted_floor_recheck_is_stable_when_only_descendant_ranking_changes():
+    taxonomies = {
+        ("psic", "rev5"): Taxonomy(
+            [
+                TaxonomyNode("psic", "rev5", "Q", "section", "Human health"),
+                TaxonomyNode("psic", "rev5", "86", "division", "Human health", "Q"),
+                TaxonomyNode("psic", "rev5", "861", "group", "Hospital activities", "86"),
+                TaxonomyNode(
+                    "psic",
+                    "rev5",
+                    "862",
+                    "group",
+                    "Medical and dental practice activities",
+                    "86",
+                ),
+            ]
+        ),
+        ("pcpc", "2002"): _taxonomies()[("pcpc", "2002")],
+    }
+    rows = (
+        _row(
+            "psic",
+            "rev5",
+            "86",
+            candidate_codes="861|862",
+            candidate_scores="0.900000|0.800000",
+            suggestion_source=(
+                "rule:test;floor:trusted_source_ontology;"
+                "retrieval:insufficient_for_refinement"
+            ),
+        ),
+        _row(
+            "pcpc",
+            "2002",
+            "63",
+            candidate_codes="63|64",
+            candidate_scores="0.900000|0.400000",
+        ),
+    )
+    retrievers = {
+        ("psic", "rev5"): ScriptedRetriever(
+            [("861", 0.90), ("862", 0.80)],
+            treatment=[("862", 0.95), ("861", 0.50)],
+        ),
+        ("pcpc", "2002"): ScriptedRetriever([("63", 0.90), ("64", 0.40)]),
+    }
+    out = recheck_joint_worklist(_frame(*rows), taxonomies, retrievers, top_n=2)
+    psic = out[out["scheme"] == "psic"].iloc[0]
+    assert psic["control_top_code"] == "861"
+    assert psic["recheck_top_code"] == "862"
+    assert psic["first_pass_status"] == "AGREES"
+    assert psic["recheck_status"] == "STABLE"
+    assert set(out["joint_status"]) == {"STABLE"}
+
+
+def test_floor_marker_does_not_change_non_psic_recheck_semantics():
+    rows = list(_three_rows())
+    rows[1] = _row(
+        "pcpc",
+        "2002",
+        "6",
+        candidate_codes="63|64",
+        candidate_scores="0.900000|0.800000",
+        suggestion_source=(
+            "rule:test;floor:trusted_source_ontology;"
+            "retrieval:insufficient_for_refinement"
+        ),
+    )
+    retrievers = _stable_retrievers()
+    retrievers[("pcpc", "2002")] = ScriptedRetriever(
+        [("63", 0.90), ("64", 0.80)],
+        treatment=[("64", 0.95), ("63", 0.50)],
+    )
+    out = recheck_joint_worklist(
+        _frame(*rows), _taxonomies(), retrievers, top_n=2, min_margin=0.12
+    )
+    pcpc = out[out["scheme"] == "pcpc"].iloc[0]
+    assert pcpc["recheck_status"] == "SHIFT"
+    assert set(out["joint_status"]) == {"RECHECK"}
+
+
+def test_non_floor_coarse_suggestion_still_uses_existing_shift_logic():
+    rows = list(_three_rows())
+    rows[0] = _row(
+        "psic",
+        "rev5",
+        "I",
+        candidate_codes="56|I",
+        candidate_scores="0.900000|0.400000",
+        suggestion_source="semantic:test",
+    )
+    retrievers = _stable_retrievers()
+    retrievers[("psic", "rev5")] = ScriptedRetriever(
+        [("56", 0.90), ("I", 0.40)],
+        treatment=[("I", 0.95), ("56", 0.40)],
+    )
+    out = recheck_joint_worklist(
+        _frame(*rows), _taxonomies(), retrievers, top_n=2, min_margin=0.12
+    )
+    psic = out[out["scheme"] == "psic"].iloc[0]
+    assert psic["recheck_status"] == "SHIFT"
+    assert set(out["joint_status"]) == {"RECHECK"}
+
+
 def test_shift_below_the_margin_is_reported_but_not_escalated():
     retrievers = _stable_retrievers()
     retrievers[("pcpc", "2002")] = ScriptedRetriever(

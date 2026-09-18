@@ -174,6 +174,7 @@ def build_gis_export(
     output_path: str | Path,
     *,
     include_status: bool = False,
+    include_canonical_name: bool = False,
     geo_metadata_status: str | None = None,
     provenance: Mapping[str, object] | None = None,
 ) -> Path:
@@ -203,6 +204,10 @@ def build_gis_export(
         raise GISExportError(
             f"{classified_pois_path} is missing required GIS column(s): {sorted(missing)}"
         )
+    if include_canonical_name and "canonical_name" not in names:
+        raise GISExportError(
+            f"{classified_pois_path} has no canonical_name column to include"
+        )
     geo_metadata = (schema.metadata or {}).get(b"geo")
     if geo_metadata is None:
         raise GISExportError(
@@ -226,7 +231,10 @@ def build_gis_export(
     if not available:
         raise GISExportError("no psic_code, pcpc_code, or pscc_code column is present")
 
-    read_columns = ["canonical_id", "geometry"]
+    read_columns = ["canonical_id"]
+    if include_canonical_name:
+        read_columns.append("canonical_name")
+    read_columns.append("geometry")
     read_columns.extend(column for column in ROLE_COLUMNS if column in names)
     for scheme in available:
         read_columns.append(f"{scheme}_code")
@@ -236,7 +244,10 @@ def build_gis_export(
             read_columns.append(f"{scheme}_status")
     source = pq.read_table(classified_pois_path, columns=read_columns)
 
-    carried = ["canonical_id", "geometry"]
+    carried = ["canonical_id"]
+    if include_canonical_name:
+        carried.append("canonical_name")
+    carried.append("geometry")
     carried.extend(column for column in ROLE_COLUMNS if column in source.column_names)
     fields = [source.schema.field(name) for name in carried]
     arrays = [source.column(name) for name in carried]
@@ -387,6 +398,7 @@ def export_gis_run(
     output_path: str | Path | None = None,
     reference_dir: str | Path = "reference",
     include_status: bool = False,
+    include_canonical_name: bool = False,
     check_taxonomy_fingerprint: bool = True,
 ) -> Path:
     """Export one PlaceType run using the exact taxonomy versions recorded in run.json."""
@@ -450,6 +462,7 @@ def export_gis_run(
         taxonomies,
         output,
         include_status=include_status,
+        include_canonical_name=include_canonical_name,
         geo_metadata_status=(
             geo_metadata_status if isinstance(geo_metadata_status, str) else None
         ),

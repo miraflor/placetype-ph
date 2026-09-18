@@ -101,6 +101,31 @@ def first_pass_codes(row: Mapping[str, object]) -> tuple[list[str], str]:
     return [], ""
 
 
+def _trusted_floor_contains(
+    row: Mapping[str, object],
+    taxonomy: Taxonomy,
+    codes: list[str],
+    candidate: str,
+    code_column: str,
+) -> bool:
+    """Whether an automatic trusted floor still contains a retrieval candidate.
+
+    Human-reviewed ``codes`` are deliberately excluded. This special handling applies only
+    to first-pass floor suggestions, whose accepted code may be an ancestor of every
+    retrieval candidate rather than the retrieval top itself.
+    """
+    if taxonomy.scheme != "psic":
+        return False
+    if code_column != "suggested_codes" or len(codes) != 1:
+        return False
+    if "floor:trusted_source_ontology" not in str(row.get("suggestion_source", "")):
+        return False
+    floor = codes[0]
+    if floor not in taxonomy.nodes or candidate not in taxonomy.nodes:
+        return False
+    return floor in taxonomy.ancestors(candidate)
+
+
 def hierarchy_path(taxonomy: Taxonomy | None, code: str | None) -> str:
     """Readable root-to-node path for one code, or an empty string when unknown."""
     if taxonomy is None or not code or code not in taxonomy.nodes:
@@ -312,10 +337,13 @@ def recheck_joint_worklist(
             control_top = candidate_codes[0]
             result["control_top_code"] = control_top
             result["control_top_path"] = hierarchy_path(taxonomy, control_top)
+            floor_agrees = _trusted_floor_contains(
+                record, taxonomy, codes, control_top, code_column
+            )
 
             if not codes:
                 result["first_pass_status"] = "NO_FIRST_PASS"
-            elif control_top in codes:
+            elif control_top in codes or floor_agrees:
                 result["first_pass_status"] = "AGREES"
             elif any(code in candidate_codes for code in codes):
                 result["first_pass_status"] = "IN_CONTROL_TOPN"
@@ -365,7 +393,17 @@ def recheck_joint_worklist(
                 continue
 
             compared_evidence += 1
-            if top.code == control_top:
+            floor_still_supported = _trusted_floor_contains(
+                record, taxonomy, codes, top.code, code_column
+            )
+            if floor_agrees and floor_still_supported:
+                result["recheck_margin"] = (
+                    f"{float(top.score) - scores[control_top]:.6f}"
+                    if control_top in scores
+                    else ""
+                )
+                result["recheck_status"] = "STABLE"
+            elif top.code == control_top:
                 result["recheck_margin"] = f"{0.0:.6f}"
                 result["recheck_status"] = "STABLE"
             elif control_top not in scores:
