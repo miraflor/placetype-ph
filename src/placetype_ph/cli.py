@@ -23,6 +23,7 @@ from . import __version__
 from .cache import DecisionCache
 from .classifier import EntityClassifier
 from .crosswalk import Crosswalk
+from .economic_role import ROLE_REVIEW_COLUMNS, RoleCrosswalk
 from .evaluate import evaluate_predictions, load_gold
 from .express import (
     CLASSIFY_PARAMS,
@@ -80,7 +81,16 @@ DEFAULT_VERSIONS = {"psic": "rev5", "pcpc": "2002", "pscc": "2022"}
 _MAX_REPORTED = 20
 
 # Columns a reviewer fills in. Preserved when the worklist is regenerated.
-REVIEW_COLUMNS = ("mapping_kind", "codes", "match_type", "confidence", "notes", "source_field")
+# Economic-role annotations are joint place semantics, not another taxonomy.
+REVIEW_COLUMNS = (
+    "mapping_kind",
+    "codes",
+    "match_type",
+    "confidence",
+    "notes",
+    "source_field",
+    *ROLE_REVIEW_COLUMNS,
+)
 # ``dict.fromkeys`` keeps the order and drops duplicates, so ``joint_key`` and
 # ``source_field`` appear exactly once whether or not REVIEW_COLUMNS already holds
 # them. A column absent here is silently dropped when the worklist frame is built,
@@ -342,6 +352,7 @@ def crosswalk_init(
                         "match_type": "exact",
                         "confidence": "",
                         "notes": "",
+                        **{column: "" for column in ROLE_REVIEW_COLUMNS},
                     }
                 )
     work = pd.DataFrame(rows, columns=list(WORKLIST_COLUMNS))
@@ -368,6 +379,7 @@ def crosswalk_init(
             record
             for record in existing.to_dict("records")
             if str(record.get("mapping_kind", "")).strip()
+            or any(str(record.get(column, "")).strip() for column in ROLE_REVIEW_COLUMNS)
         ]
 
     read_from: list[Path] = []
@@ -1525,6 +1537,7 @@ def classify(
         if crosswalk
         else None
     )
+    role_cw = RoleCrosswalk.load(crosswalk or []) if crosswalk else None
     backend = _make_backend(llm, model)
     if workers > 1 and backend is not None:
         raise typer.BadParameter("--workers > 1 currently supports --llm none only")
@@ -1558,6 +1571,7 @@ def classify(
             product_column=product_column,
             limit=limit,
             workers=workers,
+            role_crosswalk=role_cw,
         )
         console.print(f"Wrote [bold]{classifications}[/bold]")
         console.print(f"Wrote [bold]{pois}[/bold]")

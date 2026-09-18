@@ -168,7 +168,7 @@ def test_uncodeable_evidence_does_not_cancel_not_activity(toy_psic):
     result = EntityClassifier(toy_psic, crosswalk).classify_row(
         {"canonical_id": "x", "fsq_category": "monument", "fsq_name": "Rizal"}
     )
-    assert result.status == "NON_ECONOMIC_POI"
+    assert result.status == "NOT_PSIC_ACTIVITY"
 
 
 def test_pcpc_api_level_repairs_numeric_leading_zero(monkeypatch):

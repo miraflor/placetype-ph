@@ -1,1 +1,1 @@
-source,source_value,row_count,row_share,scheme,version,mapping_kind,codes,match_type,confidence,notes,source_field
+source,source_value,row_count,row_share,scheme,version,mapping_kind,codes,match_type,confidence,notes,source_field,unit_type,establishment_status,io_roles,role_confidence,role_notes

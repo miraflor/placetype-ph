@@ -214,11 +214,11 @@ class EntityClassifier:
         fusion = fuse(self.taxonomy, mapped)
         eligibility = decide_eligibility(mapped)
 
-        if self.taxonomy.scheme == "psic" and eligibility == Eligibility.NON_ECONOMIC_POI:
+        if self.taxonomy.scheme == "psic" and eligibility == Eligibility.NOT_ACTIVITY:
             return self._result(
                 canonical_id,
                 None,
-                "NON_ECONOMIC_POI",
+                "NOT_PSIC_ACTIVITY",
                 "CROSSWALK",
                 evidence_sources=[e.source for e in mapped if e.mapping],
                 flags=evidence_flags,

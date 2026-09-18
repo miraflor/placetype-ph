@@ -13,6 +13,12 @@ import pandas as pd
 
 from . import __version__
 from .classifier import EntityClassifier
+from .economic_role import (
+    ROLE_OUTPUT_COLUMNS,
+    RoleCrosswalk,
+    TaxonomyClassification,
+    infer_economic_profile,
+)
 from .models import ClassificationResult
 from .openplaces import SUMMARY_COLUMNS, read_openplaces
 from .text import clean_text
@@ -123,6 +129,7 @@ def classify_openplaces(
     product_column: str | None = None,
     limit: int | None = None,
     workers: int = 1,
+    role_crosswalk: RoleCrosswalk | None = None,
 ) -> tuple[Path, Path]:
     if workers < 1:
         raise ValueError("workers must be at least 1")
@@ -186,7 +193,34 @@ def classify_openplaces(
             ["canonical_id", "code", "level", "status"]
         ].copy()
         part = part.rename(columns={c: f"{scheme}_{c}" for c in ("code", "level", "status")})
-        summary = summary.merge(part, on="canonical_id", how="left")
+        summary = summary.merge(part, on="canonical_id", how="left", validate="one_to_one")
+
+    # Economic role is orthogonal to taxonomy classification. Pass every scheme result
+    # into one role API; scheme-specific semantics decide what a classification may imply.
+    # In particular, only a resolved PSIC activity currently implies producer and
+    # intermediate-demand roles. PCPC and PSCC remain parallel evidence, not subordinate
+    # classifications.
+    classifications_by_id: dict[str, dict[str, TaxonomyClassification]] = {}
+    if not results.empty:
+        for record in results[["canonical_id", "scheme", "code", "status"]].to_dict("records"):
+            raw_code = record.get("code")
+            code = None if pd.isna(raw_code) else str(raw_code).strip() or None
+            classifications_by_id.setdefault(str(record["canonical_id"]), {})[
+                str(record["scheme"]).casefold()
+            ] = TaxonomyClassification(code=code, status=str(record.get("status") or ""))
+    role_rows = [
+        infer_economic_profile(
+            row,
+            role_crosswalk,
+            classifications=classifications_by_id.get(str(row["canonical_id"]), {}),
+        ).as_record()
+        for row in _iter_rows(frame)
+    ]
+    role_frame = pd.DataFrame(role_rows, columns=ROLE_OUTPUT_COLUMNS)
+    # Without a cast, a column that holds only None is written to Parquet as type null.
+    role_frame["role_confidence"] = role_frame["role_confidence"].astype("float64")
+    summary = summary.merge(role_frame, on="canonical_id", how="left", validate="one_to_one")
+
     summary_path = out_dir / "classified_pois.parquet"
     summary.to_parquet(summary_path, index=False)
 
@@ -221,6 +255,9 @@ def classify_openplaces(
         "input_rows": int(len(frame)),
         "product_column": product_column,
         "workers": workers,
+        "economic_roles": {
+            "reviewed_rules": len(role_crosswalk.rules) if role_crosswalk is not None else 0,
+        },
         "schemes": {
             scheme: {
                 "version": classifier.taxonomy.version,

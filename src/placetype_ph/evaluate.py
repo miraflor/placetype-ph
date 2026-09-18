@@ -23,7 +23,7 @@ class DepthMetrics:
 
 
 _GOLD_CODED = "CODED"
-_GOLD_NOT_CODEABLE = {"NOT_CODEABLE", "NON_ECONOMIC_POI"}
+_GOLD_NOT_CODEABLE = {"NOT_CODEABLE", "NOT_PSIC_ACTIVITY", "NON_ECONOMIC_POI"}
 _GOLD_STATUSES = {_GOLD_CODED, *_GOLD_NOT_CODEABLE}
 
 
@@ -57,8 +57,9 @@ def _prepare_gold(merged: pd.DataFrame, taxonomy: Taxonomy) -> tuple[pd.DataFram
     """Validate adjudicated gold instead of silently dropping malformed rows.
 
     Without `gold_status`, every row is a coded gold row and therefore must contain a
-    valid taxonomy code. With `gold_status`, `NOT_CODEABLE` and `NON_ECONOMIC_POI` are
-    explicit negative judgments and must have no gold code. This preserves the original
+    valid taxonomy code. With `gold_status`, `NOT_CODEABLE`, `NOT_PSIC_ACTIVITY`, and the
+    legacy `NON_ECONOMIC_POI` label are explicit negative judgments and must have no gold
+    code. This preserves the original
     design's ability to evaluate abstention/eligibility rather than measuring only the
     rows that happen to have a code.
     """
@@ -86,7 +87,8 @@ def _prepare_gold(merged: pd.DataFrame, taxonomy: Taxonomy) -> tuple[pd.DataFram
             for row in examples.itertuples(index=False)
         )
         raise ValueError(
-            "gold_status must be CODED, NOT_CODEABLE, or NON_ECONOMIC_POI; "
+            "gold_status must be CODED, NOT_CODEABLE, NOT_PSIC_ACTIVITY, "
+            "or legacy NON_ECONOMIC_POI; "
             f"invalid rows include {detail}"
         )
 

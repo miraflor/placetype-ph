@@ -31,7 +31,12 @@ class FusionStatus(StrEnum):
 
 class Eligibility(StrEnum):
     ELIGIBLE = "ELIGIBLE"
-    NON_ECONOMIC_POI = "NON_ECONOMIC_POI"
+    NOT_ACTIVITY = "NOT_ACTIVITY"
+    # Legacy alias: Eligibility.NON_ECONOMIC_POI is Eligibility.NOT_ACTIVITY. Only the
+    # attribute name is kept; the old string "NON_ECONOMIC_POI" no longer parses as an
+    # Eligibility value. For the psic scheme, the classifier reports this eligibility as
+    # status "NOT_PSIC_ACTIVITY".
+    NON_ECONOMIC_POI = "NOT_ACTIVITY"
     UNCERTAIN = "UNCERTAIN"
 
 

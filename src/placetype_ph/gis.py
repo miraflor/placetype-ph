@@ -13,6 +13,15 @@ from .taxonomy import LEVEL_ORDER, Taxonomy
 
 DEFAULT_SUMMARY_NAME = "classified_pois.parquet"
 
+ROLE_COLUMNS = (
+    "unit_type",
+    "establishment_status",
+    "io_roles",
+    "role_confidence",
+    "role_status",
+    "role_flags",
+)
+
 # Column suffix for each taxonomy level. The set of levels belongs to `taxonomy.LEVEL_ORDER`;
 # this table only names columns, and `_level_columns` reads the order from LEVEL_ORDER so the
 # two cannot drift apart. `tests/test_gis.py` asserts that every level has a suffix here.
@@ -218,6 +227,7 @@ def build_gis_export(
         raise GISExportError("no psic_code, pcpc_code, or pscc_code column is present")
 
     read_columns = ["canonical_id", "geometry"]
+    read_columns.extend(column for column in ROLE_COLUMNS if column in names)
     for scheme in available:
         read_columns.append(f"{scheme}_code")
         if f"{scheme}_level" in names:
@@ -227,6 +237,7 @@ def build_gis_export(
     source = pq.read_table(classified_pois_path, columns=read_columns)
 
     carried = ["canonical_id", "geometry"]
+    carried.extend(column for column in ROLE_COLUMNS if column in source.column_names)
     fields = [source.schema.field(name) for name in carried]
     arrays = [source.column(name) for name in carried]
 

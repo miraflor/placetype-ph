@@ -34,7 +34,7 @@ def test_specific_name_rule_can_correct_activity_to_not_activity(toy_psic):
         {"canonical_id": "x", "fsq_category": "restaurant", "fsq_name": "Rizal Park"}
     )
     assert result.code is None
-    assert result.status == "NON_ECONOMIC_POI"
+    assert result.status == "NOT_PSIC_ACTIVITY"
     assert "CROSSWALK_NAME_RULE_OVERRODE_CATEGORY" in result.flags
 
 

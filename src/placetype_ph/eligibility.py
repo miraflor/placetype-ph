@@ -20,5 +20,5 @@ def decide_eligibility(evidence: list[SourceEvidence]) -> Eligibility:
     if any(m.mapping_kind in coded for m in informative):
         return Eligibility.ELIGIBLE
     if all(m.mapping_kind == MappingKind.NOT_ACTIVITY for m in informative):
-        return Eligibility.NON_ECONOMIC_POI
+        return Eligibility.NOT_ACTIVITY
     return Eligibility.UNCERTAIN
