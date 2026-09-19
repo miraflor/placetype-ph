@@ -38,6 +38,7 @@ JOINT_RECHECK_COLUMNS = (
     "recheck_candidate_scores",
     "recheck_top_code",
     "recheck_top_path",
+    "recheck_resolution_code",
     "recheck_margin",
     "recheck_status",
     "first_pass_status",
@@ -124,6 +125,34 @@ def _trusted_floor_contains(
     if floor not in taxonomy.nodes or candidate not in taxonomy.nodes:
         return False
     return floor in taxonomy.ancestors(candidate)
+
+
+def _pcpc_sibling_resolution(
+    taxonomy: Taxonomy,
+    codes: list[str],
+    candidate: str,
+    code_column: str,
+) -> str | None:
+    """Return the immediate common parent for one automatic PCPC sibling shift.
+
+    Only machine suggestions are eligible; reviewed mappings are immutable. The
+    common parent must be below the top-level section so a disagreement between
+    divisions is never collapsed into a nearly content-free section mapping.
+    """
+    if taxonomy.scheme != "pcpc":
+        return None
+    if code_column != "suggested_codes" or len(codes) != 1:
+        return None
+    selected = codes[0]
+    if selected not in taxonomy.nodes or candidate not in taxonomy.nodes:
+        return None
+    selected_parent = taxonomy.get(selected).parent_code
+    candidate_parent = taxonomy.get(candidate).parent_code
+    if not selected_parent or selected_parent != candidate_parent:
+        return None
+    if taxonomy.depth(selected_parent) < 2:
+        return None
+    return selected_parent
 
 
 def hierarchy_path(taxonomy: Taxonomy | None, code: str | None) -> str:
@@ -234,9 +263,10 @@ def recheck_joint_worklist(
     """Bounded cross-taxonomy recheck for a joint crosswalk worklist.
 
     The first-pass retrieval owns candidate discovery. Peer context is allowed only to rerank
-    those already discovered candidates; it can never introduce a new code into the target
-    taxonomy. The first candidate is therefore the control, and only the treatment query is
-    scored during this pass.
+    those already discovered candidates; peer retrieval never introduces a new target code.
+    A separate PCPC-only sibling backoff may derive their immediate common parent after a
+    decisive shift. The first candidate is therefore the control, and only the treatment query
+    is scored during this pass.
 
     Candidate-only rows may receive ``CANDIDATE_STABLE`` or ``CANDIDATE_SHIFT`` diagnostics,
     but those diagnostics never escalate ``joint_status``. Only a shift on a reviewed code or
@@ -413,7 +443,15 @@ def recheck_joint_worklist(
             else:
                 margin = float(top.score) - scores[control_top]
                 result["recheck_margin"] = f"{margin:.6f}"
-                if margin >= min_margin:
+                resolution = None
+                if margin >= min_margin and control_top == codes[0]:
+                    resolution = _pcpc_sibling_resolution(
+                        taxonomy, codes, top.code, code_column
+                    )
+                if resolution is not None:
+                    result["recheck_resolution_code"] = resolution
+                    result["recheck_status"] = "COARSENED"
+                elif margin >= min_margin:
                     result["recheck_status"] = "SHIFT"
                     shifted_evidence += 1
                 else:

@@ -24,6 +24,29 @@ _RESOLVED = {FusionStatus.SINGLE, FusionStatus.NESTED, FusionStatus.INTERSECT}
 _UNRESOLVED = {FusionStatus.EMPTY, FusionStatus.CONFLICT, FusionStatus.UNION}
 
 
+def _independent_activity_nonactivity_conflict(evidence: list[SourceEvidence]) -> bool:
+    """Whether independent sources disagree on activity eligibility.
+
+    A coded activity and a high-precision NOT_ACTIVITY assertion from different
+    dependency groups are substantive counter-evidence. Treating the coded source as
+    automatically dominant creates false positives such as a residential subdivision
+    classified as lodging.
+    """
+    coded = {MappingKind.EXACT, MappingKind.SUBTREE, MappingKind.UNION}
+    coded_groups = {
+        item.dependency_group
+        for item in evidence
+        if item.mapping is not None and item.mapping.mapping_kind in coded
+    }
+    nonactivity_groups = {
+        item.dependency_group
+        for item in evidence
+        if item.mapping is not None
+        and item.mapping.mapping_kind == MappingKind.NOT_ACTIVITY
+    }
+    return any(left != right for left in coded_groups for right in nonactivity_groups)
+
+
 class EntityClassifier:
     def __init__(
         self,
@@ -213,6 +236,29 @@ class EntityClassifier:
         mapped, evidence_flags = self._mapped_evidence(row)
         fusion = fuse(self.taxonomy, mapped)
         eligibility = decide_eligibility(mapped)
+
+        if (
+            self.taxonomy.scheme == "psic"
+            and _independent_activity_nonactivity_conflict(mapped)
+        ):
+            match_flags = entity_match_flags(row, True)
+            status = "REVIEW_ENTITY_MATCH" if match_flags else "CONFLICT"
+            return self._result(
+                canonical_id,
+                None,
+                status,
+                "FUSION",
+                candidate_codes=fusion.candidate_codes,
+                evidence_sources=[
+                    item.source for item in mapped if item.mapping is not None
+                ],
+                flags=(
+                    evidence_flags
+                    + fusion.flags
+                    + match_flags
+                    + ["ACTIVITY_NON_ACTIVITY_CONFLICT"]
+                ),
+            )
 
         if self.taxonomy.scheme == "psic" and eligibility == Eligibility.NOT_ACTIVITY:
             return self._result(

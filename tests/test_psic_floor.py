@@ -164,22 +164,13 @@ def test_restaurant_suffix_keeps_coarse_floor_when_refinement_is_weak():
     assert result.suggested_kind == "SUBTREE"
 
 
-def test_store_suffix_guard_remains_candidate_only():
-    taxonomy = _floor_taxonomy()
-    result = suggest_mapping(
-        taxonomy,
-        TaxonomyRetriever(taxonomy),
-        "overture",
-        "pet_store",
-        min_score=0.0,
-        min_margin=-1.0,
-    )
-    assert result.suggested_codes == ""
-    assert result.suggested_kind == ""
-    assert "guard:heuristic_store_suffix" in result.suggestion_source
+def test_explicit_pet_store_rule_replaces_the_generic_store_suffix_heuristic():
+    plan = category_plan("overture", "pet_store")
+    assert plan.branch_roots == ("4776",)
+    assert plan.rule == "overture:pet_store"
 
 
-def test_generic_fsq_retail_bucket_does_not_become_a_floor():
+def test_generic_fsq_retail_bucket_keeps_only_the_coarse_retail_floor():
     taxonomy = _floor_taxonomy()
     prepared = prepare_suggestion(
         taxonomy,
@@ -187,7 +178,7 @@ def test_generic_fsq_retail_bucket_does_not_become_a_floor():
         "[Retail > Miscellaneous Store]",
     )
     assert prepared.branch_codes == ("47",)
-    assert prepared.floor_code is None
+    assert prepared.floor_code == "47"
 
 
 def test_fsq_bank_rule_does_not_match_bankruptcy_text():
@@ -232,11 +223,11 @@ def test_generic_clinic_suffix_does_not_become_a_human_health_floor():
     assert prepared.floor_code is None
 
 
-def test_broad_overture_health_bucket_remains_retrieval_only():
+def test_broad_overture_health_bucket_keeps_only_the_human_health_floor():
     taxonomy = _floor_taxonomy()
     prepared = prepare_suggestion(taxonomy, "overture", "health_care")
     assert prepared.branch_codes == ("86",)
-    assert prepared.floor_code is None
+    assert prepared.floor_code == "86"
 
 
 def test_multi_branch_rules_do_not_manufacture_a_floor():
@@ -264,9 +255,7 @@ def test_compound_fsq_and_osm_evidence_does_not_get_a_floor():
     assert osm.floor_code is None
 
 
-def test_generic_osm_shop_branch_remains_only_a_search_constraint():
-    taxonomy = _floor_taxonomy()
+def test_explicit_osm_hairdresser_rule_replaces_the_generic_shop_branch():
     plan = category_plan("osm", "shop=hairdresser")
-    prepared = prepare_suggestion(taxonomy, "osm", "shop=hairdresser")
-    assert plan.branch_roots == ("47",)
-    assert prepared.floor_code is None
+    assert plan.branch_roots == ("962",)
+    assert plan.rule == "osm:shop=hairdresser"

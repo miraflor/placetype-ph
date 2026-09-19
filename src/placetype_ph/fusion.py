@@ -71,6 +71,58 @@ def _representative_code(taxonomy: Taxonomy, evidence: SourceEvidence) -> str | 
     return taxonomy.lca(roots)
 
 
+def _independent_sibling_parent(
+    taxonomy: Taxonomy,
+    group_roots: list[list[str]],
+) -> str | None:
+    """Return a one-level PSIC backoff for independent sibling disagreement.
+
+    This is deliberately narrower than arbitrary LCA backoff. Every independent
+    dependency group must assert exactly one rooted subtree. At least two deepest
+    asserted roots must be immediate siblings, and every shallower assertion must
+    already be their common parent or one of its ancestors. We also refuse to back
+    off all the way to a section.
+
+    Examples:
+      47111 + 47112 -> 4711
+      47 + 47111 + 47112 -> 4711
+      10111 + 10210 -> None
+    """
+    if taxonomy.scheme != "psic" or len(group_roots) < 2:
+        return None
+    if any(len(roots) != 1 for roots in group_roots):
+        return None
+
+    codes = list(dict.fromkeys(roots[0] for roots in group_roots))
+    if len(codes) < 2:
+        return None
+
+    deepest_depth = max(taxonomy.depth(code) for code in codes)
+    deepest = [code for code in codes if taxonomy.depth(code) == deepest_depth]
+    if len(deepest) < 2:
+        return None
+
+    parents = {taxonomy.get(code).parent_code for code in deepest}
+    if len(parents) != 1:
+        return None
+    parent = next(iter(parents))
+    if parent is None or parent not in taxonomy.nodes:
+        return None
+
+    # Do not turn disagreement between whole divisions into an over-broad section.
+    if taxonomy.depth(parent) < 2:
+        return None
+
+    ancestors_of_parent = set(taxonomy.ancestors(parent))
+    for code in codes:
+        if code in deepest:
+            continue
+        if code != parent and code not in ancestors_of_parent:
+            return None
+
+    return parent
+
+
 def fuse(taxonomy: Taxonomy, evidence: list[SourceEvidence]) -> FusionResult:
     """Fuse mapped source evidence in taxonomy space.
 
@@ -126,6 +178,26 @@ def fuse(taxonomy: Taxonomy, evidence: list[SourceEvidence]) -> FusionResult:
 
     if not group_roots:
         return FusionResult(taxonomy.scheme, taxonomy.version, FusionStatus.EMPTY, None)
+
+    sibling_parent = _independent_sibling_parent(taxonomy, group_roots)
+    if sibling_parent is not None:
+        reps = sorted(
+            set(all_candidate_codes),
+            key=lambda code: (
+                taxonomy.depth(code) if code in taxonomy.nodes else 999,
+                code,
+            ),
+        )
+        return FusionResult(
+            taxonomy.scheme,
+            taxonomy.version,
+            FusionStatus.INTERSECT,
+            sibling_parent,
+            candidate_codes=reps,
+            evidence_sources=evidence_sources,
+            independent_groups=len(groups),
+            flags=flags + ["INDEPENDENT_SIBLING_BACKOFF"],
+        )
 
     current = list(group_roots[0])
     for roots in group_roots[1:]:

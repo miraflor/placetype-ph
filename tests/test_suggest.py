@@ -369,7 +369,7 @@ def test_v5_compound_source_detection():
         "osm",
         "shop=trade | craft=roofer",
     )
-    assert _has_multiple_source_components(
+    assert not _has_multiple_source_components(
         "overture",
         "bank_or_credit_union",
     )
@@ -400,13 +400,20 @@ def test_v7_candidate_only_guards():
         "overture",
         "pet_store",
         store,
-    ) == "heuristic_store_suffix"
+    ) is None
 
     pet = category_plan("osm", "shop=pet")
     assert _auto_proposal_block_reason(
         "osm",
         "shop=pet",
         pet,
+    ) is None
+
+    pet_grooming = category_plan("osm", "shop=pet_grooming")
+    assert _auto_proposal_block_reason(
+        "osm",
+        "shop=pet_grooming",
+        pet_grooming,
     ) == "ambiguous_pet_shop"
 
     safe = category_plan("overture", "convenience_store")
@@ -418,17 +425,17 @@ def test_v7_candidate_only_guards():
 
 
 
-def test_v5_compound_broad_uncodeable_is_candidate_only(toy_psic):
+def test_broad_overture_context_bucket_is_explicitly_uncodeable(toy_psic):
     result = suggest_mapping(
         toy_psic,
         TaxonomyRetriever(toy_psic),
         "overture",
         "community_and_government",
     )
-    assert result.suggested_kind == ""
+    assert result.suggested_kind == "UNCODEABLE"
     assert result.suggested_codes == ""
-    assert "guard:compound_source" in result.suggestion_source
-    assert result.review_status == "REVIEW_CANDIDATES"
+    assert result.suggestion_source == "rule:broad_ontology_bucket"
+    assert result.review_status == "REVIEW_DECISION"
 
 def test_v5_mixed_activity_and_non_activity_is_not_forced_non_activity(toy_psic):
     result = suggest_mapping(

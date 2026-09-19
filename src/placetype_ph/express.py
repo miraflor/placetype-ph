@@ -10,8 +10,9 @@ from pathlib import Path
 import pandas as pd
 
 # The cache version changes whenever suggestion semantics change in a way that would make
-# an older automatic crosswalk unsafe to reuse. V8 adds trusted coarse PSIC floors.
-EXPRESS_CACHE_VERSION = "joint-v8-psic-trusted-floor"
+# an older automatic crosswalk unsafe to reuse. V9.2c caps mixed source categories at their
+# epistemic floor and backs immediate PSIC sibling disagreements off exactly one level.
+EXPRESS_CACHE_VERSION = "joint-v9.2c-sibling-backoff"
 
 # Files at or below this size are keyed by content. Larger inputs keep the cheap
 # size/mtime identity, because hashing a full canonical_pois.parquet on every run costs
@@ -37,8 +38,9 @@ CLASSIFY_PARAMS: dict[str, object] = {
 # Recheck outcomes, from joint_crosswalk.recheck_joint_worklist. The distinction that
 # matters for automatic promotion is not "did it say SHIFT" but "did it reach a verdict
 # at all". NO_PEERS, NO_CONTROL_HIT, NO_RECHECK_HIT and MISSING_TAXONOMY all mean the
-# comparison never ran, which is not evidence that the suggestion is sound.
-RECHECK_CLEARED = frozenset({"STABLE"})
+# comparison never ran, which is not evidence that the suggestion is sound. COARSENED is a
+# cleared PCPC result only when promotion also receives its hierarchy-derived resolution code.
+RECHECK_CLEARED = frozenset({"STABLE", "COARSENED"})
 RECHECK_CONTRADICTED = frozenset({"SHIFT"})
 # The comparison ran and its result does not support the suggestion, but it is not
 # decisive: SHIFT_WEAK moved by less than min_margin. Candidate-only statuses describe
@@ -238,7 +240,8 @@ def seed_joint_worklist(
 def recheck_verdict(status: object) -> str:
     """Classify one recheck outcome as CLEARED, CONTRADICTED, INCONCLUSIVE, or NO_VERDICT.
 
-    Only STABLE clears and only SHIFT contradicts. SHIFT_WEAK is INCONCLUSIVE: the
+    STABLE and hierarchy-safe COARSENED outcomes clear; SHIFT contradicts. SHIFT_WEAK is
+    INCONCLUSIVE: the
     comparison ran and pointed away, but by less than min_margin. Candidate-only statuses
     describe rows without accepted first-pass codes, so they return NO_VERDICT for the
     promotion policy. Unknown statuses also return NO_VERDICT. Keeping absent and weak
@@ -275,8 +278,8 @@ def promote_auto_suggestions(
 
     Human-reviewed mappings are preserved verbatim. An unreviewed row is promoted only
     when the suggestion engine emitted an actual mapping kind and the peer recheck did
-    not contradict it. Candidate-only rows remain unresolved, and the recheck itself
-    never supplies a replacement code.
+    not contradict it. Candidate-only rows remain unresolved. The sole replacement
+    allowed by recheck is a conservative PCPC sibling backoff to their common parent.
 
     A recheck that could not run is not a recheck that approved. Those rows are reported
     separately and, when ``promote_unchecked`` is False, held rather than promoted.
@@ -315,12 +318,25 @@ def promote_auto_suggestions(
             counts["unresolved"] += 1
             continue
 
-        verdict = recheck_verdict(row.get("recheck_status", ""))
+        recheck_status = str(row.get("recheck_status", "")).strip().upper()
+        verdict = recheck_verdict(recheck_status)
         codes = str(row.get("suggested_codes", "")).strip()
+        resolution = ""
+        invalid_coarsened = False
+        if recheck_status == "COARSENED":
+            resolution = str(row.get("recheck_resolution_code", "")).strip()
+            if resolution:
+                codes = resolution
+                kind = "SUBTREE"
+            else:
+                invalid_coarsened = True
+                verdict = "NO_VERDICT"
         frame.at[idx, "express_recheck"] = verdict
 
         held: str | None = None
-        if verdict == "CONTRADICTED":
+        if invalid_coarsened:
+            held = "HELD_NO_VERDICT"
+        elif verdict == "CONTRADICTED":
             held = "HELD_RECHECK"
         elif verdict == "INCONCLUSIVE" and (hold_inconclusive or not promote_unchecked):
             held = "HELD_INCONCLUSIVE"
@@ -364,6 +380,12 @@ def promote_auto_suggestions(
                 frame.at[idx, "confidence"] = score
 
         provenance = str(row.get("suggestion_source", "")).strip()
+        if recheck_status == "COARSENED" and resolution:
+            provenance = (
+                f"{provenance}; recheck:coarsened_to={resolution}"
+                if provenance
+                else f"recheck:coarsened_to={resolution}"
+            )
         note = f"{frame.at[idx, 'express_status']} by placetype express"
         if provenance:
             note += f"; {provenance}"

@@ -23,6 +23,7 @@ SUGGESTION_COLUMNS = (
 )
 
 _FSQ_NON_ACTIVITY = {
+    "neighborhood",
     "apartment or condo",
     "beach",
     "bridge",
@@ -49,6 +50,7 @@ _OVERTURE_NON_ACTIVITY = {
 _OSM_NON_ACTIVITY_PREFIXES = ("boundary=", "highway=", "natural=", "waterway=")
 _OSM_NON_ACTIVITY_EXACT = {
     "leisure=park",
+    "public_transport=stop_position",
     "leisure=pitch",
     "man_made=bridge",
     "public_transport=platform",
@@ -59,16 +61,70 @@ _OSM_NON_ACTIVITY_EXACT = {
 # activity.  Keep them explicit and reviewable instead of allowing unconstrained lexical
 # retrieval to manufacture a precise-looking PSIC candidate.
 _OVERTURE_UNCODEABLE = {
+    "arts_and_entertainment",
+    "basketball_court",
+    "campus_building",
     "community_and_government",
+    "community_center",
+    "corporate_or_business_office",
+    "shopping_mall",
+    "social_or_community_service",
+    "sports_and_recreation",
+    "swimming_pool",
+    "travel_and_transportation",
 }
 _FSQ_UNCODEABLE = {
+    "arts and entertainment",
+    "business and professional services",
+    "business and professional services > event space",
+    "business and professional services > factory",
+    "business and professional services > convention center > conference room",
     "business and professional services > office",
+    "business and professional services > office > coworking space",
+    "business and professional services > office > meeting room",
+    "business and professional services > office > tech startup",
     "community and government",
+    "community and government > organization > non-profit organization",
+    "landmarks and outdoors > other great outdoors",
+    "retail > shopping mall",
+    "sports and recreation > water sports > swimming > swimming pool",
     "travel and transportation",
+    "travel and transportation > parking",
 }
 _OSM_UNCODEABLE_EXACT = {
+    "amenity=atm",
+    "amenity=bus_station | public_transport=station",
+    "amenity=community_centre",
+    "amenity=marketplace",
+    "amenity=parking",
+    "amenity=recycling",
+    "amenity=taxi",
+    "leisure=sports_hall",
+    "man_made=works",
+    "amenity=parking_entrance",
+    "industrial=depot",
+    "leisure=playground",
     "office=company",
+    "office=ngo",
+    "office=yes",
+    "public_transport=station",
+    "shop=mall",
+    "tourism=attraction",
 }
+
+_OVERTURE_COHERENT_COMPOUNDS = frozenset(
+    {
+        "attorney_or_law_firm",
+        "bank_or_credit_union",
+        "building_or_construction_service",
+        "flowers_and_gifts_store",
+        "food_and_drink",
+        "freight_and_cargo_service",
+        "social_or_community_service",
+        "tattoo_and_piercing",
+        "bar_and_grill_restaurant",
+    }
+)
 
 # Query rewrites deliberately describe economic activity rather than merely replacing
 # underscores. Branch roots are coarse constraints, not accepted labels.
@@ -85,6 +141,7 @@ _OVERTURE_RULES: dict[str, tuple[str, tuple[str, ...]]] = {
     "hotel": ("hotels and similar accommodation activities", ("551",)),
     "lodging": ("accommodation activities", ("55",)),
     "real_estate_service": ("real estate activities", ("68",)),
+    "real_estate_agent": ("real estate activities on a fee or contract basis", ("68",)),
     "government_office": ("general public administration activities", ("84",)),
     "school": ("education activities primary secondary tertiary education", ("85",)),
     "elementary_school": ("primary education", ("852",)),
@@ -113,6 +170,8 @@ _OVERTURE_RULES: dict[str, tuple[str, tuple[str, ...]]] = {
     "auto_parts_store": ("retail sale motor vehicle parts accessories", ("4782",)),
     "gas_station": ("retail sale of automotive fuel", ("473",)),
     "automotive_repair": ("repair and maintenance of motor vehicles", ("953",)),
+    "motorcycle_repair": ("repair and maintenance of motorcycles", ("9532",)),
+    "auto_detailing": ("motor vehicle and motorcycle washing and detailing", ("9534",)),
     "printing_service": ("printing and service activities related to printing", ("181",)),
     "party_and_event_planning": (
         "event planning and organization services",
@@ -122,6 +181,97 @@ _OVERTURE_RULES: dict[str, tuple[str, tuple[str, ...]]] = {
         "social work activities without accommodation",
         ("88",),
     ),
+    "food_and_drink": ("food and beverage service activities", ("56",)),
+    "employment_agency": ("employment activities", ("78",)),
+    "manufacturer": ("manufacturing activities", ("C",)),
+    "industrial_equipment_manufacturer": ("manufacturing activities", ("C",)),
+    "warehouse_club_store": ("retail trade activities", ("47",)),
+    "flowers_and_gifts_store": ("retail sale flowers gifts and novelty goods", ("47",)),
+    "shoe_store": ("retail sale clothing footwear and leather articles", ("4771",)),
+    "furniture_store": ("retail sale household equipment and furniture", ("475",)),
+    "beauty_supply_store": ("retail sale beauty and personal care goods", ("47",)),
+    "freight_and_cargo_service": ("transportation and storage activities", ("H",)),
+    "financial_service": ("financial and insurance activities", ("L",)),
+    "pet_store": ("retail sale pet and pet supplies", ("4776",)),
+    "food_beverage_distributor": ("wholesale and retail trade activities", ("G",)),
+    "food_delivery_service": (
+        "food delivery food service courier activities",
+        ("56", "532"),
+    ),
+    "nail_salon": ("beauty treatment activities", ("962",)),
+    "jewelry_store": ("retail sale jewelry watches and clocks", ("47734",)),
+    "motorcycle_dealer": ("retail sale motorcycles and related parts", ("4783",)),
+    "mobile_phone_store": ("retail sale mobile phones and communication equipment", ("474",)),
+    "computer_store": ("retail sale computers and peripheral equipment", ("474",)),
+    "food_truck_stand": ("mobile food service activities", ("561",)),
+    "hair_salon": ("hairdressing and beauty treatment activities", ("962",)),
+    "advertising_agency": ("advertising activities", ("731",)),
+    "eyewear_store": ("retail sale eyewear and related supplies", ("47736",)),
+    "home_improvement_store": ("retail sale household and building supplies", ("475",)),
+    "hvac_service": ("construction installation activities", ("F",)),
+    "software_development": ("computer programming and related activities", ("62",)),
+    "womens_clothing_store": ("retail sale clothing footwear and leather articles", ("4771",)),
+    "attorney_or_law_firm": ("legal activities", ("691",)),
+    "bike_store": ("retail trade activities", ("47",)),
+    "internet_cafe": ("provision of internet access in facilities open to the public", ("61202",)),
+    "contractor": ("construction activities", ("F",)),
+    "tattoo_and_piercing": ("personal service activities", ("96",)),
+    "bottled_water_company": (
+        "bottled water manufacturing wholesale or retail activities",
+        ("11", "46", "47"),
+    ),
+    "dessert_shop": ("dessert retail or food service activities", ("47", "56")),
+    "cupcake_shop": (
+        "bakery manufacture retail or food service activities",
+        ("10", "47", "56"),
+    ),
+    "ice_cream_shop": ("ice cream retail or food service activities", ("47", "56")),
+    "it_service_and_computer_repair": (
+        "information technology service and computer repair activities",
+        ("62", "951"),
+    ),
+    "bank": ("banking activities", ("64",)),
+    "bubble_tea_shop": ("beverage serving activities", ("563",)),
+    "tea_room": ("beverage serving activities", ("563",)),
+    "smoothie_juice_bar": ("beverage serving activities", ("563",)),
+    "doctors_office": ("medical and dental practice activities", ("862",)),
+    "family_practice": ("medical and dental practice activities", ("862",)),
+    "caterer": ("event catering activities", ("5621",)),
+    "veterinarian": ("veterinary activities", ("75",)),
+    "preschool": ("education activities", ("85",)),
+    "high_school": ("education activities", ("85",)),
+    "car_wash": (
+        "motor vehicle and motorcycle washing and detailing activities",
+        ("9534",),
+    ),
+    "accountant": (
+        "accounting bookkeeping auditing and tax consultancy activities",
+        ("692",),
+    ),
+    "funeral_service": ("funeral and related activities", ("963",)),
+    "bookstore": (
+        "retail sale books newspapers stationery and school supplies",
+        ("4761",),
+    ),
+    "resort": ("accommodation activities", ("55",)),
+    "holiday_rental_home": ("accommodation activities", ("55",)),
+    "laboratory_testing": ("technical testing and analysis", ("712",)),
+    "car_rental_service": ("rental and leasing of motor vehicles", ("771",)),
+    "b2b_advertising_and_marketing_service": ("advertising activities", ("731",)),
+    "pawn_shop": ("pawnshop operations", ("6496",)),
+    "installment_loans": ("other credit granting activities", ("6495",)),
+    "shipping_center": ("postal and courier activities", ("53",)),
+    "event_photography_service": ("photographic activities", ("742",)),
+    "information_technology_company": (
+        "computer programming consultancy and related activities",
+        ("62",),
+    ),
+    "metal_fabricator": (
+        "manufacture of fabricated metal products except machinery and equipment",
+        ("25",),
+    ),
+    "animal_or_pet_service": ("pet care services", ("96902",)),
+    "meat_wholesaler": ("wholesale trade activities", ("46",)),
     "electronics_store": (
         "retail sale of information communication equipment consumer electronics",
         ("474",),
@@ -151,6 +301,18 @@ _OSM_AMENITY_RULES: dict[str, tuple[str, tuple[str, ...]]] = {
     "dentist": ("medical and dental practice activities", ("862",)),
     "doctors": ("medical and dental practice activities", ("862",)),
     "townhall": ("general public administration activities", ("84",)),
+    "police": ("public administration and public order activities", ("84",)),
+    "fire_station": ("public administration and public safety activities", ("84",)),
+    "car_wash": ("motor vehicle and motorcycle washing and detailing", ("9534",)),
+    "post_office": ("postal activities", ("531",)),
+    "veterinary": ("veterinary activities", ("75",)),
+    "social_facility": ("social work activities", ("87", "88")),
+    "internet_cafe": (
+        "provision of internet access in facilities open to the public",
+        ("61202",),
+    ),
+    "kindergarten": ("education activities", ("85",)),
+    "library": ("library activities", ("9111",)),
 }
 
 _OSM_SHOP_RULES: dict[str, tuple[str, tuple[str, ...]]] = {
@@ -163,14 +325,138 @@ _OSM_SHOP_RULES: dict[str, tuple[str, tuple[str, ...]]] = {
     "clothes": ("retail sale garments clothing apparel", ("4771",)),
     "pharmacy": ("retail sale pharmaceutical medical goods", ("4772",)),
     "bakery": ("retail sale bakery products", ("47",)),
+    "pawnbroker": ("pawnshop operations", ("6496",)),
+    "motorcycle": ("retail sale motorcycles and related parts", ("4783",)),
+    "laundry": ("washing and cleaning of textile and fur products", ("961",)),
+    "bicycle": ("retail trade activities", ("47",)),
+    "hairdresser": ("hairdressing and beauty treatment activities", ("962",)),
+    "beauty": ("retail sale beauty and personal care goods", ("47",)),
+    "computer": ("retail sale computers and peripheral equipment", ("474",)),
+    "electronics": ("retail sale information and communication equipment", ("474",)),
+    "optician": ("retail sale eyewear and related supplies", ("47736",)),
+    "water": ("retail trade activities", ("47",)),
+    "gas": ("retail trade activities", ("47",)),
+    "furniture": ("retail sale household equipment and furniture", ("475",)),
+    "general": ("retail trade activities", ("47",)),
+    "variety_store": ("retail trade activities", ("47",)),
+    "yes": ("retail trade activities", ("47",)),
+    "books": ("retail trade activities", ("47",)),
+    "shoes": ("retail sale clothing footwear and leather articles", ("4771",)),
+    "copyshop": ("printing and service activities related to printing", ("181",)),
+    "funeral_directors": ("funeral and related activities", ("963",)),
+    "jewelry": ("retail sale jewelry watches and clocks", ("47734",)),
+    "pastry": ("retail sale bakery products", ("47",)),
+    "pet": ("retail sale pet and pet supplies", ("4776",)),
+    "butcher": ("retail sale meat meat products and poultry", ("47213",)),
+    "tyres": ("retail sale motor vehicle parts and accessories", ("4782",)),
+    "printing": ("printing and service activities related to printing", ("181",)),
+    "medical_supply": ("retail sale pharmaceutical and medical goods", ("4772",)),
+    "travel_agency": ("travel agency activities", ("7911",)),
+    "mobile_phone": (
+        "retail sale mobile phones and communication equipment",
+        ("474",),
+    ),
+    "tailor": ("custom tailoring and dressmaking", ("144",)),
+    "rice": ("retail sale food", ("472",)),
+    "appliance": ("retail sale household equipment", ("475",)),
+    "photo": ("retail sale photographic equipment and supplies", ("47737",)),
+}
+
+_OSM_OFFICE_RULES: dict[str, tuple[str, tuple[str, ...]]] = {
+    "courier": ("courier activities", ("532",)),
+    "association": ("membership organization activities", ("94",)),
+    "educational_institution": ("education activities", ("85",)),
+}
+
+_OSM_HEALTHCARE_RULES: dict[str, tuple[str, tuple[str, ...]]] = {
+    "pharmacy": ("retail sale pharmaceutical medical goods", ("4772",)),
+    "clinic": ("medical and dental practice activities", ("862",)),
+    "dentist": ("medical and dental practice activities", ("862",)),
+    "laboratory": ("medical and diagnostic laboratory service activities", ("869",)),
+}
+
+_FSQ_RETAIL_LEAF_RULES: dict[str, tuple[str, tuple[str, ...]]] = {
+    "retail": ("retail trade activities", ("47",)),
+    "miscellaneous store": ("retail trade activities", ("47",)),
+    "cosmetics store": ("retail sale cosmetics and toilet articles", ("4772",)),
+    "furniture and home store": ("retail sale household equipment and furniture", ("475",)),
+    "shoe store": ("retail sale clothing footwear and leather articles", ("4771",)),
+    "boutique": ("retail trade activities", ("47",)),
+    "jewelry store": ("retail sale jewelry watches and clocks", ("47734",)),
+    "food and beverage retail": ("retail sale food and beverages", ("472",)),
+    "sporting goods retail": ("retail sale sporting equipment", ("4762",)),
+    "arts and crafts store": ("retail trade activities", ("47",)),
+    "eyecare store": ("retail sale eyewear and related supplies", ("47736",)),
+    "grocery store": ("retail selling in groceries", ("4711",)),
+    "pet supplies store": ("retail sale pet supplies", ("47762",)),
+    "motorcycle dealership": ("retail sale motorcycles and related parts", ("4783",)),
+    "bookstore": (
+        "retail sale books newspapers stationery and school supplies",
+        ("4761",),
+    ),
+    "gift store": ("retail sale gift and novelty goods", ("47192",)),
+    "toy store": ("retail trade activities", ("47",)),
+    "supermarket": ("retail selling in supermarkets and hypermarkets", ("4711",)),
+    "market": ("retail trade activities", ("47",)),
+    "flower store": ("retail sale fresh and artificial flowers and plants", ("47735",)),
+    "pawn shop": ("pawnshop operations", ("6496",)),
+    "car dealership": ("retail sale of motor vehicles", ("4781",)),
+    "construction supplies store": (
+        "retail sale hardware building materials paints and glass",
+        ("4752",),
+    ),
+    "fashion accessories store": ("retail trade activities", ("47",)),
+    "men's store": ("retail sale clothing footwear and leather articles", ("4771",)),
+    "bridal store": ("retail sale clothing footwear and leather articles", ("4771",)),
+    "smoke shop": ("retail trade activities", ("47",)),
+    "hobby store": ("retail trade activities", ("47",)),
+    "women's store": ("retail sale clothing footwear and leather articles", ("4771",)),
+    "bicycle store": ("retail trade activities", ("47",)),
+    "office supply store": ("retail trade activities", ("47",)),
+}
+
+_FSQ_HEALTH_LEAF_RULES: dict[str, tuple[str, tuple[str, ...]]] = {
+    "medical center": ("human health activities", ("86",)),
+    "medical lab": ("other human health activities", ("869",)),
+    "veterinarian": ("veterinary activities", ("75",)),
+}
+
+_FSQ_BUSINESS_LEAF_RULES: dict[str, tuple[str, tuple[str, ...]]] = {
+    "nail salon": ("hairdressing and beauty treatment activities", ("962",)),
+    "laundry service": ("washing and cleaning of textile and fur products", ("961",)),
+    "car wash and detail": ("motor vehicle and motorcycle washing and detailing", ("9534",)),
+    "health and beauty service": ("health and personal service activities", ("R", "96")),
+    "shipping, freight, and material transportation service": (
+        "transportation and storage activities",
+        ("H",),
+    ),
+    "employment agency": ("employment activities", ("78",)),
+    "advertising agency": ("advertising activities", ("731",)),
+    "design studio": ("specialized design activities", ("N",)),
+    "funeral home": ("funeral and related activities", ("963",)),
+    "motorcycle repair shop": ("repair and maintenance of motorcycles", ("9532",)),
+    "tailor": ("custom tailoring and dressmaking", ("144",)),
+    "photography lab": ("photographic activities", ("742",)),
+    "commercial real estate developer": ("real estate activities", ("68",)),
+    "pet service": ("pet care services", ("96902",)),
+    "tattoo parlor": ("personal service activities", ("96",)),
+}
+
+_FSQ_ARTS_LEAF_RULES: dict[str, tuple[str, tuple[str, ...]]] = {
+    "internet cafe": (
+        "provision of internet access in facilities open to the public",
+        ("61202",),
+    ),
+    "movie theater": ("motion picture projection activities", ("591",)),
+    "arcade": ("operation of arcade and amusement games", ("93293",)),
 }
 
 
 # A floor is stronger than a retrieval branch: it is a coarse PSIC classification that
 # the source ontology itself supports well enough to retain when semantic retrieval cannot
 # justify a refinement. Keep this allowlist deliberately narrower than _OVERTURE_RULES.
-# Broad buckets such as health_care and shopping, genuinely ambiguous categories such as
-# bakery, and multi-purpose categories such as party_and_event_planning remain retrieval-only.
+# Explicit broad place/context buckets are handled as UNCODEABLE, while genuinely ambiguous
+# categories such as bakery and party_and_event_planning remain retrieval-only.
 _TRUSTED_OVERTURE_FLOOR_CATEGORIES = frozenset(
     {
         "restaurant",
@@ -192,6 +478,8 @@ _TRUSTED_OVERTURE_FLOOR_CATEGORIES = frozenset(
         "pharmacy",
         "dental_clinic",
         "hospital",
+        "health_care",
+        "bank_or_credit_union",
         "christian_place_of_worship",
         "roman_catholic_place_of_worship",
         "religious_organization",
@@ -208,10 +496,72 @@ _TRUSTED_OVERTURE_FLOOR_CATEGORIES = frozenset(
         "gas_station",
         "automotive_repair",
         "printing_service",
+        "motorcycle_repair",
+        "auto_detailing",
+        "food_and_drink",
+        "employment_agency",
+        "manufacturer",
+        "industrial_equipment_manufacturer",
+        "warehouse_club_store",
+        "flowers_and_gifts_store",
+        "shoe_store",
+        "furniture_store",
+        "beauty_supply_store",
+        "freight_and_cargo_service",
+        "financial_service",
+        "pet_store",
+        "food_beverage_distributor",
+        "nail_salon",
+        "jewelry_store",
+        "motorcycle_dealer",
+        "mobile_phone_store",
+        "real_estate_agent",
+        "computer_store",
+        "food_truck_stand",
+        "hair_salon",
+        "advertising_agency",
+        "eyewear_store",
+        "home_improvement_store",
+        "hvac_service",
+        "software_development",
+        "womens_clothing_store",
+        "attorney_or_law_firm",
+        "bike_store",
+        "internet_cafe",
+        "contractor",
+        "tattoo_and_piercing",
+        "bank",
+        "bubble_tea_shop",
+        "tea_room",
+        "smoothie_juice_bar",
+        "doctors_office",
+        "family_practice",
+        "caterer",
+        "veterinarian",
+        "preschool",
+        "high_school",
+        "car_wash",
+        "accountant",
+        "funeral_service",
+        "bookstore",
+        "resort",
+        "holiday_rental_home",
+        "laboratory_testing",
+        "car_rental_service",
+        "b2b_advertising_and_marketing_service",
+        "pawn_shop",
+        "installment_loans",
+        "shipping_center",
+        "event_photography_service",
+        "information_technology_company",
+        "metal_fabricator",
+        "animal_or_pet_service",
+        "meat_wholesaler",
         "electronics_store",
         "travel_service",
         "gym",
         "professional_service",
+        "building_or_construction_service",
     }
 )
 
@@ -236,6 +586,11 @@ _TRUSTED_FSQ_FLOOR_RULES = frozenset(
         "fsq:auto_repair",
         "fsq:lodging",
         "fsq:fuel",
+        "fsq:retail_explicit",
+        "fsq:health_explicit",
+        "fsq:business_explicit",
+        "fsq:arts_explicit",
+        "fsq:travel_explicit",
     }
 )
 
@@ -311,13 +666,37 @@ def _has_multiple_source_components(source: str, value: str) -> bool:
         return len(_FSQ_COMPONENT_RE.findall(text)) > 1
 
     if source == "osm":
-        # OpenPlaces joins multiple OSM category tags with this separator.
-        return " | " in raw
+        # Explicit broad buckets may themselves contain several corroborating OSM tags.
+        if raw.casefold() in _OSM_UNCODEABLE_EXACT:
+            return False
+        # Only observed amenity+healthcare duplicates are treated as corroboration.
+        items = [item.strip() for item in raw.split(" | ") if item.strip()]
+        if len(items) <= 1:
+            return False
+        tags: dict[str, str] = {}
+        for item in items:
+            if "=" not in item:
+                return True
+            key, val = item.split("=", 1)
+            tags[key.strip().casefold()] = val.strip().casefold()
+        pairs = frozenset(tags.items())
+        coherent = {
+            frozenset({("amenity", "pharmacy"), ("healthcare", "pharmacy")}),
+            frozenset({("amenity", "clinic"), ("healthcare", "clinic")}),
+            frozenset({("amenity", "dentist"), ("healthcare", "dentist")}),
+            frozenset({("amenity", "doctors"), ("healthcare", "doctor")}),
+            frozenset({("amenity", "townhall"), ("office", "government")}),
+        }
+        return pairs not in coherent
 
     if source == "overture":
         # Explicit conjunction/disjunction marks a semantically compound label,
         # e.g. bank_or_credit_union or flowers_and_gifts_store.
         folded = raw.casefold()
+        if folded in _OVERTURE_UNCODEABLE:
+            return False
+        if folded in _OVERTURE_COHERENT_COMPOUNDS:
+            return False
         return "_and_" in folded or "_or_" in folded
 
     return False
@@ -332,7 +711,7 @@ def _is_ambiguous_pet_shop(source: str, value: str) -> bool:
         for part in _unwrap_category(value).split(" | ")
         if part.strip()
     }
-    return bool(parts & {"shop=pet", "shop=pet_grooming"})
+    return "shop=pet_grooming" in parts
 
 
 def _auto_proposal_block_reason(
@@ -349,6 +728,17 @@ def _auto_proposal_block_reason(
     """
     if _has_multiple_source_components(source, source_value):
         return "compound_source"
+    if (
+        source.casefold().strip() == "overture"
+        and _unwrap_category(source_value).casefold().strip()
+        == "flowers_and_gifts_store"
+    ):
+        # This Overture label explicitly spans two retail families.  Its trusted
+        # PSIC 47 floor is useful, but lexical retrieval must not choose one side
+        # (for example gift/novelty retail) and manufacture false precision.
+        return "mixed_category_ceiling"
+    if len(plan.branch_roots) > 1:
+        return "ambiguous_branch_roots"
     if plan.rule == "overture:store_suffix":
         # This is a lexical heuristic, not a curated ontology rule. The audit
         # showed systematic over-specialization for compound and pet stores.
@@ -428,6 +818,9 @@ def _fsq_plan(value: str) -> QueryPlan | None:
     if not folded:
         return None
     if folded[0] == "retail":
+        explicit = _FSQ_RETAIL_LEAF_RULES.get(folded[-1])
+        if explicit:
+            return QueryPlan(explicit[0], explicit[1], "fsq:retail_explicit")
         if "pharmacy" in joined:
             return QueryPlan(
                 "retail sale pharmaceutical medical goods",
@@ -485,6 +878,9 @@ def _fsq_plan(value: str) -> QueryPlan | None:
             )
         return QueryPlan("food and beverage service activities", ("56",), "fsq:dining")
     if folded[0] == "health and medicine":
+        explicit = _FSQ_HEALTH_LEAF_RULES.get(folded[-1])
+        if explicit:
+            return QueryPlan(explicit[0], explicit[1], "fsq:health_explicit")
         if "pharmacy" in joined:
             return QueryPlan(
                 "retail sale pharmaceutical medical goods",
@@ -546,7 +942,33 @@ def _fsq_plan(value: str) -> QueryPlan | None:
             )
         return QueryPlan(text)
 
+    if folded[0] == "arts and entertainment":
+        explicit = _FSQ_ARTS_LEAF_RULES.get(folded[-1])
+        if explicit:
+            return QueryPlan(explicit[0], explicit[1], "fsq:arts_explicit")
+        if folded[-1] == "gaming cafe":
+            return QueryPlan(
+                "internet access and amusement gaming activities",
+                ("61202", "93293"),
+                "fsq:arts_ambiguous",
+            )
+        if folded[-1] == "art gallery":
+            return QueryPlan(
+                "art gallery cultural exhibition activities",
+                ("90", "910"),
+                "fsq:arts_ambiguous",
+            )
+        return QueryPlan(text)
+
     if folded[0] == "business and professional services":
+        explicit = _FSQ_BUSINESS_LEAF_RULES.get(folded[-1])
+        if explicit:
+            rule = (
+                "fsq:health_beauty_ambiguous"
+                if folded[-1] == "health and beauty service"
+                else "fsq:business_explicit"
+            )
+            return QueryPlan(explicit[0], explicit[1], rule)
         if folded[-1] in {
             "bank",
             "credit union",
@@ -568,6 +990,12 @@ def _fsq_plan(value: str) -> QueryPlan | None:
             )
         return QueryPlan(text)
     if folded[0] == "travel and transportation":
+        if folded[-1] == "travel agency":
+            return QueryPlan(
+                "travel agency activities",
+                ("7911",),
+                "fsq:travel_explicit",
+            )
         if "lodging" in joined or "hotel" in joined:
             return QueryPlan(
                 "accommodation hotels and similar accommodation", ("55",), "fsq:lodging"
@@ -618,13 +1046,22 @@ def category_plan(source: str, value: str) -> QueryPlan:
             if rule:
                 return QueryPlan(rule[0], rule[1], f"osm:shop={val}")
             return QueryPlan(f"retail sale {val.replace('_', ' ')}", ("47",), "osm:shop")
+        if "healthcare" in tags:
+            val = tags["healthcare"]
+            rule = _OSM_HEALTHCARE_RULES.get(val)
+            if rule:
+                return QueryPlan(rule[0], rule[1], f"osm:healthcare={val}")
         if tags.get("office") == "government":
             return QueryPlan("general public administration activities", ("84",), "osm:government")
         if "office" in tags:
+            val = tags["office"]
+            rule = _OSM_OFFICE_RULES.get(val)
+            if rule:
+                return QueryPlan(rule[0], rule[1], f"osm:office={val}")
             return QueryPlan(f"{tags['office'].replace('_', ' ')} professional service activities")
         if tags.get("tourism") == "hotel":
             return QueryPlan("hotels and similar accommodation activities", ("551",), "osm:hotel")
-        if tags.get("tourism") in {"guest_house", "hostel", "chalet"}:
+        if tags.get("tourism") in {"guest_house", "hostel", "chalet", "apartment"}:
             return QueryPlan("short term accommodation activities", ("55",), "osm:lodging")
 
     if source == "fsq":
@@ -639,8 +1076,8 @@ def _trusted_floor_code(source: str, source_value: str, plan: QueryPlan) -> str 
     """Return a conservative coarse PSIC floor established by source ontology evidence.
 
     `branch_roots` remain search constraints. Only an explicitly trusted rule with one root
-    becomes a floor. Compound source values never establish a floor because they may describe
-    several independent activities.
+    becomes a floor. Compound source values establish no floor unless preprocessing has
+    identified them as redundant/corroborating or as an explicitly coherent Overture label.
     """
     if len(plan.branch_roots) != 1:
         return None
@@ -663,6 +1100,8 @@ def _trusted_floor_code(source: str, source_value: str, plan: QueryPlan) -> str 
         trusted = (
             rule.startswith("osm:amenity=")
             or rule.startswith("osm:shop=")
+            or rule.startswith("osm:healthcare=")
+            or rule.startswith("osm:office=")
             or rule in {"osm:government", "osm:hotel", "osm:lodging"}
         )
 
@@ -819,7 +1258,7 @@ def finalize_suggestion(
     branches = prepared.branch_codes
     branch_titles = prepared.branch_titles
     if not hits:
-        if prepared.floor_code is not None:
+        if prepared.floor_code is not None and prepared.block_reason is None:
             floor = prepared.floor_code
             return Suggestion(
                 query_text=query,
@@ -858,7 +1297,7 @@ def finalize_suggestion(
         suggested_kind = "SUBTREE" if taxonomy.has_children(suggested_codes) else "EXACT"
         source_name = f"semantic:{prepared.rule};retrieval:strong_separated_hit"
         status = "REVIEW_MAPPING"
-    elif prepared.floor_code is not None:
+    elif prepared.floor_code is not None and prepared.block_reason is None:
         suggested_codes = prepared.floor_code
         suggested_kind = "SUBTREE" if taxonomy.has_children(suggested_codes) else "EXACT"
         source_name = _floor_source(prepared, "insufficient_for_refinement")
