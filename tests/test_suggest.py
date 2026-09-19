@@ -28,6 +28,37 @@ def test_source_ontology_rewrites_activity_and_constrains_branch():
     assert category_plan("fsq", "[Retail > Pharmacy]").branch_roots == ("4772",)
 
 
+def test_v3_high_confidence_provider_categories_are_branch_constrained():
+    expected = (
+        ("overture", "driving_school", ("8553",)),
+        ("overture", "legal_service", ("691",)),
+        ("overture", "notary_public", ("691",)),
+        ("overture", "tour_operator", ("7912",)),
+        ("overture", "general_dentistry", ("862",)),
+        ("overture", "dry_cleaning", ("961",)),
+        ("overture", "pest_control_service", ("81291",)),
+        ("overture", "pet_groomer", ("9690",)),
+        ("overture", "towing_service", ("5221",)),
+        ("osm", "amenity=driving_school", ("8553",)),
+        ("osm", "shop=dry_cleaning", ("961",)),
+    )
+    for source, value, roots in expected:
+        assert category_plan(source, value).branch_roots == roots
+
+
+def test_v3_physical_osm_infrastructure_is_non_activity(toy_psic):
+    retriever = TaxonomyRetriever(toy_psic)
+    for value in (
+        "man_made=street_cabinet",
+        "man_made=tower",
+        "man_made=mast",
+        "man_made=surveillance",
+    ):
+        result = suggest_mapping(toy_psic, retriever, "osm", value)
+        assert result.suggested_kind == "NOT_ACTIVITY"
+        assert result.review_status == "REVIEW_DECISION"
+
+
 def test_high_precision_place_category_is_only_a_suggestion(toy_psic):
     result = suggest_mapping(
         toy_psic, TaxonomyRetriever(toy_psic), "osm", "man_made=bridge"

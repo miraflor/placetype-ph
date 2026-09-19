@@ -53,6 +53,10 @@ _OSM_NON_ACTIVITY_EXACT = {
     "public_transport=stop_position",
     "leisure=pitch",
     "man_made=bridge",
+    "man_made=mast",
+    "man_made=street_cabinet",
+    "man_made=surveillance",
+    "man_made=tower",
     "public_transport=platform",
     "tourism=artwork",
 }
@@ -149,6 +153,7 @@ _OVERTURE_RULES: dict[str, tuple[str, tuple[str, ...]]] = {
     "education": ("education activities", ("85",)),
     "pharmacy": ("retail sale pharmaceutical medical goods", ("4772",)),
     "dental_clinic": ("medical and dental practice activities", ("862",)),
+    "general_dentistry": ("medical and dental practice activities", ("862",)),
     "hospital": ("hospital activities", ("861",)),
     "health_care": ("human health activities", ("86",)),
     "bank_or_credit_union": ("banking and credit cooperative activities", ("64",)),
@@ -162,6 +167,7 @@ _OVERTURE_RULES: dict[str, tuple[str, tuple[str, ...]]] = {
     "spa": ("day spa sauna and steam bath activities", ("962",)),
     "barber": ("hairdressing and barber activities", ("962",)),
     "laundromat": ("washing and cleaning of textile and fur products", ("961",)),
+    "dry_cleaning": ("washing and cleaning of textile and fur products", ("961",)),
     "hardware_store": ("retail sale hardware building materials", ("4752",)),
     "clothing_store": ("retail sale garments clothing apparel", ("4771",)),
     "convenience_store": ("retail selling in convenience stores", ("4711",)),
@@ -279,6 +285,24 @@ _OVERTURE_RULES: dict[str, tuple[str, tuple[str, ...]]] = {
     "travel_service": ("travel agency and other travel related activities", ("79",)),
     "gym": ("operation of sports facilities fitness centers", ("931",)),
     "building_or_construction_service": ("construction activities", ("F",)),
+    "driving_school": ("driving school activities", ("8553",)),
+    "legal_service": ("legal activities", ("691",)),
+    "notary_public": ("legal activities", ("691",)),
+    "tour_operator": ("tour operator activities", ("7912",)),
+    "pest_control_service": (
+        "pest control services non-agricultural",
+        ("81291",),
+    ),
+    # Keep pet_groomer constrained to the broader pet-care class; retrieval may refine
+    # it to subclass 96902 (Pet care services) when the taxonomy evidence supports it.
+    "pet_groomer": (
+        "pet care services grooming sitting and training pets",
+        ("9690",),
+    ),
+    "towing_service": (
+        "supporting land transport activities towing and roadside assistance",
+        ("5221",),
+    ),
     "professional_service": ("professional scientific and technical activities", ("N",)),
     "shopping": ("retail trade activities", ("47",)),
 }
@@ -311,6 +335,7 @@ _OSM_AMENITY_RULES: dict[str, tuple[str, tuple[str, ...]]] = {
         "provision of internet access in facilities open to the public",
         ("61202",),
     ),
+    "driving_school": ("driving school activities", ("8553",)),
     "kindergarten": ("education activities", ("85",)),
     "library": ("library activities", ("9111",)),
 }
@@ -328,6 +353,7 @@ _OSM_SHOP_RULES: dict[str, tuple[str, tuple[str, ...]]] = {
     "pawnbroker": ("pawnshop operations", ("6496",)),
     "motorcycle": ("retail sale motorcycles and related parts", ("4783",)),
     "laundry": ("washing and cleaning of textile and fur products", ("961",)),
+    "dry_cleaning": ("washing and cleaning of textile and fur products", ("961",)),
     "bicycle": ("retail trade activities", ("47",)),
     "hairdresser": ("hairdressing and beauty treatment activities", ("962",)),
     "beauty": ("retail sale beauty and personal care goods", ("47",)),
@@ -562,6 +588,15 @@ _TRUSTED_OVERTURE_FLOOR_CATEGORIES = frozenset(
         "gym",
         "professional_service",
         "building_or_construction_service",
+        "driving_school",
+        "legal_service",
+        "notary_public",
+        "tour_operator",
+        "general_dentistry",
+        "dry_cleaning",
+        "pest_control_service",
+        "pet_groomer",
+        "towing_service",
     }
 )
 
