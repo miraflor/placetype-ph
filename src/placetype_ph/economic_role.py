@@ -10,7 +10,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from .openplaces import Row, SOURCES, source_evidence
+from .openplaces import SOURCES, Row, source_evidence
 from .text import normalize_key, normalize_match_key
 
 

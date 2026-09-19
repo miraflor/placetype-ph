@@ -10,7 +10,6 @@ from placetype_ph.suggest import (
 )
 from placetype_ph.taxonomy import Taxonomy
 
-
 _CODES = {
     "10",
     "11",
