@@ -9,6 +9,7 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 
 from . import __version__
+from .io_mapping import IO_GIS_COLUMNS
 from .taxonomy import LEVEL_ORDER, Taxonomy
 
 DEFAULT_SUMMARY_NAME = "classified_pois.parquet"
@@ -236,6 +237,7 @@ def build_gis_export(
         read_columns.append("canonical_name")
     read_columns.append("geometry")
     read_columns.extend(column for column in ROLE_COLUMNS if column in names)
+    read_columns.extend(column for column in IO_GIS_COLUMNS if column in names)
     for scheme in available:
         read_columns.append(f"{scheme}_code")
         if f"{scheme}_level" in names:
@@ -249,6 +251,7 @@ def build_gis_export(
         carried.append("canonical_name")
     carried.append("geometry")
     carried.extend(column for column in ROLE_COLUMNS if column in source.column_names)
+    carried.extend(column for column in IO_GIS_COLUMNS if column in source.column_names)
     fields = [source.schema.field(name) for name in carried]
     arrays = [source.column(name) for name in carried]
 
@@ -456,6 +459,14 @@ def export_gis_run(
     }
     if isinstance(created_at, str):
         provenance["run_created_at"] = created_at
+    io_mapping = manifest.get("io_mapping")
+    if isinstance(io_mapping, dict):
+        # I-O columns depend on two data files; record which versions produced them.
+        provenance["io_mapping"] = {
+            role: {key: io_mapping[role].get(key) for key in ("file", "sha256")}
+            for role in ("concordance", "bridge")
+            if isinstance(io_mapping.get(role), dict)
+        }
 
     return build_gis_export(
         summary_path,

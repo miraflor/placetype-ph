@@ -19,6 +19,27 @@ https://psa.gov.ph/classification/psic
 The browser currently lags the Revision 5 annex in some section labels. Import validation uses the
 official Revision 5 source structure, not the stale browser rendering.
 
+## PSA 2018 I-O concordance and PSIC version bridge
+
+`src/placetype_ph/data/psic_2019_to_io_2018.csv` is a derived analytical concordance from PSIC 2019 (official title: 2019 Updates to the 2009 PSIC) to the industries of the PSA 2018 input-output (I-O) tables at the 16-, 80-, and 240-industry levels. It covers every PSIC 2019 section, division, and group.
+
+This is **not an official PSA PSIC-to-I-O correspondence table**. One PSIC category can correspond to several I-O industries, so the package keeps I-O codes as sets instead of choosing one industry. Where no single IO240 line could be identified, a row lists every IO240 industry inside its IO80 industry, with confidence `Low`.
+
+PSA defined the 2018 I-O sectors on the 2019 PSIC, while PlaceType PH classifies against PSIC Revision 5. `src/placetype_ph/data/psic_rev5_to_psic_2019.csv` bridges the two versions. It has one row for every Revision 5 section, division, and group, lists the PSIC 2019 code or codes that hold the same activities, and records:
+
+- `relation`: `same` (same code and title), `recoded` (same activities under another code, for example the section letters from J onward), `renamed` (same code, changed title, activities treated as unchanged), `changed_scope` (the listed PSIC 2019 codes together cover the activities, so the I-O set can be wider than the Revision 5 scope), `new` (no PSIC 2019 category of its own; the listed codes held the activities), or `no_counterpart` (review found no defensible PSIC 2019 bridge; `psic2019_codes` is blank).
+- `basis`: `code_title_match` (generated where code and normalized title agree), `draft` (written by hand and not yet reviewed), or `reviewed`. A `draft` row remains usable as a candidate bridge. Its result is reported as `PROVISIONAL_*` unless the deepest accepted ancestor row is an ordinary mapping (not `no_counterpart`) with the same I-O sets, in which case the accepted mapping is reported.
+
+A Revision 5 code maps through its deepest section, division, or group ancestor that has a bridge row whose Revision 5 title still matches the loaded taxonomy. Its I-O sets are the union of the concordance rows of the listed PSIC 2019 codes. A `code_title_match` or `reviewed` bridge produces an ordinary `MAPPED_*` status; a `draft` bridge exposes the same candidate sets with a `PROVISIONAL_*` status (or `PROVISIONAL_NO_IO_CORRESPONDENCE` when the candidate has a historical counterpart but no I-O line). A `no_counterpart` row instead reports `NO_PSIC2019_COUNTERPART` when reviewed or `PROVISIONAL_NO_PSIC2019_COUNTERPART` while draft. If the taxonomy tree changes, rows whose title no longer matches stop applying, and `io_mapping_status` records the coarser level used or `UNMAPPED_NO_BRIDGE`.
+
+Generated `code_title_match` rows assume that an unchanged code and title mean an unchanged scope. Division 55 and section I are exceptions: Revision 5 added intermediation for accommodation (group 554), which was part of PSIC 2019 group 799, so both rows are hand-written `changed_scope` rows that also list 799. A test requires the PSIC 2019 codes of every mapped bridge row to lie inside those of its nearest ancestor row that lists codes; a `no_counterpart` row lists none, so its children are checked against the next ancestor up. An empty target set means 'no defensible bridge', not 'the activity did not exist'. A reviewed scope audit can promote a generated row by changing its basis to `reviewed` without changing its relation.
+
+PSA sources:
+
+- 2018 I-O release: https://psa.gov.ph/content/psa-releases-2018-input-output-tables
+- Technical notes, which state that the I-O sectors are based on the 2019 PSIC: https://psa.gov.ph/statistics/supply-and-use-input-output/technical-notes
+- 2018 Input-Output Industry Classification workbook (16, 80, and 240 industries), on the statistical tables page: https://psa.gov.ph/statistics/supply-and-use-input-output/tables
+
 ## PCPC 2002
 
 Classification browser:
@@ -47,6 +68,7 @@ https://psa.gov.ph/classifications-api/pscc
 
 PSA website pages state that website data/content are CC BY 4.0 unless otherwise stated. Check
 any file-specific notice before redistributing a downloaded workbook or a normalized derivative.
+The I-O industry codes and names in `psic_2019_to_io_2018.csv` follow the PSA 2018 input-output release; attribute them to the Philippine Statistics Authority (CC BY 4.0).
 The code in this repository is separately licensed under MIT.
 
 ## Published completeness checks used by PlaceType PH
