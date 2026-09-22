@@ -1,3 +1,14 @@
+## PSA 2018 I-O industry mapping
+
+- `classified_pois.parquet` gains PSA 2018 input-output industry sets (or explicitly provisional candidate sets) for every PSIC-classified place: `io16_codes`, `io80_codes`, `io240_codes` with names and confidence, plus `io_mapping_status`, `io_mapping_psic_level`, `io_mapping_psic_code`, `io_mapping_psic2019_codes`, `io_mapping_bridge_relation`, and `io_mapping_bridge_basis`.
+- The concordance `psic_2019_to_io_2018.csv` is keyed on PSIC 2019, the basis of the 2018 I-O tables. The bridge `psic_rev5_to_psic_2019.csv` relates every Revision 5 section, division, and group to PSIC 2019, so changed titles, reused codes, and the section letters from J onward can be represented explicitly. Hand-written bridge rows remain `draft` until reviewed and therefore produce `PROVISIONAL_*` rather than ordinary `MAPPED_*` statuses.
+- A bridge row applies only while its Revision 5 title matches the loaded taxonomy; a different tree maps at a coarser level or stays `UNMAPPED_NO_BRIDGE` instead of being mapped by code alone.
+- A `draft` bridge row sets a `PROVISIONAL_*` status only when it changes the answer; when the deepest accepted ancestor row is an ordinary mapping with the same I-O sets, the accepted mapping is reported. A `no_counterpart` row, draft or accepted, never takes part in that replacement.
+- Division 55 and section I also list PSIC 2019 group 799, because Revision 5 moved intermediation for accommodation into them; a test requires every mapped bridge row to lie inside its nearest ancestor row that lists codes.
+- Both data files are validated when loaded: code formats, code and name alignment, confidence values, PSIC version, bridge relations, and bridge targets. The schema can also represent a reviewed category with no defensible PSIC 2019 counterpart without deleting its Revision 5 bridge row.
+- `gis.parquet` carries I-O codes, confidence, and status, excludes I-O names, and records the SHA-256 hash of both data files in its `placetype` metadata.
+- `run.json` records the SHA-256 hash and row count of both data files, bridge rows by basis and relation, and the number of places per `io_mapping_status`, so provisional use is auditable.
+
 ## Batched joint-crosswalk retrieval
 
 - `crosswalk-suggest` now prepares rows separately from retrieval and scores TF-IDF queries in bounded batches per taxonomy.

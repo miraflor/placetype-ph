@@ -611,6 +611,27 @@ GeoParquet metadata, the pipeline attempts to preserve it. A failure is now warn
 silently swallowed, and `run.json` records `classified_pois_geo_metadata` as `preserved`,
 `source_has_no_geo_metadata`, or `failed:<ExceptionType>`.
 
+#### I-O industry columns
+
+When PSIC is classified, `classified_pois.parquet` also carries the industries of the PSA 2018 input-output (I-O) tables that each PSIC code corresponds to, at the 16-, 80- and 240-industry levels:
+
+| Column | Content |
+|---|---|
+| `io16_codes`, `io80_codes`, `io240_codes` | I-O industry codes, separated by `; ` |
+| `io16_names`, `io80_names`, `io240_names` | Names in the same order, separated by ` \| ` because some names contain semicolons |
+| `io16_confidence`, `io80_confidence`, `io240_confidence` | Confidence of the concordance rows used (`High`, `High with caveat`, `Medium-High`, `Medium`, `Low`; `Not mapped` when the set is blank). When several rows are combined, the weakest value |
+| `io_mapping_status` | Accepted: `MAPPED_GROUP`, `MAPPED_DIVISION`, `MAPPED_SECTION`, `NO_IO_CORRESPONDENCE`, `NO_PSIC2019_COUNTERPART`. Draft bridge candidates: `PROVISIONAL_GROUP`, `PROVISIONAL_DIVISION`, `PROVISIONAL_SECTION`, `PROVISIONAL_NO_IO_CORRESPONDENCE`, `PROVISIONAL_NO_PSIC2019_COUNTERPART`. Unmapped/error states: `UNMAPPED_NO_PSIC`, `UNMAPPED_UNKNOWN_PSIC_CODE`, `UNMAPPED_NO_BRIDGE` |
+| `io_mapping_psic_level`, `io_mapping_psic_code` | The PSIC Revision 5 section, division or group through which the code was mapped |
+| `io_mapping_psic2019_codes` | The PSIC 2019 codes whose I-O sets were combined |
+| `io_mapping_bridge_relation` | `same`, `recoded`, `renamed`, `changed_scope`, `new`, or `no_counterpart` |
+| `io_mapping_bridge_basis` | `code_title_match`, `draft`, or `reviewed` (see `DATA_SOURCES.md`) |
+
+A code set means that the activity of the place is **one** of the listed industries, not that the place has several activities. Splitting the string and counting every code therefore counts such a place once per code. To count places by industry without double counting, use the finest resolution at which the set has one code, or split each place with weights that sum to one. The confidence columns describe the concordance rows, not the classification of the individual place; `psic_status` and `io_mapping_status` describe that.
+
+`PROVISIONAL_*` is deliberately not an accepted mapping. It means the result comes through a hand-written `draft` Revision 5 → PSIC 2019 bridge row that still requires review. A draft row sets the status only when it changes the answer: if the deepest accepted ancestor row gives the same I-O sets at all three resolutions, the result is that accepted mapping (for example `MAPPED_DIVISION`), and the provenance columns name the accepted row. Only an ordinary accepted row confirms an answer this way: an accepted `no_counterpart` row confirms none, and a draft `no_counterpart` row is never replaced. The candidate codes are retained so they can be inspected and used deliberately, but routine production aggregation should filter out `PROVISIONAL_*` unless that uncertainty is explicitly accepted. Promoting a bridge row from `draft` to `reviewed` changes the same result to the corresponding ordinary status without changing the I-O concordance itself. `NO_PSIC2019_COUNTERPART` is distinct from `NO_IO_CORRESPONDENCE`: the former says the bridge review found no defensible historical PSIC category, while the latter says a historical PSIC category exists but has no I-O line in this concordance.
+
+`run.json` records the file name, SHA-256 hash and row count of both I-O data files, the bridge rows by basis and by relation, and the number of places per `io_mapping_status`.
+
 ### `gis.parquet`
 
 An optional compact layer for QGIS. It is written on request, not by `classify`:
@@ -634,6 +655,8 @@ kept because the file is meant to be a standalone layer rather than a join table
 `--with-status` to carry `<scheme>_status`, which distinguishes an unclassified row from an
 ineligible one. Output is Zstandard-compressed, and every code column is declared as a string, so
 two runs of the same pipeline produce the same schema even when one of them resolved fewer levels.
+
+When the summary has I-O columns, the layer also carries the I-O codes, their confidence, `io_mapping_status`, `io_mapping_psic_level`, `io_mapping_psic_code`, `io_mapping_bridge_relation` and `io_mapping_bridge_basis`. It excludes the I-O names for the same reason it excludes taxonomy titles, and its `placetype` metadata records the file name and SHA-256 hash of both I-O data files.
 
 The file records where it came from. Its Parquet metadata carries a `placetype` key naming the
 run, the package version that created the classification, the package version that performed the

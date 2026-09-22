@@ -19,6 +19,7 @@ from .economic_role import (
     TaxonomyClassification,
     infer_economic_profile,
 )
+from .io_mapping import IOCrosswalk, enrich_summary_with_io, io_status_counts
 from .models import ClassificationResult
 from .openplaces import SUMMARY_COLUMNS, read_openplaces
 from .text import clean_text
@@ -195,6 +196,15 @@ def classify_openplaces(
         part = part.rename(columns={c: f"{scheme}_{c}" for c in ("code", "level", "status")})
         summary = summary.merge(part, on="canonical_id", how="left", validate="one_to_one")
 
+    # I-O industry sets follow from the PSIC classification only; see io_mapping.py.
+    io_mapping: dict[str, object] | None = None
+    if "psic" in classifiers:
+        io_crosswalk = IOCrosswalk.load_default()
+        summary = enrich_summary_with_io(
+            summary, results, classifiers["psic"].taxonomy, io_crosswalk
+        )
+        io_mapping = {**io_crosswalk.provenance(), "status_counts": io_status_counts(summary)}
+
     # Economic role is orthogonal to taxonomy classification. Pass every scheme result
     # into one role API; scheme-specific semantics decide what a classification may imply.
     # In particular, only a resolved PSIC activity currently implies producer and
@@ -281,6 +291,7 @@ def classify_openplaces(
             }
             for scheme, classifier in classifiers.items()
         },
+        "io_mapping": io_mapping,
         "outputs": {
             "entity_classifications": classifications.name,
             "classified_pois": summary_path.name,

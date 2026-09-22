@@ -249,6 +249,52 @@ def test_export_gis_run_is_compact_hierarchical_geoparquet(tmp_path: Path):
     assert json.loads(pq.read_schema(output).metadata[b"geo"]) == json.loads(geo)
 
 
+def test_export_carries_io_mapping_columns_when_present(tmp_path: Path):
+    run_dir, _ = _write_run(tmp_path, schemes=("psic",))
+    summary_path = run_dir / "classified_pois.parquet"
+    frame = pd.read_parquet(summary_path)
+    frame["io_mapping_status"] = ["MAPPED_GROUP", "MAPPED_GROUP", "UNMAPPED_NO_PSIC"]
+    frame["io16_codes"] = ["01", "03", ""]
+    frame["io80_codes"] = ["01; 02", "27; 28", ""]
+    frame["io240_codes"] = ["001; 002", "046; 047", ""]
+    frame["io240_names"] = ["Palay | Corn", "Slaughtering | Meat processing", ""]
+    _write_geo_source(summary_path, frame, geo=_geo_json())
+
+    output = export_gis_run(run_dir, reference_dir=tmp_path / "reference")
+    result = pd.read_parquet(output)
+
+    assert result["io_mapping_status"].tolist() == [
+        "MAPPED_GROUP",
+        "MAPPED_GROUP",
+        "UNMAPPED_NO_PSIC",
+    ]
+    assert result["io16_codes"].tolist() == ["01", "03", ""]
+    assert result["io80_codes"].tolist() == ["01; 02", "27; 28", ""]
+    assert result["io240_codes"].tolist() == ["001; 002", "046; 047", ""]
+    # Like taxonomy titles, I-O industry names stay in classified_pois.parquet only.
+    assert "io240_names" not in result.columns
+
+
+def test_export_records_io_mapping_files_from_the_run(tmp_path: Path):
+    run_dir, _ = _write_run(tmp_path, schemes=("psic",))
+    manifest_path = run_dir / "run.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest["io_mapping"] = {
+        "concordance": {"file": "psic_2019_to_io_2018.csv", "sha256": "a" * 64, "rows": 354},
+        "bridge": {"file": "psic_rev5_to_psic_2019.csv", "sha256": "b" * 64, "rows": 371},
+        "status_counts": {"MAPPED_GROUP": 3},
+    }
+    manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+
+    output = export_gis_run(run_dir, reference_dir=tmp_path / "reference")
+
+    placetype = json.loads(pq.read_schema(output).metadata[b"placetype"])
+    assert placetype["io_mapping"] == {
+        "concordance": {"file": "psic_2019_to_io_2018.csv", "sha256": "a" * 64},
+        "bridge": {"file": "psic_rev5_to_psic_2019.csv", "sha256": "b" * 64},
+    }
+
+
 def test_export_declares_string_columns_even_when_a_level_is_never_reached(tmp_path: Path):
     """A level no row reached must still be a string column.
 

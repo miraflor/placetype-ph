@@ -1,0 +1,372 @@
+rev5_level,rev5_code,rev5_title,psic2019_codes,relation,basis,note
+section,A,"Agriculture, Forestry and Fishing",A,same,code_title_match,
+section,B,Mining and Quarrying,B,same,code_title_match,
+section,C,Manufacturing,C,same,code_title_match,
+section,D,"Electricity, Gas, Steam and Air Conditioning Supply",D,same,code_title_match,
+section,E,"Water Supply; Sewerage, Waste Management and Remediation",E,renamed,draft,Title drops the word 'activities'.
+section,F,Construction,F,same,code_title_match,
+section,G,Wholesale and Retail Trade,46; 47; 451; 453; 454,changed_scope,draft,Motor-vehicle repair (2019 452 and the repair part of 454) moves to Rev 5 section T; motor-vehicle sale moves into Rev 5 divisions 46 and 47.
+section,H,Transportation and Storage,H,same,code_title_match,
+section,I,Accommodation and Food Service Activities,I; 799,changed_scope,draft,"Rev 5 adds intermediation for accommodation (group 554), which was part of 2019 group 799; the unchanged code and title do not mean unchanged scope."
+section,J,"Publishing, Broadcasting, and Content Production and Distribution Activities",58; 59; 60; 639,changed_scope,draft,Rev 5 splits 2019 section J; news agencies (in 2019 group 639) move into Rev 5 division 60.
+section,K,"Telecommunications, Computer Programming, Consultancy, Computing Infrastructure, and Other Information Service Activities",61; 62; 63,changed_scope,draft,"Rev 5 splits 2019 section J; telecommunications, computer programming and information services form Rev 5 section K."
+section,L,Financial and Insurance Activities,K,recoded,draft,Section letters shift by one from J onward.
+section,M,Real Estate Activities,L,recoded,draft,Section letters shift by one from J onward.
+section,N,"Professional, Scientific, and Technical Activities",M,recoded,draft,Section letters shift by one from J onward.
+section,O,Administrative and Support Service Activities,N,recoded,draft,Section letters shift by one from J onward.
+section,P,Public Administration and Defense; Compulsory Social Security,O,recoded,draft,Section letters shift by one from J onward.
+section,Q,Education,P,recoded,draft,Section letters shift by one from J onward.
+section,R,Human Health and Social Work Activities,Q,recoded,draft,Section letters shift by one from J onward.
+section,S,"Arts, Sports and Recreation",R,recoded,draft,Section letters shift by one from J onward. The title replaces 'entertainment' with 'sports'.
+section,T,Other Service Activities,S; 452; 454,changed_scope,draft,Section letters shift by one from J onward. Motor-vehicle repair (2019 452 and the repair part of 454) moves into Rev 5 division 95.
+section,U,Activities of Households as Employers; Undifferentiated Goods- and Services-Producing Activities of Households for own use,T,recoded,draft,Section letters shift by one from J onward.
+section,V,Activities of Extraterritorial Organizations and Bodies,U,recoded,draft,Section letters shift by one from J onward.
+division,01,"Crop and Animal Production, Hunting and Related Service Activities",01,same,code_title_match,
+division,02,Forestry and Logging,02,same,code_title_match,
+division,03,Fishing and Aquaculture,03,same,code_title_match,
+division,05,Mining of Coal and Lignite,05,same,code_title_match,
+division,06,Extraction of Crude Petroleum and Natural Gas,06,same,code_title_match,
+division,07,Mining of Metal Ores,07,same,code_title_match,
+division,08,Other Mining and Quarrying,08,same,code_title_match,
+division,09,Mining Support Service Activities,09,same,code_title_match,
+division,10,Manufacture of Food Products,10,same,code_title_match,
+division,11,Manufacture of Beverages,11,same,code_title_match,
+division,12,Manufacture of Tobacco Products,12,same,code_title_match,
+division,13,Manufacture of Textiles,13,same,code_title_match,
+division,14,Manufacture of Wearing Apparel,14,same,code_title_match,
+division,15,Manufacture of Leather and Related Products,15,same,code_title_match,
+division,16,"Manufacture of Wood and of Products of Wood and Cork, Except Furniture; Manufacture of Articles of Straw and Plaiting Materials",16,renamed,draft,"Title no longer names articles of bamboo, cane and rattan."
+division,17,Manufacture of Paper and Paper Products,17,same,code_title_match,
+division,18,Printing and Reproduction of Recorded Media,18,same,code_title_match,
+division,19,Manufacture of Coke and Refined Petroleum Products,19,same,code_title_match,
+division,20,Manufacture of Chemicals and Chemical Products,20,same,code_title_match,
+division,21,Manufacture of Basic Pharmaceutical Products and Pharmaceutical Preparations,21,same,code_title_match,
+division,22,Manufacture of Rubber and Plastic Products,22,same,code_title_match,
+division,23,Manufacture of Other Non-Metallic Mineral Products,23,same,code_title_match,
+division,24,Manufacture of Basic Metals,24,same,code_title_match,
+division,25,"Manufacture of Fabricated Metal Products, Except Machinery and Equipment",25,same,code_title_match,
+division,26,"Manufacture of Computer, Electronic and Optical Products",26,same,code_title_match,
+division,27,Manufacture of Electrical Equipment,27,same,code_title_match,
+division,28,Manufacture of Machinery and Equipment n.e.c.,28,same,code_title_match,
+division,29,"Manufacture of Motor Vehicles, Trailers and Semi-Trailers",29,same,code_title_match,
+division,30,Manufacture of Other Transport Equipment,30,same,code_title_match,
+division,31,Manufacture of Furniture,31,same,code_title_match,
+division,32,Other Manufacturing,32,same,code_title_match,
+division,33,"Repair, Maintenance and Installation of Machinery and Equipment",33,renamed,draft,Title adds 'maintenance'.
+division,35,"Electricity, Gas, Steam and Air Conditioning Supply",35,same,code_title_match,
+division,36,"Water Collection, Treatment and Supply",36,same,code_title_match,
+division,37,Sewerage,37,same,code_title_match,
+division,38,"Waste Collection, Treatment and Disposal, and Recovery Activities",38,renamed,draft,
+division,39,Remediation and Other Waste Management Service Activities,39,renamed,draft,
+division,41,Construction of Residential and Non-residential Buildings,41,renamed,draft,Title names residential and non-residential buildings.
+division,42,Civil Engineering,42,same,code_title_match,
+division,43,Specialized Construction Activities,43,same,code_title_match,
+division,44,Renting of construction machinery and equipment with operator,439,new,draft,Renting of construction machinery with operator was part of 2019 group 439.
+division,46,Wholesale Trade,46; 451; 453; 454,changed_scope,draft,"Wholesale of motor vehicles, motorcycles and parts was in 2019 division 45."
+division,47,Retail Trade,47; 451; 453; 454,changed_scope,draft,"Retail sale of motor vehicles, motorcycles and parts was in 2019 division 45."
+division,49,Land Transport and Transport via Pipelines,49,same,code_title_match,
+division,50,Water Transport,50,same,code_title_match,
+division,51,Air Transport,51,same,code_title_match,
+division,52,Warehousing and Support Activities for Transportation,52,same,code_title_match,
+division,53,Postal and Courier Activities,53,same,code_title_match,
+division,55,Accommodation,55; 799,changed_scope,draft,"Rev 5 adds intermediation for accommodation (group 554), which was part of 2019 group 799; the unchanged code and title do not mean unchanged scope."
+division,56,Food and Beverage Service Activities,56,same,code_title_match,
+division,58,Publishing Activities,58,same,code_title_match,
+division,59,"Motion Picture, Video and Television Program Production, Sound Recording and Music Publishing Activities",59,renamed,draft,Spelling only ('programme' to 'program').
+division,60,"Programming, Broadcasting, News Agency and Other Content Distribution Activities",60; 639,changed_scope,draft,Adds news agencies (2019 group 639) and other content distribution.
+division,61,Telecommunications,61,same,code_title_match,
+division,62,"Computer Programming, Consultancy and Related Activities",62,same,code_title_match,
+division,63,"Computing Infrastructure, Data Processing, Hosting, and Other Information Service Activities",63,changed_scope,draft,News agencies (2019 group 639) move to Rev 5 division 60.
+division,64,"Financial Service Activities, except Insurance and Pension Funding",64,same,code_title_match,
+division,65,"Insurance, Reinsurance and Pension Funding, except Compulsory Social Security",65,same,code_title_match,
+division,66,Activities Auxiliary to Financial Service and Insurance Activities,66,same,code_title_match,
+division,68,Real Estate Activities,68,same,code_title_match,
+division,69,Legal and Accounting Activities,69,same,code_title_match,
+division,70,Activities of Head Offices; Management Consultancy Activities,70,same,code_title_match,
+division,71,Architectural and Engineering Activities; Technical Testing and Analysis,71,same,code_title_match,
+division,72,Scientific Research and Development,72,same,code_title_match,
+division,73,"Activities of Advertising, Market Research, and Public Relations",73; 702,changed_scope,draft,Public relations (part of 2019 group 702) moves into Rev 5 division 73.
+division,74,"Other Professional, Scientific and Technical Activities",74,same,code_title_match,
+division,75,Veterinary activities,75,same,code_title_match,
+division,77,Rental and Leasing Activities,77,same,code_title_match,
+division,78,Employment Activities,78,same,code_title_match,
+division,79,"Travel Agency, Tour Operator, and Other Travel Related Activities",79,changed_scope,draft,Accommodation reservation intermediation moves to Rev 5 group 554.
+division,80,Investigation and Security Activities,80,renamed,draft,Word order only.
+division,81,Services to Buildings and Landscape Activities,81,same,code_title_match,
+division,82,"Office Administrative, Office Support and Other Business Support Activities",82,same,code_title_match,
+division,84,Public Administration and Defense; Compulsory Social Security,84,same,code_title_match,
+division,85,Education,85,same,code_title_match,
+division,86,Human Health Activities,86,same,code_title_match,
+division,87,Residential Care Activities,87,same,code_title_match,
+division,88,Social Work Activities Without Accommodation,88,same,code_title_match,
+division,90,Arts Creation and Performing Arts Activities,90,renamed,draft,
+division,91,"Library, Archives, Museum and Other Cultural Activities",91,renamed,draft,Singular and plural forms only.
+division,92,Gambling and Betting Activities,92,same,code_title_match,
+division,93,Sports Activities and Amusement And Recreation Activities,93,same,code_title_match,
+division,94,Activities of Membership Organizations,94,same,code_title_match,
+division,95,"Repair and Maintenance of Computers, Personal and Household Goods, and Motor Vehicles and Motorcycles",95; 452; 454,changed_scope,draft,Adds repair and maintenance of motor vehicles and motorcycles (2019 452 and the repair part of 454).
+division,96,Personal Service Activities,96,changed_scope,draft,2019 group 964 (domestic services) has no Rev 5 group of its own; Rev 5 group 964 is intermediation.
+division,97,Activities of Households as Employers of Domestic Personnel,97,same,code_title_match,
+division,98,Undifferentiated Goods- and Services-Producing Activities of Private Households for Own Use,98,same,code_title_match,
+division,99,Activities of Extraterritorial Organizations and Bodies,99,same,code_title_match,
+group,011,Growing of non-perennial crops,011,same,code_title_match,
+group,012,Growing of perennial crops,012,same,code_title_match,
+group,013,Plant propagation,013,same,code_title_match,
+group,014,Animal production,014,same,code_title_match,
+group,016,Support activities to agriculture and post-harvest crop activities,015,recoded,draft,Same title as 2019 group 015.
+group,017,"Hunting, trapping and related service activities",017,same,code_title_match,
+group,021,Silviculture and other forestry activities,021,same,code_title_match,
+group,022,Logging,022,same,code_title_match,
+group,023,Gathering of non-wood forest products,023,same,code_title_match,
+group,024,Support services to forestry,024,same,code_title_match,
+group,031,Fishing,031,same,code_title_match,
+group,032,Aquaculture,032,same,code_title_match,
+group,033,Support activities for fishing and aquaculture,031; 032,new,draft,"In PSIC 2019 these support services sit inside groups 031 and 032, so the I-O set is wider than the Rev 5 scope; IO240 038 is the likely single line."
+group,051,Mining of hard coal,051,same,code_title_match,
+group,052,Mining of lignite,052,same,code_title_match,
+group,061,Extraction of crude petroleum,061,same,code_title_match,
+group,062,Extraction of natural gas,062,same,code_title_match,
+group,071,Mining of iron ores,071,same,code_title_match,
+group,072,Mining of non-ferrous metal ores,072,same,code_title_match,
+group,081,"Quarrying of stone, sand and clay",081,same,code_title_match,
+group,089,Mining and quarrying n.e.c.,089,same,code_title_match,
+group,091,Support activities for petroleum and natural gas extraction,091,renamed,draft,
+group,099,Support activities for other mining and quarrying,099,same,code_title_match,
+group,101,Processing and preserving of meat,101,same,code_title_match,
+group,102,"Processing and preserving of fish, crustaceans and mollusks",102,same,code_title_match,
+group,103,Processing and preserving of fruit and vegetables,103,renamed,draft,
+group,104,Manufacture of vegetable and animal oils and fats,104,same,code_title_match,
+group,105,Manufacture of dairy products,105,same,code_title_match,
+group,106,"Manufacture of grain mill products, starches and starch products",106,same,code_title_match,
+group,107,Manufacture of other food products,107,same,code_title_match,
+group,108,Manufacture of prepared animal feeds,108,same,code_title_match,
+group,110,Manufacture of beverages,110,same,code_title_match,
+group,120,Manufacture of tobacco products,120,same,code_title_match,
+group,131,"Spinning, weaving and finishing of textiles",131,same,code_title_match,
+group,139,Manufacture of other textiles,139,same,code_title_match,
+group,141,"Manufacture of wearing apparel, except fur apparel",141,same,code_title_match,
+group,142,Manufacture of articles of fur,144,recoded,draft,Codes 142 and 144 exchange meanings between PSIC 2019 and Rev 5.
+group,143,Manufacture of knitted and crocheted apparel,143,same,code_title_match,
+group,144,Custom tailoring and dressmaking,142,recoded,draft,Codes 142 and 144 exchange meanings between PSIC 2019 and Rev 5.
+group,151,"Tanning, dyeing, dressing of leather and fur; manufacture of luggage, handbags, saddlery and harness",151,renamed,draft,Title adds dyeing and fur.
+group,152,Manufacture of footwear,152,same,code_title_match,
+group,161,Sawmilling and planing of wood,161,same,code_title_match,
+group,162,"Manufacture of products of wood, cork, straw and plaiting materials",162,same,code_title_match,
+group,170,Manufacture of paper and paper products,170,same,code_title_match,
+group,181,Printing and service activities related to printing,181,same,code_title_match,
+group,182,Reproduction of recorded media,182,same,code_title_match,
+group,191,Manufacture of coke oven products,191,same,code_title_match,
+group,192,Manufacture of refined petroleum products; manufacture of fossil fuel products,192; 199,changed_scope,draft,Absorbs 2019 group 199 (other fuel products).
+group,201,"Manufacture of basic chemicals, fertilizers and nitrogen compounds, plastics and synthetic rubber in primary forms",201,renamed,draft,
+group,202,Manufacture of other chemical products,202,renamed,draft,
+group,203,Manufacture of man-made fibres,203,renamed,draft,Spelling only.
+group,210,"Manufacture of pharmaceuticals, medicinal chemical and botanical products",210,same,code_title_match,
+group,221,Manufacture of rubber products,221,same,code_title_match,
+group,222,Manufacture of plastics products,222,same,code_title_match,
+group,231,Manufacture of glass and glass products,231,same,code_title_match,
+group,239,Manufacture of non-metallic mineral products n.e.c.,239,same,code_title_match,
+group,241,Manufacture of basic iron and steel,241,same,code_title_match,
+group,242,Manufacture of basic precious and other non-ferrous metals,242,same,code_title_match,
+group,243,Casting of metals,243,same,code_title_match,
+group,251,"Manufacture of structural metal products, tanks, reservoirs and steam generators",251,same,code_title_match,
+group,252,Manufacture of weapons and ammunition,252,same,code_title_match,
+group,259,Manufacture of other fabricated metal products; metalworking service activities,259,renamed,draft,
+group,261,Manufacture of electronic components and boards,261,renamed,draft,
+group,262,Manufacture of computers and peripheral equipment and accessories,262,same,code_title_match,
+group,263,Manufacture of communication equipment,263,same,code_title_match,
+group,264,Manufacture of consumer electronics,264,same,code_title_match,
+group,265,"Manufacture of measuring, testing, navigating and control equipment; watches and clocks",265,same,code_title_match,
+group,266,"Manufacture of irradiation, electromedical and electrotherapeutic equipment",266,same,code_title_match,
+group,267,Manufacture of optical instruments and photographic equipment,267,same,code_title_match,
+group,268,Manufacture of magnetic and optical media,268,same,code_title_match,
+group,271,"Manufacture of electric motors, generators, transformers and electricity distribution and control apparatus",271,same,code_title_match,
+group,272,Manufacture of batteries and accumulators,272,same,code_title_match,
+group,273,Manufacture of wiring and wiring devices,273,same,code_title_match,
+group,274,Manufacture of lighting equipment,274,renamed,draft,
+group,275,Manufacture of domestic appliances,275,same,code_title_match,
+group,279,Manufacture of other electrical equipment,279,same,code_title_match,
+group,281,Manufacture of general-purpose machinery,281,same,code_title_match,
+group,282,Manufacture of special-purpose machinery,282,same,code_title_match,
+group,291,Manufacture of motor vehicles,291,same,code_title_match,
+group,292,Manufacture of bodies (coachwork) for motor vehicles; manufacture of trailers and semi-trailers,292,same,code_title_match,
+group,293,Manufacture of parts and accessories for motor vehicles,293,same,code_title_match,
+group,301,Building of ships and boats,301,same,code_title_match,
+group,302,Manufacture of railway locomotives and rolling stock,302,same,code_title_match,
+group,303,Manufacture of air and spacecraft and related machinery,303,same,code_title_match,
+group,304,Manufacture of military fighting vehicles,304,same,code_title_match,
+group,309,Manufacture of transport equipment n.e.c.,309,same,code_title_match,
+group,310,Manufacture of furniture,310,same,code_title_match,
+group,321,"Manufacture of jewellery, bijouterie and related articles",321,renamed,draft,Spelling only.
+group,322,Manufacture of musical instruments,322,same,code_title_match,
+group,323,Manufacture of sports goods,323,same,code_title_match,
+group,324,Manufacture of games and toys,324,same,code_title_match,
+group,325,Manufacture of medical and dental instruments and supplies,325,same,code_title_match,
+group,329,Other manufacturing n.e.c.,329,same,code_title_match,
+group,331,"Repair and maintenance of fabricated metal products, machinery and equipment",331,renamed,draft,Title adds 'maintenance'.
+group,332,Installation of industrial machinery and equipment,332,same,code_title_match,
+group,351,"Electric power generation, transmission and distribution activities",351,changed_scope,draft,Brokers and agents for electric power move to Rev 5 group 354.
+group,352,Manufacture of gas; distribution of gaseous fuels through mains,352,same,code_title_match,
+group,353,Steam and air conditioning supply,353,changed_scope,draft,The Rev 5 title no longer names production of ice.
+group,354,Activities of brokers and agents for electric power and natural gas,351; 352,new,draft,Brokers and agents for electric power and gas were part of 2019 groups 351 and 352.
+group,360,"Water collection, treatment and supply",360,same,code_title_match,
+group,370,Sewerage,370,same,code_title_match,
+group,381,Waste collection activities,381,renamed,draft,
+group,382,Waste treatment and disposal,382,same,code_title_match,
+group,383,Materials and other waste recovery,383,renamed,draft,
+group,390,Remediation and other waste management service activities,390,renamed,draft,
+group,410,Construction of residential and non-residential buildings,410,renamed,draft,
+group,421,Construction of roads and railways,421,same,code_title_match,
+group,422,Construction of utility projects,422,same,code_title_match,
+group,429,Construction of other civil engineering projects,429,same,code_title_match,
+group,431,Demolition and site preparation,431,same,code_title_match,
+group,432,"Electrical, plumbing and other construction installation activities",432,same,code_title_match,
+group,433,Building completion and finishing,433,same,code_title_match,
+group,434,Intermediation service activities for specialized construction services,43,new,draft,No separate 2019 group; mapped to the 2019 division of the intermediated activity.
+group,439,Other specialized construction activities,439,same,code_title_match,
+group,440,Renting of construction machinery and equipment with operator,439,new,draft,Renting of construction machinery with operator was part of 2019 group 439.
+group,461,Wholesale on a fee or contract basis,461,same,code_title_match,
+group,462,Wholesale of agricultural raw materials and live animals,462,same,code_title_match,
+group,463,"Wholesale of food, beverages and tobacco",463,same,code_title_match,
+group,464,Wholesale of household goods,464,same,code_title_match,
+group,465,"Wholesale of machinery, equipment and supplies",465,same,code_title_match,
+group,466,"Wholesale of motor vehicles, motorcycles and related parts and accessories",451; 453; 454,changed_scope,draft,"Code reused: wholesale of motor vehicles, motorcycles and parts was in 2019 division 45."
+group,467,Other specialized wholesale,466,recoded,draft,Same title as 2019 group 466.
+group,469,Non-specialized wholesale trade,469,same,code_title_match,
+group,471,Non-specialized retail sale,471; 478; 479,changed_scope,draft,"Rev 5 classifies retail by product, not by sales channel; stall, market and non-store retail (2019 groups 478 and 479) spread across Rev 5 groups 471 to 477."
+group,472,"Retail sale of food, beverages and tobacco",472; 478; 479,changed_scope,draft,"Rev 5 classifies retail by product, not by sales channel; stall, market and non-store retail (2019 groups 478 and 479) spread across Rev 5 groups 471 to 477."
+group,473,Retail sale of automotive fuel,473,renamed,draft,Title drops 'in specialized stores'.
+group,474,Retail sale of information and communication equipment,474; 478; 479,changed_scope,draft,"Rev 5 classifies retail by product, not by sales channel; stall, market and non-store retail (2019 groups 478 and 479) spread across Rev 5 groups 471 to 477."
+group,475,Retail sale of other household equipment,475; 478; 479,changed_scope,draft,"Rev 5 classifies retail by product, not by sales channel; stall, market and non-store retail (2019 groups 478 and 479) spread across Rev 5 groups 471 to 477."
+group,476,Retail sale of cultural and recreational goods,476; 478; 479,changed_scope,draft,"Rev 5 classifies retail by product, not by sales channel; stall, market and non-store retail (2019 groups 478 and 479) spread across Rev 5 groups 471 to 477."
+group,477,"Retail sale of other goods, except motor vehicles and motorcycles",477; 478; 479,changed_scope,draft,"Rev 5 classifies retail by product, not by sales channel; stall, market and non-store retail (2019 groups 478 and 479) spread across Rev 5 groups 471 to 477."
+group,478,"Retail sale of motor vehicles, motorcycles and related parts and accessories",451; 453; 454,changed_scope,draft,Code reused: 2019 group 478 was retail via stalls and markets; retail sale of motor vehicles was in 2019 division 45.
+group,479,Intermediation service activities for retail sale,479,new,draft,Code reused with a new concept; commission-based retail outside stores was in 2019 group 479.
+group,491,Transport via railways,491,same,code_title_match,
+group,492,Passenger land transport by buses,492,renamed,draft,
+group,493,Transport via pipeline,494,recoded,draft,Codes 493 and 494 exchange meanings between PSIC 2019 and Rev 5.
+group,494,Other land transport,493,recoded,draft,Codes 493 and 494 exchange meanings between PSIC 2019 and Rev 5.
+group,501,Sea and coastal water transport,501,same,code_title_match,
+group,502,Inland water transport,502,same,code_title_match,
+group,511,Passenger air transport,511,same,code_title_match,
+group,512,Freight air transport,512,same,code_title_match,
+group,521,Warehousing and storage,521,same,code_title_match,
+group,522,Support activities for transportation,522,same,code_title_match,
+group,523,Intermediation service activities for transportation,522,new,draft,Transport intermediation (for example freight brokerage) was part of 2019 group 522.
+group,531,Postal activities,531,same,code_title_match,
+group,532,Courier activities,532,same,code_title_match,
+group,533,Intermediation service activities for postal and courier activities,53,new,draft,No separate 2019 group; mapped to the 2019 division of the intermediated activity.
+group,551,Hotels and similar accommodation activities,551,changed_scope,draft,Rev 5 splits 2019 group 551 into 551 (hotels) and 552 (other short-term accommodation).
+group,552,Other short term accommodation activities,551,changed_scope,draft,Rev 5 splits 2019 group 551 into 551 (hotels) and 552 (other short-term accommodation).
+group,553,"Camping grounds, recreational vehicle parks and trailer parks",559,new,draft,PSIC 2019 has no camping-ground group; these activities were in group 559.
+group,554,Intermediation service activities for accommodation,799,new,draft,"Accommodation reservation services were in 2019 group 799, so this group maps to the I-O travel-services line, not to accommodation."
+group,559,Other accommodation n.e.c.,559,renamed,draft,
+group,561,Restaurants and mobile food service activities,561,same,code_title_match,
+group,562,Event catering and other food service activities,562,same,code_title_match,
+group,563,Beverage serving activities,563,same,code_title_match,
+group,564,Intermediation service activities for food and beverage services activities,56,new,draft,No separate 2019 group; mapped to the 2019 division of the intermediated activity. 2019 group 799 (reservation services) is an alternative.
+group,581,"Publishing of books, newspapers, periodicals and other publishing activities",581,renamed,draft,Title adds newspapers.
+group,582,Software publishing,582,same,code_title_match,
+group,591,"Motion picture, video and television program activities",591,renamed,draft,Spelling only.
+group,592,Sound recording and music publishing activities,592,same,code_title_match,
+group,601,Radio broadcasting and audio distribution activities,601,changed_scope,draft,Title adds audio distribution.
+group,602,"Television programming, broadcasting and video distribution activities",602,changed_scope,draft,Title adds video distribution.
+group,603,News agency and other content distribution activities,639,changed_scope,draft,News agency activities were in 2019 group 639.
+group,611,"Wired, wireless, and satellite telecommunication activities",611; 612; 613,changed_scope,draft,"Merges wired, wireless and satellite telecommunications (2019 groups 611 to 613)."
+group,612,Telecommunication reselling activities and intermediation service activities for telecommunication,619,changed_scope,draft,Code reused: telecommunication reselling was in 2019 group 619.
+group,619,Other telecommunication activities,619,renamed,draft,Singular and plural forms only.
+group,621,Computer programming activities,620,changed_scope,draft,"Rev 5 splits 2019 group 620 into 621, 622 and 629."
+group,622,Computer consultancy and computer facilities management activities,620,changed_scope,draft,"Rev 5 splits 2019 group 620 into 621, 622 and 629."
+group,629,Other information technology and computer service activities,620,changed_scope,draft,"Rev 5 splits 2019 group 620 into 621, 622 and 629."
+group,631,"Computing infrastructure, data processing, hosting and related activities",631,changed_scope,draft,Web portals move from 2019 group 631 to Rev 5 group 639.
+group,639,Web search portals activities and other information service activities,631; 639,changed_scope,draft,Adds web search portals (2019 group 631); news agencies move to Rev 5 group 603.
+group,641,Monetary intermediation,641,same,code_title_match,
+group,642,Activities of holding companies and financing conduits,642; 643,changed_scope,draft,Title adds financing conduits; their 2019 location (likely group 643) was not verified.
+group,643,"Activities of trusts, funds and similar financial entities",643,renamed,draft,
+group,649,"Other financial service activities, except insurance and pension funding activities",649,same,code_title_match,
+group,651,Insurance,651,same,code_title_match,
+group,652,Reinsurance,652,same,code_title_match,
+group,653,Pension funding,653,same,code_title_match,
+group,654,Pre-need plan activities,651; 653,new,draft,"Pre-need plans have their own Rev 5 group; their PSIC 2019 location was not verified, and both candidates map to the insurance I-O lines."
+group,661,"Activities auxiliary to financial services, except insurance and pension funding",661,renamed,draft,
+group,662,Activities auxiliary to insurance and pension funding,662,same,code_title_match,
+group,663,Fund management activities,663,same,code_title_match,
+group,681,Real estate activities with own or leased property,681,same,code_title_match,
+group,682,Real estate activities on a fee or contract basis,682,same,code_title_match,
+group,691,Legal activities,691,same,code_title_match,
+group,692,"Accounting, bookkeeping and auditing activities; tax consultancy",692,same,code_title_match,
+group,701,Activities of head offices,701,same,code_title_match,
+group,702,Business and other management consultancy activities,702,changed_scope,draft,Public relations moves to Rev 5 group 733.
+group,711,"Architectural and engineering, and related technical consultancy activities",711,renamed,draft,
+group,712,Technical testing and analysis,712,same,code_title_match,
+group,721,Research and experimental development on natural sciences and engineering,721,same,code_title_match,
+group,722,Research and experimental development on social sciences and humanities,722,same,code_title_match,
+group,731,Advertising activities,731,renamed,draft,
+group,732,Market research and public opinion polling activities,732,renamed,draft,
+group,733,Public relations activities,702,new,draft,Public relations was part of 2019 group 702 (management consultancy).
+group,741,Specialized design activities,741,same,code_title_match,
+group,742,Photographic activities,742,same,code_title_match,
+group,743,Translation and interpretation activities,749,new,draft,Translation and interpretation was part of 2019 group 749.
+group,749,"Other professional, scientific and technical activities n.e.c.",749,same,code_title_match,
+group,750,Veterinary activities,750,same,code_title_match,
+group,771,Rental and leasing of motor vehicles,771,renamed,draft,
+group,772,Rental and leasing of personal and household goods,772,renamed,draft,
+group,773,"Rental and leasing of other machinery, equipment and tangible goods",773,renamed,draft,
+group,774,"Leasing of intellectual property and similar products, except copyrighted works",774,same,code_title_match,
+group,775,Intermediation service activities for rental and leasing of tangible goods and non-financial intangible assets,77,new,draft,No separate 2019 group; mapped to the 2019 division of the intermediated activity.
+group,781,Activities of employment placement agencies,781,same,code_title_match,
+group,782,Temporary employment agency activities and other human resource provisions,782; 783,changed_scope,draft,Absorbs 2019 group 783 (other human resources provision).
+group,791,Travel agency and tour operator activities,791,same,code_title_match,
+group,799,Other travel related activities,799,changed_scope,draft,Accommodation reservation intermediation moves to Rev 5 group 554.
+group,801,Investigation and security activities,801; 802; 803,changed_scope,draft,Merges 2019 groups 801 to 803.
+group,811,Combined facilities support activities,811,same,code_title_match,
+group,812,Cleaning activities,812,same,code_title_match,
+group,813,Landscape service activities,813,renamed,draft,
+group,821,Office administrative and support activities,821,same,code_title_match,
+group,822,Activities of call centers,822,renamed,draft,
+group,823,Organization of conventions and trade shows,823,same,code_title_match,
+group,824,"Intermediation service activities for business support activities n.e.c., except financial intermediation",829,new,draft,Intermediation for business support services was part of 2019 group 829.
+group,829,Business support service activities n.e.c.,829,same,code_title_match,
+group,841,"Administration of the State and the economic, social and environmental policies of the community",841,renamed,draft,
+group,842,Provision of services to the community as a whole,842,same,code_title_match,
+group,843,Compulsory social security activities,843,same,code_title_match,
+group,851,Pre-primary education,851,renamed,draft,
+group,852,Primary education,852,renamed,draft,
+group,853,Secondary and post-secondary non-tertiary education,853,renamed,draft,Title adds post-secondary non-tertiary education.
+group,854,Tertiary education,854,renamed,draft,
+group,855,Other education,855,renamed,draft,
+group,856,Educational support activities,856,renamed,draft,
+group,861,Hospital activities,861,same,code_title_match,
+group,862,Medical and dental practice activities,862,same,code_title_match,
+group,869,Other human health activities,869,same,code_title_match,
+group,871,Residential nursing care activities,871,renamed,draft,
+group,872,Residential care activities for persons living with or having a diagnosis of a mental illness or substance abuse,872,renamed,draft,
+group,873,Residential care activities for older persons or persons with physical disabilities,873,renamed,draft,
+group,879,Other residential care activities,879,renamed,draft,
+group,881,Social work activities without accommodation for older persons or persons with disabilities,881,renamed,draft,
+group,889,Other social work activities without accommodation,889,renamed,draft,
+group,901,Arts creation activities,900,changed_scope,draft,"Rev 5 splits 2019 group 900 into 901, 902 and 903."
+group,902,Activities of performing arts,900,changed_scope,draft,"Rev 5 splits 2019 group 900 into 901, 902 and 903."
+group,903,Support activities to arts creation and performing arts,900,changed_scope,draft,"Rev 5 splits 2019 group 900 into 901, 902 and 903."
+group,911,Library and archive activities,910,changed_scope,draft,"Rev 5 splits 2019 group 910 into 911, 912, 913 and 914."
+group,912,"Museum, collection, historical site and monument activities",910,changed_scope,draft,"Rev 5 splits 2019 group 910 into 911, 912, 913 and 914."
+group,913,"Conservation, restoration and other support activities for cultural",910,changed_scope,draft,"Rev 5 splits 2019 group 910 into 911, 912, 913 and 914."
+group,914,Botanical and zoological garden and nature reserve activities,910,changed_scope,draft,"Rev 5 splits 2019 group 910 into 911, 912, 913 and 914."
+group,920,Gambling and betting activities,920,same,code_title_match,
+group,931,Sports activities,931,same,code_title_match,
+group,932,Amusement and recreation activities,932,renamed,draft,
+group,941,"Activities of business, employers and professional membership organizations",941,same,code_title_match,
+group,942,Activities of trade unions,942,same,code_title_match,
+group,949,Activities of other membership organizations,949,same,code_title_match,
+group,951,Repair and maintenance of computers and communication equipment,951,renamed,draft,Title adds 'maintenance'.
+group,952,Repair and maintenance of personal and household goods,952,renamed,draft,Title adds 'maintenance'.
+group,953,Repair and maintenance of motor vehicles and motorcycles,452; 454,changed_scope,draft,Repair of motor vehicles and motorcycles was in 2019 groups 452 and 454.
+group,954,"Intermediation service activities for repair and maintenance of computers, personal and household goods, and motor vehicles and motorcycles",95; 452; 454,new,draft,No separate 2019 group; mapped to the 2019 homes of the repair activities.
+group,961,Washing and cleaning of textile and fur products,962,recoded,draft,Code reused: laundry services were 2019 group 962.
+group,962,"Hairdressing, beauty treatment, day spa and similar activities",961,changed_scope,draft,"Code reused: hairdressing, beauty treatment and day spas were in 2019 group 961 (personal services for wellness)."
+group,963,Funeral and related activities,963,same,code_title_match,
+group,964,Intermediation service activities for personal services,96,new,draft,"Code reused: 2019 group 964 was domestic services. Intermediation for personal services had no separate 2019 group, so it maps to the 2019 division."
+group,969,Other personal service activities n.e.c.,969,same,code_title_match,
+group,970,Activities of households as employers of domestic personnel,970,same,code_title_match,
+group,981,Undifferentiated goods-producing activities of private households for their own use,981,renamed,draft,
+group,982,Undifferentiated service-producing activities of private households for own use,982,renamed,draft,
+group,990,Activities of extraterritorial organizations and bodies,990,renamed,draft,Hyphenation only.
