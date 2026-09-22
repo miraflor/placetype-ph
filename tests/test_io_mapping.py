@@ -19,13 +19,16 @@ from placetype_ph.io_mapping import (
     BRIDGE_RELATIONS,
     CONCORDANCE_FILE,
     IO_GIS_COLUMNS,
+    IO_MAP_COLUMNS,
     IO_OUTPUT_COLUMNS,
+    PSIC_LEVELS,
     RESOLUTIONS,
     IOCrosswalk,
     IOCrosswalkError,
     IOMappingStatus,
     _normalize_title,
     enrich_summary_with_io,
+    io_coverage_summary,
     io_status_counts,
 )
 from placetype_ph.models import TaxonomyNode
@@ -103,7 +106,11 @@ def test_default_io_crosswalk_preserves_many_to_many_sets(crosswalk):
     assert mapped["io_mapping_bridge_relation"] == "same"
     assert mapped["io_mapping_bridge_basis"] == "code_title_match"
     assert mapped["io16_codes"] == "01"
+    assert mapped["io16_map_code"] == "01"
+    assert mapped["io16_map_status"] == "SINGLETON_CANDIDATE"
     assert mapped["io80_codes"] == "01; 02; 04; 09; 13; 14"
+    assert mapped["io80_map_code"] == ""
+    assert mapped["io80_map_status"] == "AMBIGUOUS_SET"
     assert mapped["io240_codes"].startswith("001; 002; 004")
 
 
@@ -126,6 +133,8 @@ def test_draft_bridge_exposes_candidates_without_promoting_them(crosswalk, rev5)
     assert mapped["io_mapping_bridge_basis"] == "draft"
     assert mapped["io_mapping_psic2019_codes"] == "642; 643"
     assert mapped["io240_codes"] == "205"
+    assert mapped["io240_map_code"] == "205"
+    assert mapped["io240_map_status"] == "SINGLETON_CANDIDATE"
 
 
 def test_tree_that_differs_from_the_bridge_is_not_mapped_by_code_alone(crosswalk):
@@ -175,14 +184,157 @@ def test_poi_without_psic_result_row_gets_unmapped_status(crosswalk):
         "UNMAPPED_NO_PSIC",
         "UNMAPPED_NO_PSIC",
     ]
+    assert enriched.loc[2, "io16_map_code"] == ""
+    assert enriched.loc[2, "io16_map_status"] == "UNMAPPED"
+    assert enriched.loc[2, "io240_map_code"] == ""
+    assert enriched.loc[2, "io240_map_status"] == "UNMAPPED"
     assert enriched.loc[2, "io240_codes"] == ""
     assert io_status_counts(enriched) == {"MAPPED_GROUP": 1, "UNMAPPED_NO_PSIC": 2}
+
+
+def test_io_coverage_summary_reports_map_readiness_provenance_and_depth():
+    frame = pd.DataFrame(
+        {
+            "psic_code": ["0111", "012", "64220", ""],
+            "psic_level": ["class", "group", "subclass", ""],
+            "psic_status": ["SINGLE", "INTERSECT", "SINGLE", "EMPTY"],
+            "io_mapping_status": [
+                "MAPPED_GROUP",
+                "MAPPED_GROUP",
+                "PROVISIONAL_GROUP",
+                "UNMAPPED_NO_PSIC",
+            ],
+            "io_mapping_bridge_basis": ["code_title_match", "code_title_match", "draft", ""],
+            "io16_codes": ["01", "01", "11", ""],
+            "io16_map_code": ["01", "01", "11", ""],
+            "io16_map_status": [
+                "SINGLETON_CANDIDATE",
+                "SINGLETON_CANDIDATE",
+                "SINGLETON_CANDIDATE",
+                "UNMAPPED",
+            ],
+            "io16_confidence": ["High", "High", "Medium", "Not mapped"],
+            "io80_codes": ["01; 02", "03", "48", ""],
+            "io80_map_code": ["", "03", "48", ""],
+            "io80_map_status": [
+                "AMBIGUOUS_SET",
+                "SINGLETON_CANDIDATE",
+                "SINGLETON_CANDIDATE",
+                "UNMAPPED",
+            ],
+            "io80_confidence": ["High with caveat", "High", "Medium", "Not mapped"],
+            "io240_codes": ["001; 002; 004", "005", "205", ""],
+            "io240_map_code": ["", "005", "205", ""],
+            "io240_map_status": [
+                "AMBIGUOUS_SET",
+                "SINGLETON_CANDIDATE",
+                "SINGLETON_CANDIDATE",
+                "UNMAPPED",
+            ],
+            "io240_confidence": ["High with caveat", "High", "Medium", "Not mapped"],
+        }
+    )
+
+    coverage = io_coverage_summary(frame)
+
+    assert coverage["total_rows"] == 4
+    assert coverage["psic_coded_rows"] == 3
+    assert coverage["psic_coded_share"] == pytest.approx(0.75)
+    assert coverage["psic_status_counts_when_coded"] == {"INTERSECT": 1, "SINGLE": 2}
+    assert coverage["psic_level_counts"] == {
+        "section": 0,
+        "division": 0,
+        "group": 1,
+        "class": 1,
+        "subclass": 1,
+    }
+    assert coverage["psic_depth"]["section"]["rows"] == 3
+    assert coverage["psic_depth"]["division"]["rows"] == 3
+    assert coverage["psic_depth"]["group"]["rows"] == 3
+    assert coverage["psic_depth"]["class"]["rows"] == 2
+    assert coverage["psic_depth"]["subclass"]["rows"] == 1
+    assert coverage["ordinary_mapped_rows"] == 2
+    assert coverage["provisional_mapped_rows"] == 1
+    assert coverage["bridge_basis_counts"] == {"code_title_match": 2, "draft": 1}
+
+    io80 = coverage["resolutions"]["io80"]
+    assert io80["available_rows"] == 3
+    assert io80["map_ready_rows"] == 2
+    assert io80["multiple_candidate_rows"] == 1
+    assert io80["map_ready_share"] == pytest.approx(0.5)
+    assert io80["map_ready_share_of_available"] == pytest.approx(2 / 3)
+    assert io80["mean_candidates_when_available"] == pytest.approx(4 / 3)
+    assert io80["map_status_counts"] == {
+        "AMBIGUOUS_SET": 1,
+        "SINGLETON_CANDIDATE": 2,
+        "UNMAPPED": 1,
+    }
+    assert io80["bridge_basis_counts_for_map_ready"] == {
+        "code_title_match": 1,
+        "draft": 1,
+    }
+    assert io80["confidence_counts_for_map_ready"] == {"High": 1, "Medium": 1}
+
+
+def test_io_coverage_summary_rejects_map_fields_that_invent_precision():
+    frame = pd.DataFrame(
+        {
+            "psic_code": ["0111"],
+            "psic_level": ["class"],
+            "psic_status": ["SINGLE"],
+            "io_mapping_status": ["MAPPED_GROUP"],
+            "io_mapping_bridge_basis": ["code_title_match"],
+            "io16_codes": ["01"],
+            "io16_map_code": ["01"],
+            "io16_map_status": ["SINGLETON_CANDIDATE"],
+            "io16_confidence": ["High"],
+            "io80_codes": ["01; 02"],
+            "io80_map_code": ["01"],
+            "io80_map_status": ["SINGLETON_CANDIDATE"],
+            "io80_confidence": ["High"],
+            "io240_codes": ["001"],
+            "io240_map_code": ["001"],
+            "io240_map_status": ["SINGLETON_CANDIDATE"],
+            "io240_confidence": ["High"],
+        }
+    )
+
+    with pytest.raises(ValueError, match="io80 map fields disagree"):
+        io_coverage_summary(frame)
+
+
+def test_io_coverage_summary_handles_an_empty_run():
+    columns = [
+        "psic_code",
+        "psic_level",
+        "psic_status",
+        "io_mapping_status",
+        "io_mapping_bridge_basis",
+        *(f"{resolution}_codes" for resolution in RESOLUTIONS),
+        *(f"{resolution}_map_code" for resolution in RESOLUTIONS),
+        *(f"{resolution}_map_status" for resolution in RESOLUTIONS),
+        *(f"{resolution}_confidence" for resolution in RESOLUTIONS),
+    ]
+    coverage = io_coverage_summary(pd.DataFrame(columns=columns))
+
+    assert coverage["total_rows"] == 0
+    assert coverage["psic_coded_share"] == 0.0
+    assert coverage["bridge_basis_counts"] == {}
+    for level in PSIC_LEVELS:
+        assert coverage["psic_depth"][level]["rows"] == 0
+    for resolution in RESOLUTIONS:
+        metrics = coverage["resolutions"][resolution]
+        assert metrics["available_rows"] == 0
+        assert metrics["map_ready_share_of_available"] == 0.0
+        assert metrics["mean_candidates_when_available"] == 0.0
+        assert metrics["confidence_counts_when_available"] == {}
 
 
 def test_gis_columns_exclude_names_and_psic2019_provenance():
     assert not any(column.endswith("_names") for column in IO_GIS_COLUMNS)
     assert "io_mapping_psic2019_codes" not in IO_GIS_COLUMNS
     assert "io_mapping_bridge_relation" in IO_GIS_COLUMNS
+    assert set(IO_MAP_COLUMNS) <= set(IO_GIS_COLUMNS)
     assert set(IO_GIS_COLUMNS) < set(IO_OUTPUT_COLUMNS)
 
 
@@ -618,7 +770,14 @@ def test_pipeline_writes_io_columns_and_manifest_for_real_rev5_path(tmp_path: Pa
     assert summary.loc[0, "io_mapping_bridge_relation"] == "changed_scope"
     assert summary.loc[0, "io_mapping_bridge_basis"] == "draft"
     assert summary.loc[0, "io240_codes"] == "178"
+    assert summary.loc[0, "io240_map_code"] == "178"
+    assert summary.loc[0, "io240_map_status"] == "SINGLETON_CANDIDATE"
     assert manifest["io_mapping"]["status_counts"] == {"PROVISIONAL_GROUP": 1}
+    coverage = manifest["io_mapping"]["coverage"]
+    assert coverage["total_rows"] == 1
+    assert coverage["psic_coded_rows"] == 1
+    assert coverage["bridge_basis_counts"] == {"draft": 1}
+    assert coverage["resolutions"]["io240"]["map_ready_rows"] == 1
     assert len(manifest["io_mapping"]["concordance"]["sha256"]) == 64
     assert len(manifest["io_mapping"]["bridge"]["sha256"]) == 64
 

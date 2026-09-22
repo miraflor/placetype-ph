@@ -255,8 +255,14 @@ def test_export_carries_io_mapping_columns_when_present(tmp_path: Path):
     frame = pd.read_parquet(summary_path)
     frame["io_mapping_status"] = ["MAPPED_GROUP", "MAPPED_GROUP", "UNMAPPED_NO_PSIC"]
     frame["io16_codes"] = ["01", "03", ""]
+    frame["io16_map_code"] = ["01", "03", ""]
+    frame["io16_map_status"] = ["SINGLETON_CANDIDATE", "SINGLETON_CANDIDATE", "UNMAPPED"]
     frame["io80_codes"] = ["01; 02", "27; 28", ""]
+    frame["io80_map_code"] = ["", "", ""]
+    frame["io80_map_status"] = ["AMBIGUOUS_SET", "AMBIGUOUS_SET", "UNMAPPED"]
     frame["io240_codes"] = ["001; 002", "046; 047", ""]
+    frame["io240_map_code"] = ["", "", ""]
+    frame["io240_map_status"] = ["AMBIGUOUS_SET", "AMBIGUOUS_SET", "UNMAPPED"]
     frame["io240_names"] = ["Palay | Corn", "Slaughtering | Meat processing", ""]
     _write_geo_source(summary_path, frame, geo=_geo_json())
 
@@ -269,8 +275,16 @@ def test_export_carries_io_mapping_columns_when_present(tmp_path: Path):
         "UNMAPPED_NO_PSIC",
     ]
     assert result["io16_codes"].tolist() == ["01", "03", ""]
+    assert result["io16_map_code"].tolist() == ["01", "03", ""]
+    assert result["io16_map_status"].tolist() == [
+        "SINGLETON_CANDIDATE",
+        "SINGLETON_CANDIDATE",
+        "UNMAPPED",
+    ]
     assert result["io80_codes"].tolist() == ["01; 02", "27; 28", ""]
+    assert result["io80_map_code"].tolist() == ["", "", ""]
     assert result["io240_codes"].tolist() == ["001; 002", "046; 047", ""]
+    assert result["io240_map_code"].tolist() == ["", "", ""]
     # Like taxonomy titles, I-O industry names stay in classified_pois.parquet only.
     assert "io240_names" not in result.columns
 

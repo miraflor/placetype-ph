@@ -45,6 +45,7 @@ from .express import (
     summarize_automatic_crosswalk,
 )
 from .gis import GISExportError, export_gis_run
+from .io_mapping import IO_MAP_COLUMNS, PSIC_LEVELS, RESOLUTIONS, io_coverage_summary
 from .joint_crosswalk import (
     ensure_joint_key,
     make_joint_key,
@@ -1225,6 +1226,125 @@ def _bootstrap_express_taxonomy(
     return _load_taxonomy(scheme, version)
 
 
+def _count_share(count: int, total: int) -> str:
+    share = count / total if total else 0.0
+    return f"{count:,} ({share:.2%})"
+
+
+def _print_express_io_coverage(run_dir: Path) -> None:
+    """Print candidate and map-ready coverage without presenting either as accuracy."""
+    manifest_path = run_dir / "run.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    io_mapping = manifest.get("io_mapping")
+    if not isinstance(io_mapping, dict):
+        return
+
+    coverage = io_mapping.get("coverage")
+    if not isinstance(coverage, dict):
+        outputs = manifest.get("outputs", {})
+        summary_name = outputs.get("classified_pois") if isinstance(outputs, dict) else None
+        if not isinstance(summary_name, str):
+            return
+        columns = [
+            "psic_code",
+            "psic_level",
+            "psic_status",
+            "io_mapping_status",
+            "io_mapping_bridge_basis",
+            *(f"{resolution}_codes" for resolution in RESOLUTIONS),
+            *(f"{resolution}_map_code" for resolution in RESOLUTIONS),
+            *(f"{resolution}_map_status" for resolution in RESOLUTIONS),
+            *(f"{resolution}_confidence" for resolution in RESOLUTIONS),
+        ]
+        frame = pd.read_parquet(run_dir / summary_name, columns=columns)
+        coverage = io_coverage_summary(frame)
+
+    total = int(coverage["total_rows"])
+    basis = coverage["bridge_basis_counts"]
+
+    console.print(
+        "I-O candidate tagging: "
+        f"{_count_share(int(coverage['psic_coded_rows']), total)} PSIC-coded; "
+        f"{int(basis.get('code_title_match', 0)):,} generated code-title bridge; "
+        f"{int(basis.get('draft', 0)):,} draft bridge; "
+        f"{int(basis.get('reviewed', 0)):,} reviewed bridge"
+    )
+    console.print(
+        "  statuses: "
+        f"{_count_share(int(coverage['ordinary_mapped_rows']), total)} ordinary MAPPED_*; "
+        f"{_count_share(int(coverage['provisional_mapped_rows']), total)} PROVISIONAL_*"
+    )
+    if int(basis.get("code_title_match", 0)) and not int(basis.get("reviewed", 0)):
+        console.print(
+            "[yellow]No mapped POI in this run uses a reviewed bridge row. "
+            "code_title_match is generated evidence, not manual scope verification.[/yellow]"
+        )
+
+    status_table = Table(title="PSIC status among coded POIs")
+    status_table.add_column("Status")
+    status_table.add_column("Rows", justify="right")
+    coded = int(coverage["psic_coded_rows"])
+    for status, count in coverage["psic_status_counts_when_coded"].items():
+        status_table.add_row(status, _count_share(int(count), coded))
+    console.print(status_table)
+
+    depth_table = Table(title="PSIC classification depth")
+    depth_table.add_column("Level")
+    depth_table.add_column("Exact level", justify="right")
+    depth_table.add_column("At least this deep", justify="right")
+    exact = coverage["psic_level_counts"]
+    depth = coverage["psic_depth"]
+    for level in PSIC_LEVELS:
+        depth_table.add_row(
+            level,
+            _count_share(int(exact[level]), total),
+            _count_share(int(depth[level]["rows"]), total),
+        )
+    console.print(depth_table)
+
+    table = Table(title="I-O candidate availability and map readiness")
+    table.add_column("Resolution")
+    table.add_column("Available", justify="right")
+    table.add_column("Map-ready singleton", justify="right")
+    table.add_column("Map-ready / available", justify="right")
+    table.add_column("Ambiguous set", justify="right")
+    table.add_column("Mean candidates", justify="right")
+    by_resolution = coverage["resolutions"]
+    for resolution in RESOLUTIONS:
+        metrics = by_resolution[resolution]
+        table.add_row(
+            resolution.upper(),
+            _count_share(int(metrics["available_rows"]), total),
+            _count_share(int(metrics["map_ready_rows"]), total),
+            f"{float(metrics['map_ready_share_of_available']):.2%}",
+            _count_share(int(metrics["multiple_candidate_rows"]), total),
+            f"{float(metrics['mean_candidates_when_available']):.2f}",
+        )
+    console.print(table)
+
+    confidence_table = Table(title="Concordance confidence among map-ready singletons")
+    confidence_table.add_column("Resolution")
+    confidence_labels = ("High", "High with caveat", "Medium-High", "Medium", "Low")
+    for label in confidence_labels:
+        confidence_table.add_column(label, justify="right")
+    for resolution in RESOLUTIONS:
+        metrics = by_resolution[resolution]
+        map_ready = int(metrics["map_ready_rows"])
+        counts = metrics["confidence_counts_for_map_ready"]
+        confidence_table.add_row(
+            resolution.upper(),
+            *[
+                _count_share(int(counts.get(label, 0)), map_ready)
+                for label in confidence_labels
+            ],
+        )
+    console.print(confidence_table)
+    console.print(
+        "[dim]Map-ready means one candidate in this derived concordance; it is not an "
+        "independent correctness check.[/dim]"
+    )
+
+
 @app.command("express")
 def express(
     input_path: Annotated[
@@ -1464,7 +1584,10 @@ def express(
         )
         raise typer.Exit(1)
 
-    if classification_run_ready(run_dir):
+    required_summary_columns = IO_MAP_COLUMNS if "psic" in selected else ()
+    if classification_run_ready(
+        run_dir, required_summary_columns=required_summary_columns
+    ):
         console.print(f"Reusing completed classification run: [dim]{run_dir}[/dim]")
     else:
         classify(
@@ -1482,6 +1605,9 @@ def express(
             cache_path=run_dir / "decisions.sqlite",
             fail_on_ambiguous_crosswalk=CLASSIFY_PARAMS["fail_on_ambiguous_crosswalk"],
         )
+
+    if "psic" in selected:
+        _print_express_io_coverage(run_dir)
 
     final_output = output or default_output_path(input_path)
     try:

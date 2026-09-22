@@ -8,6 +8,7 @@
 - Both data files are validated when loaded: code formats, code and name alignment, confidence values, PSIC version, bridge relations, and bridge targets. The schema can also represent a reviewed category with no defensible PSIC 2019 counterpart without deleting its Revision 5 bridge row.
 - `gis.parquet` carries I-O codes, confidence, and status, excludes I-O names, and records the SHA-256 hash of both data files in its `placetype` metadata.
 - `run.json` records the SHA-256 hash and row count of both data files, bridge rows by basis and relation, and the number of places per `io_mapping_status`, so provisional use is auditable.
+- I-O outputs now distinguish full candidate sets from GIS-ready singleton map codes. `io16_map_code`, `io80_map_code`, and `io240_map_code` are populated only when the corresponding candidate set contains exactly one industry; ambiguous sets such as `229; 230` remain intact in the audit columns and leave the map code blank. Map status, PSIC classification status/depth, bridge basis, candidate multiplicity, and concordance confidence are reported explicitly so coverage is not mistaken for validation.
 
 ## Batched joint-crosswalk retrieval
 

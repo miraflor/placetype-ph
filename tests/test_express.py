@@ -481,3 +481,40 @@ def test_classification_run_ready_uses_manifest_named_outputs(tmp_path: Path):
     (run_dir / "entities.parquet").write_bytes(b"x")
     (run_dir / "places.parquet").write_bytes(b"x")
     assert classification_run_ready(run_dir)
+
+
+def test_classification_run_ready_can_require_summary_schema(tmp_path: Path):
+    run_dir = tmp_path / "run"
+    run_dir.mkdir()
+    pd.DataFrame([{"canonical_id": "poi:1", "old_column": "x"}]).to_parquet(
+        run_dir / "places.parquet", index=False
+    )
+    pd.DataFrame([{"canonical_id": "poi:1"}]).to_parquet(
+        run_dir / "entities.parquet", index=False
+    )
+    (run_dir / "run.json").write_text(
+        json.dumps(
+            {
+                "outputs": {
+                    "entity_classifications": "entities.parquet",
+                    "classified_pois": "places.parquet",
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    assert classification_run_ready(run_dir)
+    required = {"io240_map_code", "io240_map_status"}
+    assert not classification_run_ready(run_dir, required_summary_columns=required)
+
+    pd.DataFrame(
+        [
+            {
+                "canonical_id": "poi:1",
+                "io240_map_code": "178",
+                "io240_map_status": "SINGLETON_CANDIDATE",
+            }
+        ]
+    ).to_parquet(run_dir / "places.parquet", index=False)
+    assert classification_run_ready(run_dir, required_summary_columns=required)

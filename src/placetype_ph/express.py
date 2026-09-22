@@ -8,6 +8,7 @@ from collections.abc import Iterable, Mapping
 from pathlib import Path
 
 import pandas as pd
+import pyarrow.parquet as pq
 
 # The cache version changes whenever suggestion semantics change in a way that would make
 # an older automatic crosswalk unsafe to reuse. V9.2c caps mixed source categories at their
@@ -436,8 +437,10 @@ def promoted_total(counts: Mapping[str, int]) -> int:
     )
 
 
-def classification_run_ready(run_dir: Path) -> bool:
-    """A resumable run is ready only when its manifest-named outputs exist."""
+def classification_run_ready(
+    run_dir: Path, required_summary_columns: Iterable[str] = ()
+) -> bool:
+    """A resumable run is ready only when outputs and the required summary schema exist."""
     manifest_path = run_dir / "run.json"
     if not manifest_path.is_file():
         return False
@@ -450,8 +453,21 @@ def classification_run_ready(run_dir: Path) -> bool:
     outputs = manifest.get("outputs")
     if not isinstance(outputs, dict):
         return False
-    names = (
-        outputs.get("entity_classifications"),
-        outputs.get("classified_pois"),
-    )
-    return all(isinstance(name, str) and (run_dir / name).is_file() for name in names)
+    entity_name = outputs.get("entity_classifications")
+    summary_name = outputs.get("classified_pois")
+    if not (
+        isinstance(entity_name, str)
+        and isinstance(summary_name, str)
+        and (run_dir / entity_name).is_file()
+        and (run_dir / summary_name).is_file()
+    ):
+        return False
+
+    required = set(required_summary_columns)
+    if not required:
+        return True
+    try:
+        columns = set(pq.read_schema(run_dir / summary_name).names)
+    except (OSError, ValueError):
+        return False
+    return required <= columns

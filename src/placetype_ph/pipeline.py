@@ -19,7 +19,12 @@ from .economic_role import (
     TaxonomyClassification,
     infer_economic_profile,
 )
-from .io_mapping import IOCrosswalk, enrich_summary_with_io, io_status_counts
+from .io_mapping import (
+    IOCrosswalk,
+    enrich_summary_with_io,
+    io_coverage_summary,
+    io_status_counts,
+)
 from .models import ClassificationResult
 from .openplaces import SUMMARY_COLUMNS, read_openplaces
 from .text import clean_text
@@ -203,7 +208,11 @@ def classify_openplaces(
         summary = enrich_summary_with_io(
             summary, results, classifiers["psic"].taxonomy, io_crosswalk
         )
-        io_mapping = {**io_crosswalk.provenance(), "status_counts": io_status_counts(summary)}
+        io_mapping = {
+            **io_crosswalk.provenance(),
+            "status_counts": io_status_counts(summary),
+            "coverage": io_coverage_summary(summary),
+        }
 
     # Economic role is orthogonal to taxonomy classification. Pass every scheme result
     # into one role API; scheme-specific semantics decide what a classification may imply.
