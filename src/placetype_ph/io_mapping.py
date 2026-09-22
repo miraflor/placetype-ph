@@ -42,6 +42,12 @@ BRIDGE_FILE = "psic_rev5_to_psic_2019.csv"
 CONCORDANCE_PSIC_VERSION = "2019 update to 2009 PSIC"
 
 RESOLUTIONS = ("io16", "io80", "io240")
+PSIC_LEVELS = ("section", "division", "group", "class", "subclass")
+IO_MAP_COLUMNS = tuple(
+    column
+    for resolution in RESOLUTIONS
+    for column in (f"{resolution}_map_code", f"{resolution}_map_status")
+)
 _IO_CODE_PATTERN = {
     "io16": re.compile(r"[0-9]{2}"),
     "io80": re.compile(r"[0-9]{2}"),
@@ -102,12 +108,18 @@ IO_OUTPUT_COLUMNS = (
     "io_mapping_bridge_relation",
     "io_mapping_bridge_basis",
     "io16_codes",
+    "io16_map_code",
+    "io16_map_status",
     "io16_names",
     "io16_confidence",
     "io80_codes",
+    "io80_map_code",
+    "io80_map_status",
     "io80_names",
     "io80_confidence",
     "io240_codes",
+    "io240_map_code",
+    "io240_map_status",
     "io240_names",
     "io240_confidence",
 )
@@ -340,6 +352,8 @@ def _weakest(confidences: Iterable[str]) -> str:
 def _empty(status: IOMappingStatus) -> dict[str, str]:
     row = dict.fromkeys(IO_OUTPUT_COLUMNS, "")
     row["io_mapping_status"] = str(status)
+    for resolution in RESOLUTIONS:
+        row[f"{resolution}_map_status"] = "UNMAPPED"
     return row
 
 
@@ -494,6 +508,15 @@ class IOCrosswalk:
             codes = sorted(names)
             has_io = has_io or bool(codes)
             out[f"{resolution}_codes"] = CODE_DELIMITER.join(codes)
+            if len(codes) == 1:
+                out[f"{resolution}_map_code"] = codes[0]
+                out[f"{resolution}_map_status"] = "SINGLETON_CANDIDATE"
+            elif codes:
+                out[f"{resolution}_map_code"] = ""
+                out[f"{resolution}_map_status"] = "AMBIGUOUS_SET"
+            else:
+                out[f"{resolution}_map_code"] = ""
+                out[f"{resolution}_map_status"] = "UNMAPPED"
             out[f"{resolution}_names"] = NAME_DELIMITER.join(names[c] for c in codes)
             out[f"{resolution}_confidence"] = _weakest(confidences)
         if link.relation == "no_counterpart":
@@ -549,6 +572,8 @@ def enrich_summary_with_io(
     if missing.any():
         enriched.loc[missing, list(IO_OUTPUT_COLUMNS)] = ""
         enriched.loc[missing, "io_mapping_status"] = str(IOMappingStatus.UNMAPPED_NO_PSIC)
+        for resolution in RESOLUTIONS:
+            enriched.loc[missing, f"{resolution}_map_status"] = "UNMAPPED"
     return enriched
 
 
@@ -558,3 +583,150 @@ def io_status_counts(summary: pd.DataFrame) -> dict[str, int]:
         return {}
     counts = summary["io_mapping_status"].value_counts(dropna=False)
     return {str(status): int(count) for status, count in sorted(counts.items(), key=str)}
+
+
+
+def _nonblank(series: pd.Series) -> pd.Series:
+    """Boolean mask treating nulls and whitespace-only strings as blank."""
+    return series.astype("string").fillna("").str.strip().ne("")
+
+
+def _share(count: int, total: int) -> float:
+    return float(count / total) if total else 0.0
+
+
+def _value_counts(series: pd.Series, mask: pd.Series) -> dict[str, int]:
+    values = series[mask].astype("string").fillna("").str.strip()
+    counts = values[values.ne("")].value_counts()
+    return {
+        str(value): int(count)
+        for value, count in sorted(counts.items(), key=lambda item: str(item[0]))
+    }
+
+
+def _validate_map_fields(
+    summary: pd.DataFrame, resolution: str, candidate_counts: pd.Series
+) -> None:
+    """Require map-ready fields to be an exact lossless view of candidate cardinality."""
+    codes = summary[f"{resolution}_codes"].astype("string").fillna("").str.strip()
+    map_codes = summary[f"{resolution}_map_code"].astype("string").fillna("").str.strip()
+    map_status = summary[f"{resolution}_map_status"].astype("string").fillna("").str.strip()
+
+    expected_codes = codes.where(candidate_counts.eq(1), "")
+    expected_status = pd.Series("UNMAPPED", index=summary.index, dtype="string")
+    expected_status.loc[candidate_counts.eq(1)] = "SINGLETON_CANDIDATE"
+    expected_status.loc[candidate_counts.gt(1)] = "AMBIGUOUS_SET"
+
+    bad = map_codes.ne(expected_codes) | map_status.ne(expected_status)
+    if bad.any():
+        count = int(bad.sum())
+        raise ValueError(
+            f"{resolution} map fields disagree with candidate sets on {count} row(s)"
+        )
+
+
+def io_coverage_summary(summary: pd.DataFrame) -> dict[str, object]:
+    """Describe candidate availability, map readiness, provenance and confidence.
+
+    This is deliberately not an accuracy metric. A singleton map code means only that the
+    derived concordance currently has one candidate at that resolution. Semantic correctness
+    still depends on the PSIC classification, the Revision 5 -> 2019 bridge, and the derived
+    2019 PSIC -> I-O concordance.
+    """
+    required = {
+        "psic_code",
+        "psic_level",
+        "psic_status",
+        "io_mapping_status",
+        "io_mapping_bridge_basis",
+        *(f"{resolution}_codes" for resolution in RESOLUTIONS),
+        *(f"{resolution}_map_code" for resolution in RESOLUTIONS),
+        *(f"{resolution}_map_status" for resolution in RESOLUTIONS),
+        *(f"{resolution}_confidence" for resolution in RESOLUTIONS),
+    }
+    missing = required - set(summary.columns)
+    if missing:
+        raise ValueError(f"I-O coverage summary is missing columns {sorted(missing)}")
+
+    total = int(len(summary))
+    psic_mask = _nonblank(summary["psic_code"])
+    psic_coded = int(psic_mask.sum())
+
+    levels = summary["psic_level"].astype("string").fillna("").str.strip()
+    level_counts = {level: int(levels.eq(level).sum()) for level in PSIC_LEVELS}
+    rank = levels.map({level: index for index, level in enumerate(PSIC_LEVELS)})
+    depth: dict[str, dict[str, int | float]] = {}
+    for index, level in enumerate(PSIC_LEVELS):
+        rows = int(rank.ge(index).sum())
+        depth[level] = {
+            "rows": rows,
+            "share": _share(rows, total),
+            "share_of_psic_coded": _share(rows, psic_coded),
+        }
+
+    psic_status = summary["psic_status"].astype("string").fillna("").str.strip()
+    psic_status_counts = _value_counts(psic_status, psic_status.ne(""))
+    psic_status_counts_when_coded = _value_counts(psic_status, psic_mask)
+
+    statuses = summary["io_mapping_status"].astype("string").fillna("").str.strip()
+    ordinary_mask = statuses.isin({str(status) for status in _MAPPED_AT.values()})
+    provisional_mask = statuses.isin({str(status) for status in _PROVISIONAL_AT.values()})
+
+    basis = summary["io_mapping_bridge_basis"].astype("string").fillna("").str.strip()
+    basis_counts = _value_counts(basis, basis.ne(""))
+
+    resolutions: dict[str, dict[str, object]] = {}
+    all_rows = pd.Series(True, index=summary.index)
+    for resolution in RESOLUTIONS:
+        text = summary[f"{resolution}_codes"].astype("string").fillna("").str.strip()
+        candidate_counts = text.str.count(";").add(1).where(text.ne(""), 0).astype("int64")
+        _validate_map_fields(summary, resolution, candidate_counts)
+
+        available_mask = candidate_counts.gt(0)
+        singleton_mask = candidate_counts.eq(1)
+        multiple_mask = candidate_counts.gt(1)
+        available_rows = int(available_mask.sum())
+        singleton_rows = int(singleton_mask.sum())
+        multiple_rows = int(multiple_mask.sum())
+        mapped_counts = candidate_counts[available_mask]
+        confidence = summary[f"{resolution}_confidence"]
+        map_status = summary[f"{resolution}_map_status"]
+
+        resolutions[resolution] = {
+            "available_rows": available_rows,
+            "available_share": _share(available_rows, total),
+            "map_ready_rows": singleton_rows,
+            "map_ready_share": _share(singleton_rows, total),
+            "map_ready_share_of_available": _share(singleton_rows, available_rows),
+            "multiple_candidate_rows": multiple_rows,
+            "multiple_candidate_share": _share(multiple_rows, total),
+            "mean_candidates_when_available": (
+                float(mapped_counts.mean()) if available_rows else 0.0
+            ),
+            "median_candidates_when_available": (
+                float(mapped_counts.median()) if available_rows else 0.0
+            ),
+            "map_status_counts": _value_counts(map_status, all_rows),
+            "bridge_basis_counts_when_available": _value_counts(basis, available_mask),
+            "bridge_basis_counts_for_map_ready": _value_counts(basis, singleton_mask),
+            "confidence_counts_when_available": _value_counts(confidence, available_mask),
+            "confidence_counts_for_map_ready": _value_counts(confidence, singleton_mask),
+        }
+
+    ordinary_rows = int(ordinary_mask.sum())
+    provisional_rows = int(provisional_mask.sum())
+    return {
+        "total_rows": total,
+        "psic_coded_rows": psic_coded,
+        "psic_coded_share": _share(psic_coded, total),
+        "psic_level_counts": level_counts,
+        "psic_depth": depth,
+        "psic_status_counts": psic_status_counts,
+        "psic_status_counts_when_coded": psic_status_counts_when_coded,
+        "ordinary_mapped_rows": ordinary_rows,
+        "ordinary_mapped_share": _share(ordinary_rows, total),
+        "provisional_mapped_rows": provisional_rows,
+        "provisional_mapped_share": _share(provisional_rows, total),
+        "bridge_basis_counts": basis_counts,
+        "resolutions": resolutions,
+    }

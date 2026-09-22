@@ -34,6 +34,8 @@ A Revision 5 code maps through its deepest section, division, or group ancestor 
 
 Generated `code_title_match` rows assume that an unchanged code and title mean an unchanged scope. Division 55 and section I are exceptions: Revision 5 added intermediation for accommodation (group 554), which was part of PSIC 2019 group 799, so both rows are hand-written `changed_scope` rows that also list 799. A test requires the PSIC 2019 codes of every mapped bridge row to lie inside those of its nearest ancestor row that lists codes; a `no_counterpart` row lists none, so its children are checked against the next ancestor up. An empty target set means 'no defensible bridge', not 'the activity did not exist'. A reviewed scope audit can promote a generated row by changing its basis to `reviewed` without changing its relation.
 
+`MAPPED_*` is an operational status, not a claim that PSA published or independently verified the PSIC-to-I-O correspondence. A `code_title_match` bridge is generated evidence and remains distinguishable from a human-reviewed bridge through `io_mapping_bridge_basis`; `draft` remains provisional. Likewise, a single I-O code means that this derived concordance currently has one candidate at that resolution, not that the code has been externally validated. The per-resolution confidence fields describe the concordance evidence and must be considered separately from bridge basis.
+
 PSA sources:
 
 - 2018 I-O release: https://psa.gov.ph/content/psa-releases-2018-input-output-tables
