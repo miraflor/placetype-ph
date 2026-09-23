@@ -10,6 +10,8 @@ from pathlib import Path
 import pandas as pd
 import pyarrow.parquet as pq
 
+from .io80_resolver import IO80_IMPLEMENTATION_SHA256, IO80_RESOLVER_FINGERPRINT
+
 # The cache version changes whenever suggestion semantics change in a way that would make
 # an older automatic crosswalk unsafe to reuse. V9.2c caps mixed source categories at their
 # epistemic floor and backs immediate PSIC sibling disagreements off exactly one level.
@@ -120,7 +122,15 @@ def file_state(path: Path) -> str:
 def pipeline_state() -> str:
     """Stable description of every tuning value express passes downstream."""
     return "pipeline:" + json.dumps(
-        {"suggest": SUGGEST_PARAMS, "classify": CLASSIFY_PARAMS}, sort_keys=True
+        {
+            "suggest": SUGGEST_PARAMS,
+            "classify": CLASSIFY_PARAMS,
+            "io80_resolver": {
+                "implementation": IO80_IMPLEMENTATION_SHA256,
+                "policy": IO80_RESOLVER_FINGERPRINT,
+            },
+        },
+        sort_keys=True,
     )
 
 

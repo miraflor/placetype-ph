@@ -9,6 +9,8 @@
 - `gis.parquet` carries I-O codes, confidence, and status, excludes I-O names, and records the SHA-256 hash of both data files in its `placetype` metadata.
 - `run.json` records the SHA-256 hash and row count of both data files, bridge rows by basis and relation, and the number of places per `io_mapping_status`, so provisional use is auditable.
 - I-O outputs now distinguish full candidate sets from GIS-ready singleton map codes. `io16_map_code`, `io80_map_code`, and `io240_map_code` are populated only when the corresponding candidate set contains exactly one industry; ambiguous sets such as `229; 230` remain intact in the audit columns and leave the map code blank. Map status, PSIC classification status/depth, bridge basis, candidate multiplicity, and concordance confidence are reported explicitly so coverage is not mistaken for validation.
+- IO80 resolver v4 (policy io80-v4) adds conservative global singleton-name unanimity for audited IO80 pairs 55/56 and 66/67. Evidence outside the pair vetoes resolution; missing canonical IDs do not count by default; the ML model remains disabled. Resolver metadata records implementation and policy hashes, Unicode version, same-run composition dependence, and the fact that upstream PSIC classification may itself use names. The audit module creates blinded worksheets with separate answer keys, censuses rare 55/56->56 decisions by default, and reports binomial and finite-population error bounds.
+
 
 ## Batched joint-crosswalk retrieval
 
