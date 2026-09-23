@@ -260,6 +260,9 @@ def test_export_carries_io_mapping_columns_when_present(tmp_path: Path):
     frame["io80_codes"] = ["01; 02", "27; 28", ""]
     frame["io80_map_code"] = ["", "", ""]
     frame["io80_map_status"] = ["AMBIGUOUS_SET", "AMBIGUOUS_SET", "UNMAPPED"]
+    frame["io80_resolution_method"] = ["", "", ""]
+    frame["io80_resolution_support"] = ["", "", ""]
+    frame["io80_resolution_score"] = ["", "", ""]
     frame["io240_codes"] = ["001; 002", "046; 047", ""]
     frame["io240_map_code"] = ["", "", ""]
     frame["io240_map_status"] = ["AMBIGUOUS_SET", "AMBIGUOUS_SET", "UNMAPPED"]
@@ -283,6 +286,9 @@ def test_export_carries_io_mapping_columns_when_present(tmp_path: Path):
     ]
     assert result["io80_codes"].tolist() == ["01; 02", "27; 28", ""]
     assert result["io80_map_code"].tolist() == ["", "", ""]
+    assert result["io80_resolution_method"].tolist() == ["", "", ""]
+    assert result["io80_resolution_support"].tolist() == ["", "", ""]
+    assert result["io80_resolution_score"].tolist() == ["", "", ""]
     assert result["io240_codes"].tolist() == ["001; 002", "046; 047", ""]
     assert result["io240_map_code"].tolist() == ["", "", ""]
     # Like taxonomy titles, I-O industry names stay in classified_pois.parquet only.
@@ -297,6 +303,7 @@ def test_export_records_io_mapping_files_from_the_run(tmp_path: Path):
         "concordance": {"file": "psic_2019_to_io_2018.csv", "sha256": "a" * 64, "rows": 354},
         "bridge": {"file": "psic_rev5_to_psic_2019.csv", "sha256": "b" * 64, "rows": 371},
         "status_counts": {"MAPPED_GROUP": 3},
+        "resolver": {"version": "io80-v2", "policy_fingerprint": "resolver-hash"},
     }
     manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
 
@@ -306,6 +313,7 @@ def test_export_records_io_mapping_files_from_the_run(tmp_path: Path):
     assert placetype["io_mapping"] == {
         "concordance": {"file": "psic_2019_to_io_2018.csv", "sha256": "a" * 64},
         "bridge": {"file": "psic_rev5_to_psic_2019.csv", "sha256": "b" * 64},
+        "resolver": {"version": "io80-v2", "policy_fingerprint": "resolver-hash"},
     }
 
 

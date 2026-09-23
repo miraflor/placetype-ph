@@ -462,11 +462,15 @@ def export_gis_run(
     io_mapping = manifest.get("io_mapping")
     if isinstance(io_mapping, dict):
         # I-O columns depend on two data files; record which versions produced them.
-        provenance["io_mapping"] = {
+        io_provenance: dict[str, object] = {
             role: {key: io_mapping[role].get(key) for key in ("file", "sha256")}
             for role in ("concordance", "bridge")
             if isinstance(io_mapping.get(role), dict)
         }
+        resolver = io_mapping.get("resolver")
+        if isinstance(resolver, dict):
+            io_provenance["resolver"] = resolver
+        provenance["io_mapping"] = io_provenance
 
     return build_gis_export(
         summary_path,

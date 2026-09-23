@@ -33,6 +33,14 @@ from typing import TYPE_CHECKING
 
 import pandas as pd
 
+from .io80_resolver import (
+    IO80_RESOLUTION_COLUMNS,
+    IO80_RESOLVED_STATUSES,
+    parse_candidate_codes,
+    resolve_io80_ambiguity,
+    validate_io80_map_fields,
+)
+
 if TYPE_CHECKING:
     from .taxonomy import Taxonomy
 
@@ -43,10 +51,13 @@ CONCORDANCE_PSIC_VERSION = "2019 update to 2009 PSIC"
 
 RESOLUTIONS = ("io16", "io80", "io240")
 PSIC_LEVELS = ("section", "division", "group", "class", "subclass")
-IO_MAP_COLUMNS = tuple(
-    column
-    for resolution in RESOLUTIONS
-    for column in (f"{resolution}_map_code", f"{resolution}_map_status")
+IO_MAP_COLUMNS = (
+    tuple(
+        column
+        for resolution in RESOLUTIONS
+        for column in (f"{resolution}_map_code", f"{resolution}_map_status")
+    )
+    + IO80_RESOLUTION_COLUMNS
 )
 _IO_CODE_PATTERN = {
     "io16": re.compile(r"[0-9]{2}"),
@@ -115,6 +126,7 @@ IO_OUTPUT_COLUMNS = (
     "io80_codes",
     "io80_map_code",
     "io80_map_status",
+    *IO80_RESOLUTION_COLUMNS,
     "io80_names",
     "io80_confidence",
     "io240_codes",
@@ -489,13 +501,16 @@ class IOCrosswalk:
 
     def _compose(self, level: str, link: BridgeRow) -> dict[str, str]:
         targets = [self._index[(_psic_level_of(c) or "", c)] for c in link.psic2019_codes]
-        out = {
-            "io_mapping_psic_level": level,
-            "io_mapping_psic_code": link.rev5_code,
-            "io_mapping_psic2019_codes": CODE_DELIMITER.join(link.psic2019_codes),
-            "io_mapping_bridge_relation": link.relation,
-            "io_mapping_bridge_basis": link.basis,
-        }
+        out = dict.fromkeys(IO_OUTPUT_COLUMNS, "")
+        out.update(
+            {
+                "io_mapping_psic_level": level,
+                "io_mapping_psic_code": link.rev5_code,
+                "io_mapping_psic2019_codes": CODE_DELIMITER.join(link.psic2019_codes),
+                "io_mapping_bridge_relation": link.relation,
+                "io_mapping_bridge_basis": link.basis,
+            }
+        )
         has_io = False
         for resolution in RESOLUTIONS:
             names: dict[str, str] = {}
@@ -574,7 +589,7 @@ def enrich_summary_with_io(
         enriched.loc[missing, "io_mapping_status"] = str(IOMappingStatus.UNMAPPED_NO_PSIC)
         for resolution in RESOLUTIONS:
             enriched.loc[missing, f"{resolution}_map_status"] = "UNMAPPED"
-    return enriched
+    return resolve_io80_ambiguity(enriched)
 
 
 def io_status_counts(summary: pd.DataFrame) -> dict[str, int]:
@@ -607,21 +622,28 @@ def _value_counts(series: pd.Series, mask: pd.Series) -> dict[str, int]:
 def _validate_map_fields(
     summary: pd.DataFrame, resolution: str, candidate_counts: pd.Series
 ) -> None:
-    """Require map-ready fields to be an exact lossless view of candidate cardinality."""
-    codes = summary[f"{resolution}_codes"].astype("string").fillna("").str.strip()
-    map_codes = summary[f"{resolution}_map_code"].astype("string").fillna("").str.strip()
-    map_status = summary[f"{resolution}_map_status"].astype("string").fillna("").str.strip()
+    """Validate map fields against candidate cardinality and resolver provenance."""
+    if resolution == "io80":
+        validate_io80_map_fields(summary, candidate_counts)
+        return
 
+    codes = (
+        summary[f"{resolution}_codes"].astype("string").fillna("").str.strip()
+    )
+    map_codes = (
+        summary[f"{resolution}_map_code"].astype("string").fillna("").str.strip()
+    )
+    map_status = (
+        summary[f"{resolution}_map_status"].astype("string").fillna("").str.strip()
+    )
     expected_codes = codes.where(candidate_counts.eq(1), "")
     expected_status = pd.Series("UNMAPPED", index=summary.index, dtype="string")
     expected_status.loc[candidate_counts.eq(1)] = "SINGLETON_CANDIDATE"
     expected_status.loc[candidate_counts.gt(1)] = "AMBIGUOUS_SET"
-
     bad = map_codes.ne(expected_codes) | map_status.ne(expected_status)
     if bad.any():
-        count = int(bad.sum())
         raise ValueError(
-            f"{resolution} map fields disagree with candidate sets on {count} row(s)"
+            f"{resolution} map fields disagree with candidate sets on {int(bad.sum())} row(s)"
         )
 
 
@@ -640,8 +662,7 @@ def io_coverage_summary(summary: pd.DataFrame) -> dict[str, object]:
         "io_mapping_status",
         "io_mapping_bridge_basis",
         *(f"{resolution}_codes" for resolution in RESOLUTIONS),
-        *(f"{resolution}_map_code" for resolution in RESOLUTIONS),
-        *(f"{resolution}_map_status" for resolution in RESOLUTIONS),
+        *IO_MAP_COLUMNS,
         *(f"{resolution}_confidence" for resolution in RESOLUTIONS),
     }
     missing = required - set(summary.columns)
@@ -679,7 +700,7 @@ def io_coverage_summary(summary: pd.DataFrame) -> dict[str, object]:
     all_rows = pd.Series(True, index=summary.index)
     for resolution in RESOLUTIONS:
         text = summary[f"{resolution}_codes"].astype("string").fillna("").str.strip()
-        candidate_counts = text.str.count(";").add(1).where(text.ne(""), 0).astype("int64")
+        candidate_counts = text.map(lambda value: len(parse_candidate_codes(value))).astype("int64")
         _validate_map_fields(summary, resolution, candidate_counts)
 
         available_mask = candidate_counts.gt(0)
@@ -690,16 +711,35 @@ def io_coverage_summary(summary: pd.DataFrame) -> dict[str, object]:
         multiple_rows = int(multiple_mask.sum())
         mapped_counts = candidate_counts[available_mask]
         confidence = summary[f"{resolution}_confidence"]
-        map_status = summary[f"{resolution}_map_status"]
+        map_status = (
+            summary[f"{resolution}_map_status"]
+            .astype("string")
+            .fillna("")
+            .str.strip()
+        )
+        map_ready_mask = _nonblank(summary[f"{resolution}_map_code"])
+        name_resolved_mask = map_status.eq("NAME_MATCH_RESOLVED")
+        model_resolved_mask = map_status.eq("MODEL_RESOLVED")
+        evidence_resolved_mask = map_status.isin(IO80_RESOLVED_STATUSES)
+        unresolved_multiple_mask = multiple_mask & map_status.eq("AMBIGUOUS_SET")
+        map_ready_rows = int(map_ready_mask.sum())
 
-        resolutions[resolution] = {
+        metrics: dict[str, object] = {
             "available_rows": available_rows,
             "available_share": _share(available_rows, total),
-            "map_ready_rows": singleton_rows,
-            "map_ready_share": _share(singleton_rows, total),
-            "map_ready_share_of_available": _share(singleton_rows, available_rows),
+            "singleton_candidate_rows": singleton_rows,
+            "name_resolved_rows": int(name_resolved_mask.sum()),
+            "model_resolved_rows": int(model_resolved_mask.sum()),
+            "evidence_resolved_rows": int(evidence_resolved_mask.sum()),
+            "map_ready_rows": map_ready_rows,
+            "map_ready_share": _share(map_ready_rows, total),
+            "map_ready_share_of_available": _share(map_ready_rows, available_rows),
             "multiple_candidate_rows": multiple_rows,
             "multiple_candidate_share": _share(multiple_rows, total),
+            "unresolved_multiple_candidate_rows": int(unresolved_multiple_mask.sum()),
+            "unresolved_multiple_candidate_share": _share(
+                int(unresolved_multiple_mask.sum()), total
+            ),
             "mean_candidates_when_available": (
                 float(mapped_counts.mean()) if available_rows else 0.0
             ),
@@ -708,10 +748,19 @@ def io_coverage_summary(summary: pd.DataFrame) -> dict[str, object]:
             ),
             "map_status_counts": _value_counts(map_status, all_rows),
             "bridge_basis_counts_when_available": _value_counts(basis, available_mask),
-            "bridge_basis_counts_for_map_ready": _value_counts(basis, singleton_mask),
+            "bridge_basis_counts_for_map_ready": _value_counts(basis, map_ready_mask),
             "confidence_counts_when_available": _value_counts(confidence, available_mask),
-            "confidence_counts_for_map_ready": _value_counts(confidence, singleton_mask),
+            "confidence_counts_for_map_ready": _value_counts(confidence, map_ready_mask),
         }
+        if resolution == "io80":
+            method = (
+                summary["io80_resolution_method"]
+                .astype("string")
+                .fillna("")
+                .str.strip()
+            )
+            metrics["resolution_method_counts"] = _value_counts(method, method.ne(""))
+        resolutions[resolution] = metrics
 
     ordinary_rows = int(ordinary_mask.sum())
     provisional_rows = int(provisional_mask.sum())

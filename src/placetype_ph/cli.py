@@ -1252,8 +1252,7 @@ def _print_express_io_coverage(run_dir: Path) -> None:
             "io_mapping_status",
             "io_mapping_bridge_basis",
             *(f"{resolution}_codes" for resolution in RESOLUTIONS),
-            *(f"{resolution}_map_code" for resolution in RESOLUTIONS),
-            *(f"{resolution}_map_status" for resolution in RESOLUTIONS),
+            *IO_MAP_COLUMNS,
             *(f"{resolution}_confidence" for resolution in RESOLUTIONS),
         ]
         frame = pd.read_parquet(run_dir / summary_name, columns=columns)
@@ -1305,24 +1304,26 @@ def _print_express_io_coverage(run_dir: Path) -> None:
     table = Table(title="I-O candidate availability and map readiness")
     table.add_column("Resolution")
     table.add_column("Available", justify="right")
-    table.add_column("Map-ready singleton", justify="right")
-    table.add_column("Map-ready / available", justify="right")
-    table.add_column("Ambiguous set", justify="right")
-    table.add_column("Mean candidates", justify="right")
+    table.add_column("Singleton", justify="right")
+    table.add_column("Name-resolved", justify="right")
+    table.add_column("Model-resolved", justify="right")
+    table.add_column("Map-ready", justify="right")
+    table.add_column("Unresolved set", justify="right")
     by_resolution = coverage["resolutions"]
     for resolution in RESOLUTIONS:
         metrics = by_resolution[resolution]
         table.add_row(
             resolution.upper(),
             _count_share(int(metrics["available_rows"]), total),
+            _count_share(int(metrics["singleton_candidate_rows"]), total),
+            _count_share(int(metrics["name_resolved_rows"]), total),
+            _count_share(int(metrics["model_resolved_rows"]), total),
             _count_share(int(metrics["map_ready_rows"]), total),
-            f"{float(metrics['map_ready_share_of_available']):.2%}",
-            _count_share(int(metrics["multiple_candidate_rows"]), total),
-            f"{float(metrics['mean_candidates_when_available']):.2f}",
+            _count_share(int(metrics["unresolved_multiple_candidate_rows"]), total),
         )
     console.print(table)
 
-    confidence_table = Table(title="Concordance confidence among map-ready singletons")
+    confidence_table = Table(title="Concordance confidence among map-ready rows")
     confidence_table.add_column("Resolution")
     confidence_labels = ("High", "High with caveat", "Medium-High", "Medium", "Low")
     for label in confidence_labels:
@@ -1340,8 +1341,9 @@ def _print_express_io_coverage(run_dir: Path) -> None:
         )
     console.print(confidence_table)
     console.print(
-        "[dim]Map-ready means one candidate in this derived concordance; it is not an "
-        "independent correctness check.[/dim]"
+        "[dim]Map-ready means either one concordance candidate or an explicitly "
+        "evidence-resolved IO80 candidate. Concordance confidence and resolver "
+        "provenance remain separate; neither is external validation.[/dim]"
     )
 
 

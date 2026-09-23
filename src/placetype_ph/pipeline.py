@@ -19,6 +19,7 @@ from .economic_role import (
     TaxonomyClassification,
     infer_economic_profile,
 )
+from .io80_resolver import io80_resolver_metadata
 from .io_mapping import (
     IOCrosswalk,
     enrich_summary_with_io,
@@ -211,6 +212,7 @@ def classify_openplaces(
         io_mapping = {
             **io_crosswalk.provenance(),
             "status_counts": io_status_counts(summary),
+            "resolver": io80_resolver_metadata(summary),
             "coverage": io_coverage_summary(summary),
         }
 
