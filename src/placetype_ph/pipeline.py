@@ -28,6 +28,7 @@ from .io_mapping import (
 )
 from .models import ClassificationResult
 from .openplaces import SUMMARY_COLUMNS, read_openplaces
+from .specialized.integration import enrich_summary
 from .text import clean_text
 
 _JSON_FIELDS = ("candidate_codes", "evidence_sources", "flags", "audit")
@@ -242,6 +243,7 @@ def classify_openplaces(
     role_frame["role_confidence"] = role_frame["role_confidence"].astype("float64")
     summary = summary.merge(role_frame, on="canonical_id", how="left", validate="one_to_one")
 
+    summary = enrich_summary(summary, frame)
     summary_path = out_dir / "classified_pois.parquet"
     summary.to_parquet(summary_path, index=False)
 
