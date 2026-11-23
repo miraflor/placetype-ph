@@ -7,14 +7,15 @@ import json
 from collections.abc import Mapping
 from functools import lru_cache
 
-from .activity import activity_proposals, load_rules, reconcile_activity
+from .activity import activity_proposals, load_rules
+from .fusion import AncestorLookup, fuse_activity
 from .institutions import administrative, ownership
 from .model import Assessment
 from .nonactivity import eligibility
 from .registry import RegistryRecord, match_registry
 from .source_evidence import text
 
-POLICY_ID = "place-evidence-v1"
+POLICY_ID = "place-evidence-v2-source-fusion"
 
 
 @lru_cache(maxsize=1)
@@ -37,44 +38,71 @@ def assess(
     psic_code: str = "",
     psic_method: str = "",
     registry: tuple[RegistryRecord, ...] = (),
+    ancestors: AncestorLookup | None = None,
 ) -> Assessment:
-    """Evaluate evidence without changing any reviewed or other existing classification."""
+    """Audit source evidence without modifying active PSIC/PCPC/PSCC decisions.
+
+    A caller with the official PSIC taxonomy may supply its ancestors(code)
+    method. Without that, numeric code-prefix nesting is provisional and
+    mixed alphabetic/numeric ancestry is never assumed.
+    """
     r = dict(row)
     original_code = text(psic_code)
-    proposals, flags = activity_proposals(r, _rules())
-    candidate_codes, status, reason = reconcile_activity(
-        proposals, flags, original_code, text(psic_method)
+    method = text(psic_method)
+    proposals, source_flags = activity_proposals(r, _rules())
+    fusion = fuse_activity(
+        proposals, original_code=original_code, original_method=method, ancestors=ancestors
     )
-    nonactivity, nonactivity_reason = eligibility(r)
-    if nonactivity and status == "NO_EVIDENCE":
-        status = nonactivity
-        reason = nonactivity_reason
-    elif nonactivity and status not in {"NO_EVIDENCE", "BROAD_CANDIDATE"}:
-        flags = tuple(sorted(set(flags) | {"ACTIVITY_NONACTIVITY_CONFLICT"}))
+    candidate_codes, status, reason = (fusion.candidate_codes, fusion.status, fusion.reason)
+    flags = set(source_flags) | set(fusion.flags)
+    if any(flag.startswith("COMPOUND_CONFLICT") for flag in source_flags):
         status = "REVIEW"
-        reason = "positive_activity_and_negative_source_conflict"
+        reason = "incompatible_compound_source_tags"
+    nonactivity, nonactivity_reason = eligibility(r)
+    if nonactivity:
+        if proposals:
+            flags.add("ACTIVITY_NONACTIVITY_CONFLICT")
+            status = "REVIEW"
+            reason = "positive_activity_and_negative_source_conflict"
+        elif status == "NO_EVIDENCE":
+            status = nonactivity
+            reason = nonactivity_reason
+        else:
+            flags.add("NONACTIVITY_EVIDENCE_REVIEW")
+            status = "REVIEW"
+            reason = nonactivity_reason
     admin = administrative(r)
     if admin.status == "PROPOSED":
-        # Administrative function and frontline service have been separated first.
+        # Proposals are additive. Administrative evidence must not clear a
+        # conflict detected earlier in the same entity.
         candidate_codes = tuple(sorted(set(candidate_codes) | {admin.code}))
-        if original_code and original_code != admin.code:
-            status = (
-                "REVIEW"
-                if text(psic_method).casefold()
-                in {"manual", "reviewed", "reviewed_crosswalk", "user_supplied"}
-                else "ADMINISTRATIVE_CANDIDATE"
-            )
+        if status == "REVIEW":
+            flags.add("ADMINISTRATIVE_WITH_UNRESOLVED_EVIDENCE")
+        elif status in {"NOT_PSIC_ACTIVITY", "UNCODEABLE"}:
+            status = "REVIEW"
+            flags.add("ADMINISTRATIVE_NONACTIVITY_CONFLICT")
+            reason = "administrative_function_and_nonactivity_disagreement"
+        elif (
+            original_code
+            and original_code != admin.code
+            and method.casefold() in {"manual", "reviewed", "reviewed_crosswalk", "user_supplied"}
+        ):
+            status = "REVIEW"
+            reason = "reviewed_classification_requires_review"
         else:
             status = "ADMINISTRATIVE_CANDIDATE"
-        reason = "specific_government_administrative_function"
+            reason = "specific_government_administrative_function"
     elif admin.status == "REVIEW":
-        flags = tuple(sorted(set(flags) | {"ADMINISTRATIVE_FUNCTION_REVIEW"}))
+        flags.add("ADMINISTRATIVE_FUNCTION_REVIEW")
+    flag_tuple = tuple(sorted(flags))
     role_codes = tuple(sorted(set(candidate_codes) | ({original_code} if original_code else set())))
     owner = ownership(r, role_codes)
     domain = (
         "education"
         if any(c.startswith("85") for c in role_codes if c.isdigit())
-        else ("health" if any(c.startswith("86") for c in role_codes if c.isdigit()) else "")
+        else "health"
+        if any(c.startswith("86") for c in role_codes if c.isdigit())
+        else ""
     )
     reg = match_registry(r, registry, domain=domain) if domain else match_registry(r, (), domain="")
     ownership_side = owner.side
@@ -99,11 +127,20 @@ def assess(
     audit = {
         "policy": POLICY_ID,
         "original_psic_code": original_code,
-        "original_psic_method": text(psic_method),
+        "original_psic_method": method,
         "candidates": list(candidate_codes),
         "evidence": [item.as_record() for item in proposals],
-        "compound_flags": list(flags),
+        "source_flags": list(source_flags),
+        "compound_flags": list(flag_tuple),
         "eligibility_status": nonactivity,
+        "fusion": {
+            "status": fusion.status,
+            "reason": fusion.reason,
+            "groups": list(fusion.groups),
+            "hierarchy_basis": fusion.hierarchy_basis,
+            "flags": list(fusion.flags),
+            "automatic_promotion": False,
+        },
         "administration": admin.__dict__,
         "ownership_heuristic": owner.__dict__,
         "registry": reg.__dict__,
@@ -113,7 +150,7 @@ def assess(
         status=status,
         reason=reason,
         evidence=proposals,
-        flags=flags,
+        flags=flag_tuple,
         administrative_status=admin.status,
         administrative_code=admin.code,
         administrative_reason=admin.reason,
