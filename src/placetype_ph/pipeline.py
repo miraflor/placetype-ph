@@ -12,6 +12,7 @@ from pathlib import Path
 import pandas as pd
 
 from . import __version__
+from .specialized.integration import enrich_summary
 from .classifier import EntityClassifier
 from .economic_role import (
     ROLE_OUTPUT_COLUMNS,
@@ -242,6 +243,7 @@ def classify_openplaces(
     role_frame["role_confidence"] = role_frame["role_confidence"].astype("float64")
     summary = summary.merge(role_frame, on="canonical_id", how="left", validate="one_to_one")
 
+    summary = enrich_summary(summary, frame)
     summary_path = out_dir / "classified_pois.parquet"
     summary.to_parquet(summary_path, index=False)
 
