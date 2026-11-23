@@ -28,6 +28,7 @@ from .io_mapping import (
 )
 from .models import ClassificationResult
 from .openplaces import SUMMARY_COLUMNS, read_openplaces
+from .specialized.institutional_pipeline import maybe_resolve_institutions
 from .specialized.integration import enrich_summary
 from .text import clean_text
 
@@ -244,6 +245,7 @@ def classify_openplaces(
     summary = summary.merge(role_frame, on="canonical_id", how="left", validate="one_to_one")
 
     summary = enrich_summary(summary, frame)
+    summary = maybe_resolve_institutions(summary, frame)
     summary_path = out_dir / "classified_pois.parquet"
     summary.to_parquet(summary_path, index=False)
 
