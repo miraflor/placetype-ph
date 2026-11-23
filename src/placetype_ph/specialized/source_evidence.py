@@ -99,16 +99,26 @@ def compound_status(source: str, category: object) -> str:
 
 
 def from_row(row: Mapping[str, object]) -> tuple[Evidence, ...]:
+    """Parse source-typed evidence without conflating structured category fields.
+
+    OSM key=value pairs are parsed individually. Multiple representations of one
+    Overture category retain field provenance, but remain one dependent source.
+    """
     evidence: list[Evidence] = []
     for source in SOURCES:
         name = text(row.get(f"{source}_name"))
         if name:
             evidence.append(Evidence(source, "name", name, "NAME", dependency_group=source))
-        category = row.get(f"{source}_category")
-        for part in split_categories(category):
-            kind = "CATEGORY" if source != "osm" else "TAG"
-            evidence.append(Evidence(source, "category", part, kind, dependency_group=source))
-        # For an upstream schema that retains Overture's structured taxonomy.
+        if source == "osm":
+            for key, value in osm_pairs(row.get("osm_category")):
+                evidence.append(
+                    Evidence(source, "category", f"{key}={value}", "TAG", dependency_group=source)
+                )
+        else:
+            for part in split_categories(row.get(f"{source}_category")):
+                evidence.append(
+                    Evidence(source, "category", part, "CATEGORY", dependency_group=source)
+                )
         if source == "overture":
             for field, kind in (
                 ("overture_primary_category", "PRIMARY_CATEGORY"),
@@ -120,6 +130,7 @@ def from_row(row: Mapping[str, object]) -> tuple[Evidence, ...]:
     if not any(item.field == "name" for item in evidence):
         name = text(row.get("name")) or text(row.get("canonical_name"))
         if name:
+            # A canonical name is not an independent third-party corroboration.
             evidence.append(
                 Evidence("canonical", "name", name, "NAME", dependency_group="canonical")
             )
@@ -128,4 +139,4 @@ def from_row(row: Mapping[str, object]) -> tuple[Evidence, ...]:
             evidence.append(
                 Evidence("canonical", "category", part, "CATEGORY", dependency_group="canonical")
             )
-    return tuple(evidence)
+    return tuple(dict.fromkeys(evidence))
