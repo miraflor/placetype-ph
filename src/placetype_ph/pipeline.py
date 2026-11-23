@@ -30,6 +30,10 @@ from .models import ClassificationResult
 from .openplaces import SUMMARY_COLUMNS, read_openplaces
 from .specialized.institutional_pipeline import maybe_resolve_institutions
 from .specialized.integration import enrich_summary
+from .specialized.ownership_io import (
+    ownership_io_metadata,
+    refine_verified_institutional_io,
+)
 from .text import clean_text
 
 _JSON_FIELDS = ("candidate_codes", "evidence_sources", "flags", "audit")
@@ -246,6 +250,10 @@ def classify_openplaces(
 
     summary = enrich_summary(summary, frame)
     summary = maybe_resolve_institutions(summary, frame)
+    summary = refine_verified_institutional_io(summary)
+    refinement_metadata = ownership_io_metadata(summary)
+    if refinement_metadata is not None and io_mapping is not None:
+        io_mapping["ownership_refinement"] = refinement_metadata
     summary_path = out_dir / "classified_pois.parquet"
     summary.to_parquet(summary_path, index=False)
 
