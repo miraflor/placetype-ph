@@ -1,4 +1,5 @@
 """Standalone audit/enrichment CLI, separate from the main taxonomy CLI."""
+
 from __future__ import annotations
 
 import argparse
@@ -11,32 +12,41 @@ from pathlib import Path
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="python -m placetype_ph.specialized")
     sub = parser.add_subparsers(dest="command", required=True)
-    enrich = sub.add_parser("enrich", help="append auditable evidence columns without overwriting classification")
+    enrich = sub.add_parser(
+        "enrich", help="append auditable evidence columns without overwriting classification"
+    )
     enrich.add_argument("--places", type=Path, required=True)
     enrich.add_argument("--classified", type=Path, required=True)
     enrich.add_argument("--output", type=Path, required=True)
     enrich.add_argument("--registry", type=Path)
     enrich.add_argument("--report", type=Path)
-    migrate = sub.add_parser("migrate-proposals", help="generate an unreviewed source-mapping worklist")
+    migrate = sub.add_parser(
+        "migrate-proposals", help="generate an unreviewed source-mapping worklist"
+    )
     migrate.add_argument("--source", type=Path, required=True)
     migrate.add_argument("--output", type=Path, required=True)
     migrate.add_argument("--existing", type=Path)
-    worklist = sub.add_parser("export-rule-worklist", help="export built-in PSIC rule candidates for review")
+    worklist = sub.add_parser(
+        "export-rule-worklist", help="export built-in PSIC rule candidates for review"
+    )
     worklist.add_argument("--output", type=Path, required=True)
     sub.add_parser("validate-rules", help="validate packaged activity rules and show fingerprint")
     args = parser.parse_args(argv)
     if args.command == "validate-rules":
         from .activity import load_rules
         from .policy import fingerprint
+
         print(json.dumps({"rules": len(load_rules()), "fingerprint": fingerprint()}, indent=2))
         return 0
     if args.command == "export-rule-worklist":
         from .migrate import export_rule_worklist
+
         count = export_rule_worklist(args.output)
         print(f"Wrote {count} source-category rule candidates to {args.output}")
         return 0
     if args.command == "migrate-proposals":
         from .migrate import migrate_proposals
+
         count = migrate_proposals(args.source, args.output, existing=args.existing)
         print(f"Wrote {count} unreviewed candidate mappings to {args.output}")
         return 0
@@ -47,8 +57,10 @@ def main(argv: list[str] | None = None) -> int:
     if args.report and args.report.exists():
         raise FileExistsError(f"refusing to overwrite existing report: {args.report}")
     import pandas as pd
+
     from .integration import enrich_summary, report
     from .registry import load_registry
+
     registry = load_registry(args.registry)
     places, classified = pd.read_parquet(args.places), pd.read_parquet(args.classified)
     result = enrich_summary(classified, places, registry=registry)
@@ -65,7 +77,9 @@ def main(argv: list[str] | None = None) -> int:
         if args.report:
             args.report.parent.mkdir(parents=True, exist_ok=True)
             assert tmp_report is not None
-            tmp_report.write_text(json.dumps(report(result), indent=2, sort_keys=True) + "\n", encoding="utf-8")
+            tmp_report.write_text(
+                json.dumps(report(result), indent=2, sort_keys=True) + "\n", encoding="utf-8"
+            )
             json.loads(tmp_report.read_text(encoding="utf-8"))
         if args.output.exists() or (args.report and args.report.exists()):
             raise FileExistsError("output or report appeared after preflight")
@@ -91,4 +105,4 @@ if __name__ == "__main__":
         raise SystemExit(main())
     except Exception as exc:
         print(f"ERROR: {exc}", file=sys.stderr)
-        raise SystemExit(1)
+        raise SystemExit(1) from exc

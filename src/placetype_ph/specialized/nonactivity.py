@@ -1,27 +1,64 @@
 """Activity eligibility versus uncodeable places; preserves context without inventing codes."""
+
 from __future__ import annotations
 
 from collections.abc import Mapping
 
-from .source_evidence import split_categories, text
+from .source_evidence import split_categories
 
-OVERTURE_NON_ACTIVITY = frozenset({"beach", "bridge", "historic_site", "landmark", "monument", "park", "road"})
-OVERTURE_UNCODEABLE = frozenset({
-    "arts_and_entertainment", "basketball_court", "campus_building", "community_and_government",
-    "community_center", "corporate_or_business_office", "shopping_mall",
-    "social_or_community_service", "sports_and_recreation", "swimming_pool", "travel_and_transportation",
-})
-OSM_NON_ACTIVITY = frozenset({
-    "leisure=park", "leisure=pitch", "man_made=bridge", "man_made=mast",
-    "man_made=street_cabinet", "man_made=surveillance", "man_made=tower",
-    "public_transport=platform", "public_transport=stop_position", "tourism=artwork",
-})
-OSM_UNCODEABLE = frozenset({
-    "amenity=atm", "amenity=community_centre", "amenity=marketplace", "amenity=parking",
-    "amenity=parking_entrance", "amenity=recycling", "amenity=taxi", "industrial=depot",
-    "leisure=playground", "leisure=sports_hall", "man_made=works", "office=company",
-    "office=ngo", "office=yes", "public_transport=station", "shop=mall", "tourism=attraction",
-})
+OVERTURE_NON_ACTIVITY = frozenset(
+    {"beach", "bridge", "historic_site", "landmark", "monument", "park", "road"}
+)
+OVERTURE_UNCODEABLE = frozenset(
+    {
+        "arts_and_entertainment",
+        "basketball_court",
+        "campus_building",
+        "community_and_government",
+        "community_center",
+        "corporate_or_business_office",
+        "shopping_mall",
+        "social_or_community_service",
+        "sports_and_recreation",
+        "swimming_pool",
+        "travel_and_transportation",
+    }
+)
+OSM_NON_ACTIVITY = frozenset(
+    {
+        "leisure=park",
+        "leisure=pitch",
+        "man_made=bridge",
+        "man_made=mast",
+        "man_made=street_cabinet",
+        "man_made=surveillance",
+        "man_made=tower",
+        "public_transport=platform",
+        "public_transport=stop_position",
+        "tourism=artwork",
+    }
+)
+OSM_UNCODEABLE = frozenset(
+    {
+        "amenity=atm",
+        "amenity=community_centre",
+        "amenity=marketplace",
+        "amenity=parking",
+        "amenity=parking_entrance",
+        "amenity=recycling",
+        "amenity=taxi",
+        "industrial=depot",
+        "leisure=playground",
+        "leisure=sports_hall",
+        "man_made=works",
+        "office=company",
+        "office=ngo",
+        "office=yes",
+        "public_transport=station",
+        "shop=mall",
+        "tourism=attraction",
+    }
+)
 OSM_NON_ACTIVITY_PREFIXES = ("boundary=", "highway=", "natural=", "waterway=")
 
 

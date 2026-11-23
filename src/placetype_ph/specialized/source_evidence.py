@@ -1,4 +1,5 @@
 """Preserve source-specific name/category semantics and parsed OSM tags."""
+
 from __future__ import annotations
 
 import ast
@@ -9,20 +10,32 @@ from collections.abc import Mapping
 from .model import Evidence
 
 SOURCES = ("osm", "overture", "fsq")
-AUXILIARY_OSM_KEYS = frozenset({
-    "brand", "cuisine", "delivery", "drive_through", "internet_access",
-    "opening_hours", "operator", "outdoor_seating", "takeaway", "wheelchair",
-})
-COMPATIBLE_OSM_PAIRS = frozenset({
-    frozenset(("amenity=pharmacy", "healthcare=pharmacy")),
-    frozenset(("amenity=clinic", "healthcare=clinic")),
-    frozenset(("amenity=dentist", "healthcare=dentist")),
-    frozenset(("amenity=doctors", "healthcare=doctor")),
-    frozenset(("amenity=townhall", "office=government")),
-    frozenset(("amenity=cafe", "shop=coffee")),
-    frozenset(("amenity=cafe", "shop=tea")),
-    frozenset(("amenity=bank", "atm=yes")),
-})
+AUXILIARY_OSM_KEYS = frozenset(
+    {
+        "brand",
+        "cuisine",
+        "delivery",
+        "drive_through",
+        "internet_access",
+        "opening_hours",
+        "operator",
+        "outdoor_seating",
+        "takeaway",
+        "wheelchair",
+    }
+)
+COMPATIBLE_OSM_PAIRS = frozenset(
+    {
+        frozenset(("amenity=pharmacy", "healthcare=pharmacy")),
+        frozenset(("amenity=clinic", "healthcare=clinic")),
+        frozenset(("amenity=dentist", "healthcare=dentist")),
+        frozenset(("amenity=doctors", "healthcare=doctor")),
+        frozenset(("amenity=townhall", "office=government")),
+        frozenset(("amenity=cafe", "shop=coffee")),
+        frozenset(("amenity=cafe", "shop=tea")),
+        frozenset(("amenity=bank", "atm=yes")),
+    }
+)
 
 
 def text(value: object) -> str:
@@ -68,8 +81,11 @@ def osm_pairs(value: object) -> tuple[tuple[str, str], ...]:
 def compound_status(source: str, category: object) -> str:
     parts = split_categories(category)
     if source == "osm":
-        primaries = [f"{k}={v}" for k, v in osm_pairs(category)
-                     if k not in AUXILIARY_OSM_KEYS and not k.startswith(("contact:", "payment:"))]
+        primaries = [
+            f"{k}={v}"
+            for k, v in osm_pairs(category)
+            if k not in AUXILIARY_OSM_KEYS and not k.startswith(("contact:", "payment:"))
+        ]
         unique = set(primaries)
         if len(unique) <= 1:
             return "SINGLE"
@@ -94,16 +110,22 @@ def from_row(row: Mapping[str, object]) -> tuple[Evidence, ...]:
             evidence.append(Evidence(source, "category", part, kind, dependency_group=source))
         # For an upstream schema that retains Overture's structured taxonomy.
         if source == "overture":
-            for field, kind in (("overture_primary_category", "PRIMARY_CATEGORY"),
-                                ("overture_alternate_category", "ALTERNATE_CATEGORY"),
-                                ("overture_basic_category", "BROAD_CATEGORY")):
+            for field, kind in (
+                ("overture_primary_category", "PRIMARY_CATEGORY"),
+                ("overture_alternate_category", "ALTERNATE_CATEGORY"),
+                ("overture_basic_category", "BROAD_CATEGORY"),
+            ):
                 for part in split_categories(row.get(field)):
                     evidence.append(Evidence(source, field, part, kind, dependency_group=source))
     if not any(item.field == "name" for item in evidence):
         name = text(row.get("name")) or text(row.get("canonical_name"))
         if name:
-            evidence.append(Evidence("canonical", "name", name, "NAME", dependency_group="canonical"))
+            evidence.append(
+                Evidence("canonical", "name", name, "NAME", dependency_group="canonical")
+            )
     if not evidence:
         for part in split_categories(row.get("category")):
-            evidence.append(Evidence("canonical", "category", part, "CATEGORY", dependency_group="canonical"))
+            evidence.append(
+                Evidence("canonical", "category", part, "CATEGORY", dependency_group="canonical")
+            )
     return tuple(evidence)

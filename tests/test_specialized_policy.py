@@ -7,7 +7,7 @@ import pytest
 
 from placetype_ph.specialized import assess, enrich_summary, fingerprint
 from placetype_ph.specialized.activity import load_rules
-from placetype_ph.specialized.registry import RegistryRecord, load_registry, match_registry
+from placetype_ph.specialized.registry import RegistryRecord, match_registry
 from placetype_ph.specialized.source_evidence import compound_status
 
 
@@ -17,8 +17,11 @@ def test_packaged_rules_and_fingerprint():
 
 
 def test_broad_category_disagreement_is_not_overridden():
-    a = assess({"name": "ABC Pharmacy", "overture_category": "professional_service"},
-               psic_code="N", psic_method="crosswalk")
+    a = assess(
+        {"name": "ABC Pharmacy", "overture_category": "professional_service"},
+        psic_code="N",
+        psic_method="crosswalk",
+    )
     assert "4772" in a.candidate_codes
     assert a.status == "REVIEW"
     assert a.audit["original_psic_code"] == "N"
@@ -56,24 +59,66 @@ def test_school_names_provisional_only_and_religious_prefix_not_private():
 
 
 def test_strict_registry_promotable_only_with_site_identity():
-    r = RegistryRecord("hospital_registry", "HF-11", "Metro General Hospital", "Quezon City",
-                       "health", "public", "https://example.org/hf-11")
-    exact = match_registry({"name": "Metro General Hospital", "city": "Quezon City", "official_id": "HF-11", "official_id_source": "hospital_registry"}, (r,), "health")
+    r = RegistryRecord(
+        "hospital_registry",
+        "HF-11",
+        "Metro General Hospital",
+        "Quezon City",
+        "health",
+        "public",
+        "https://example.org/hf-11",
+    )
+    exact = match_registry(
+        {
+            "name": "Metro General Hospital",
+            "city": "Quezon City",
+            "official_id": "HF-11",
+            "official_id_source": "hospital_registry",
+        },
+        (r,),
+        "health",
+    )
     assert exact.status == "EXTERNAL_ID_SITE_MATCH"
-    only_name = match_registry({"name": "Metro General Hospital", "city": "Quezon City"}, (r,), "health")
+    only_name = match_registry(
+        {"name": "Metro General Hospital", "city": "Quezon City"}, (r,), "health"
+    )
     assert only_name.status == "NAME_CITY_PROVISIONAL"
-    wrong = match_registry({"name": "Metro General Hospital", "city": "Manila", "official_id": "HF-11", "official_id_source": "hospital_registry"}, (r,), "health")
+    wrong = match_registry(
+        {
+            "name": "Metro General Hospital",
+            "city": "Manila",
+            "official_id": "HF-11",
+            "official_id_source": "hospital_registry",
+        },
+        (r,),
+        "health",
+    )
     assert wrong.status == "EXTERNAL_ID_LOCALITY_REVIEW"
 
 
 def test_all_pois_preserved_and_old_columns_immutable():
-    places = pd.DataFrame([
-        {"canonical_id": "1", "name": "Mila Pharmacy", "overture_category": "professional_service"},
-        {"canonical_id": "2", "name": "DepEd Schools Division Office", "overture_category": "government_office"},
-        {"canonical_id": "3", "name": "Bridge", "osm_category": "man_made=bridge"},
-    ])
-    before = pd.DataFrame({"canonical_id": ["1", "2", "3"],
-                           "psic_code": ["N", "84", None], "psic_method": ["crosswalk", "crosswalk", None]})
+    places = pd.DataFrame(
+        [
+            {
+                "canonical_id": "1",
+                "name": "Mila Pharmacy",
+                "overture_category": "professional_service",
+            },
+            {
+                "canonical_id": "2",
+                "name": "DepEd Schools Division Office",
+                "overture_category": "government_office",
+            },
+            {"canonical_id": "3", "name": "Bridge", "osm_category": "man_made=bridge"},
+        ]
+    )
+    before = pd.DataFrame(
+        {
+            "canonical_id": ["1", "2", "3"],
+            "psic_code": ["N", "84", None],
+            "psic_method": ["crosswalk", "crosswalk", None],
+        }
+    )
     result = enrich_summary(before, places)
     assert result["canonical_id"].tolist() == before["canonical_id"].tolist()
     assert result["psic_code"].equals(before["psic_code"])
@@ -93,8 +138,11 @@ def test_duplicate_ids_fail_closed():
 
 def test_migration_is_review_required(tmp_path):
     from placetype_ph.specialized.migrate import migrate_proposals
+
     inp = tmp_path / "old.csv"
-    inp.write_text('source,source_value,source_field,mapping_kind,codes\noverture,pharmacy,category,SUBTREE,4772\n')
+    inp.write_text(
+        "source,source_value,source_field,mapping_kind,codes\noverture,pharmacy,category,SUBTREE,4772\n"
+    )
     output = tmp_path / "review.csv"
     assert migrate_proposals(inp, output) == 1
     assert "REVIEW_REQUIRED" in output.read_text()

@@ -12,7 +12,6 @@ from pathlib import Path
 import pandas as pd
 
 from . import __version__
-from .specialized.integration import enrich_summary
 from .classifier import EntityClassifier
 from .economic_role import (
     ROLE_OUTPUT_COLUMNS,
@@ -29,6 +28,7 @@ from .io_mapping import (
 )
 from .models import ClassificationResult
 from .openplaces import SUMMARY_COLUMNS, read_openplaces
+from .specialized.integration import enrich_summary
 from .text import clean_text
 
 _JSON_FIELDS = ("candidate_codes", "evidence_sources", "flags", "audit")
