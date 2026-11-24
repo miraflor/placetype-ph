@@ -25,10 +25,7 @@ from .institutional_registry import (
 from .institutional_shadow import InstitutionResolver, load_verified_links
 
 ENVIRONMENT_KEY = "PLACETYPE_PH_INSTITUTION_REFERENCES"
-BUNDLED_KEYS = frozenset({
-    "beis", "unifast", "hospitals", "official_records", "heida",
-    "level1_hospitals", "level2_hospitals",
-})
+BUNDLED_KEYS = frozenset({"beis", "unifast", "hospitals", "heida"})
 CONFIG_SCHEMA = "placetype-ph-institution-reference-config-v1"
 REFERENCE_KEYS = frozenset({
     "beis", "unifast", "hospitals", "official_records", "verified_links",

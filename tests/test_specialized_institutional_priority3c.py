@@ -157,10 +157,10 @@ def test_missing_reference_is_error(tmp_path: Path) -> None:
 def test_invalid_registry_data_fails_closed(tmp_path: Path) -> None:
     path = hospitals(tmp_path)
     path.write_text(
-        path.read_text(encoding="utf-8").replace("Level 3", "Level 1"),
+        path.read_text(encoding="utf-8").replace("Level 3", "Infirmary"),
         encoding="utf-8",
     )
-    with pytest.raises(ValueError, match="Level 3"):
+    with pytest.raises(ValueError, match="unsupported explicit hospital level"):
         resolve_from_references(classified(), places(), references={"hospitals": path})
 
 

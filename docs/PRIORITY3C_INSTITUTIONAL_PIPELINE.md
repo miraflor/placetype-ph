@@ -7,7 +7,7 @@ It does not introduce any new eligibility or promotion rules.
 
 ## Enabled by default
 
-A normal run reads the seven packaged national registry snapshots. No environment
+A normal run reads the four packaged national registry snapshots. No environment
 variable, installation of reference files, network request or separate download is
 needed. The manifest and active file checksums are verified before use.
 

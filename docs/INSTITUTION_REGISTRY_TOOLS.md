@@ -8,16 +8,10 @@ The snapshots are in `src/placetype_ph/data/registry/`. `manifest.json` records 
 
 | File | Reference type | Rows | Source | Identifier |
 |---|---|---|---|---|
-| `level1_hospitals_20260930.csv` | `level1_hospitals` | 781 | PhilHealth Level 1 | publication row |
-| `level2_hospitals_20260930.csv` | `level2_hospitals` | 432 | PhilHealth Level 2 | publication row |
+| `philhealth_hospitals_20260930.csv` | `hospitals` | 1,338 | PhilHealth Levels 1–3, 2026-09-30 | publication row, not facility code |
 | `ched_heida_eligible_20261104.csv` | `heida` | 2,424 | CHED HEIDA directory | official HEI code; not site verification |
-| `ched_heida_review_20261104.csv` | (review only) | 321 | CHED HEIDA withheld entries | not active evidence |
-| `philhealth_levels123_source_20260930.csv` | (input) | 1,338 | PhilHealth source transcription | publication row |
-| `level3_hospitals_20260930.csv` | `hospitals` | 125 | PhilHealth list of accredited hospitals as of 2026-09-30, Level 3 rows | publication row number, not a facility code |
-| `philhealth_level3_source_20260930.csv` | (input) | 125 | transcription of the same PDF with its row and page numbers | rebuilds the file above byte for byte |
 | `unifast_hei_ra10931_20261104.csv.gz` | `unifast` | 1,955 | UniFAST list of participating higher education institutions, captured 2026-11-04 | local digest of region and name, not an official HEI code |
 | `deped_schools_national.csv.gz` | `beis` | 30,364 | project-cleaned extract of a Kaggle-hosted DepEd school masterlist (2026-11-04) | DepEd school ID, treated as unverified; ownership from the ID prefix is a hint only |
-| `official_records_quezon_city_seed.csv` | `official_records` | 80 | PhilHealth hospital list as of 2025-05-31, DepEd NCR directory of public schools, Quezon City list of government-owned hospitals, CHED CMO No. 02 s. 2025 | DepEd school IDs are official codes; other rows are publication rows |
 
 The DepEd extract was prepared on 2026-11-04 from a Kaggle-hosted school masterlist, via `schools_town_psgc_clean.csv` (Windows-1252 converted to UTF-8; 30,364 unique IDs). The exact Kaggle listing, uploader, source snapshot date and license remain unconfirmed. The owner directed that it remain bundled; local cleaning does not establish redistribution rights. The institution stage is enabled by default.
 
@@ -33,9 +27,11 @@ if ($LASTEXITCODE -ne 0) { throw "Reference installation failed" }
 $env:PLACETYPE_PH_INSTITUTION_REFERENCES = "$HOME\placetype-references\institution_references.json"
 ```
 
-`install-references` checks every bundled file against the manifest, copies the chosen types (`--include hospitals level1_hospitals level2_hospitals heida unifast beis official_records`, all by default) and an optional `--verified-links` file, and writes `institution_references.json` with absolute paths. It refuses to overwrite existing files.
+`install-references` checks every bundled file against the manifest, copies the chosen types (`--include hospitals heida unifast beis`, all by default) and an optional `--verified-links` file, and writes `institution_references.json` with absolute paths. It refuses to overwrite existing files.
 
-## Official records
+## Optional custom official records
+
+No city-specific official-record dataset ships with the package.
 
 Reference type `official_records` reads a twelve-column CSV: `source`, `source_id`, `name`, `domain`, `ownership`, `city`, `address`, `aliases`, `source_url`, `as_of`, `id_kind`, `evidence_type`. Each source decides which official HTTPS hosts, domain, side, identifier kind and evidence type are allowed:
 
@@ -59,15 +55,15 @@ python -m placetype_ph.specialized import-registry-export --input nhfr_export.xl
 
 DOH NHFR exports keep hospitals only (the facility type must contain "hospital"). DepEd masterlist exports need an explicit sector column (`Sector`, `School Type`, `Public/Private Classification`, `Ownership` or `Classification`). A row without an explicit public or private sector is left out, never guessed. `--city` keeps one city; without it all cities are kept. Duplicate identifiers stop the import.
 
-## Build a Level 3 hospital reference
+## Build a unified hospital reference
 
 ```powershell
-python -m placetype_ph.specialized build-level3-hospitals --input philhealth_level3_source.csv `
+python -m placetype_ph.specialized build-hospitals --input philhealth_source.csv `
   --source philhealth_hospitals --source-url "https://www.philhealth.gov.ph/.../HOSP_093026.pdf" `
-  --as-of 2026-09-30 --output level3_hospitals.csv
+  --as-of 2026-09-30 --output philhealth_hospitals.csv
 ```
 
-A PDF must first be transcribed to CSV with its original row numbers. Only Level 3 rows are kept, and each needs an explicit `G` or `P` sector. A table with fewer than 100 Level 3 hospitals is refused unless `--allow-partial` is given. `--check` validates without writing.
+A PDF must first be transcribed to CSV with its original row numbers. Levels 1–3 are kept in one CSV, with an explicit `G` or `P` sector for every row. All three levels must be present unless `--allow-partial` is given. The legacy Level 3 command remains available for custom references. `--check` validates without writing.
 
 ## Convert a verified-link file in the registry layout
 

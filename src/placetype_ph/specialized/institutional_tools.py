@@ -8,9 +8,8 @@ never overwritten.
 - ``import_official_export``: DOH NHFR or DepEd masterlist exports (CSV or Excel) with an
   explicit public/private sector, to official-record rows. A row without an explicit
   sector is left out, never guessed. NHFR rows are kept only for hospitals.
-- ``level3_hospital_rows``: an official Level 3 hospital table (the PhilHealth accredited
-  hospital list transcribed with its row numbers, or an NHFR export) to the Level 3
-  hospital reference read by ``load_hospitals``.
+- ``hospital_rows``: an official hospital table (PhilHealth publication rows or an
+  NHFR export) to a unified Level 1–3 reference read by ``load_hospitals``.
 - ``install_references``: copy the bundled reference snapshots, after checking their
   hashes, into a folder and write the reference configuration that points to them.
 - ``convert_registry_links``: convert a verified-link file in the registry layout
@@ -229,7 +228,8 @@ def level3_hospital_rows(
 
 
 def hospital_rows(
-    records: Iterable[Mapping[str, Any]], *, source: str, url: str, as_of: str, level: int
+    records: Iterable[Mapping[str, Any]], *, source: str, url: str, as_of: str,
+    level: int | None = None,
 ) -> tuple[list[dict[str, str]], Counter[str]]:
     """Explicit Level 1, 2 or 3 hospital reference rows from an official table.
 
@@ -238,7 +238,7 @@ def hospital_rows(
     """
     if source not in {"philhealth_hospitals", "doh_nhfr"}:
         raise ValueError("source must be philhealth_hospitals or doh_nhfr")
-    if level not in {1, 2, 3}:
+    if level not in {None, 1, 2, 3}:
         raise ValueError("hospital level must be 1, 2 or 3")
     _iso_date(as_of, "as_of")
     output: list[dict[str, str]] = []
@@ -249,13 +249,16 @@ def hospital_rows(
             record, "CAT", "Hospital Level", "Service Capability Level", "Level",
             "Hospital Classification",
         )
-        matches = _level3(observed_level) if level == 3 else bool(
-            re.fullmatch(
-                {1: r"(?:level\s*)?(?:1|i|one)", 2: r"(?:level\s*)?(?:2|ii|two)"}[level],
-                key(observed_level),
-            )
+        patterns = {
+            1: r"(?:level\s*)?(?:1|i|one)",
+            2: r"(?:level\s*)?(?:2|ii|two)",
+            3: r"(?:level\s*)?(?:3|iii|three)",
+        }
+        actual_level = next(
+            (n for n, pattern in patterns.items() if re.fullmatch(pattern, key(observed_level))),
+            None,
         )
-        if not matches:
+        if actual_level is None or (level is not None and actual_level != level):
             stats["other_hospital_level"] += 1
             continue
         name = _field(record, "NAME OF HEALTH FACILITY", "Health Facility Name",
@@ -279,7 +282,8 @@ def hospital_rows(
             kind = "publication_row"
         if not identifier or not name or not side:
             raise ValueError(
-                f"Level {level} hospital input row {n}: missing row number or official code, "
+                f"Level {actual_level} hospital input row {n}: "
+                "missing row number or official code, "
                 "name, or explicit G/P ownership"
             )
         output.append(
@@ -297,7 +301,7 @@ def hospital_rows(
                 "as_of": as_of,
                 "id_kind": kind,
                 "evidence_type": "explicit_sector",
-                "facility_level": f"Level {level}",
+                "facility_level": f"Level {actual_level}",
             }
         )
         stats["included"] += 1
@@ -374,17 +378,17 @@ def install_references(
     returned file to use the references in a run.
     """
     target = Path(target).expanduser().resolve()
-    wanted = list(dict.fromkeys(LOADERS if include is None else include))
-    unknown = set(wanted) - LOADERS.keys()
+    files = registry_manifest()["files"]
+    by_key = {entry["reference_key"]: name for name, entry in files.items()
+              if entry.get("reference_key") in LOADERS}
+    wanted = list(dict.fromkeys(by_key if include is None else include))
+    unknown = set(wanted) - by_key.keys()
     if unknown:
         raise ValueError(f"unknown reference types: {sorted(unknown)}")
     config_path = target / "institution_references.json"
     if config_path.exists():
         raise FileExistsError(f"refusing to overwrite existing configuration: {config_path}")
     verify_bundled()
-    files = registry_manifest()["files"]
-    by_key = {entry["reference_key"]: name for name, entry in files.items()
-              if entry.get("reference_key") in LOADERS}
     plan: dict[str, tuple[Path, Path]] = {}
     for label in wanted:
         name = by_key[label]
@@ -890,6 +894,7 @@ __all__ = [
     "convert_registry_links",
     "import_official_export",
     "install_references",
+    "hospital_rows",
     "level3_hospital_rows",
     "load_references",
     "read_table",

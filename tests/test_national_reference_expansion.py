@@ -75,8 +75,7 @@ def test_hospital_levels(tmp_path, level, loader):
     with pytest.raises(ValueError):
         other(path)
     assert hospital_rows([dict(rows[0], CAT="INFIRMARY")], level=level, **args)[0] == []
-    with pytest.raises(ValueError):
-        load_hospitals(path)
+    assert len(load_hospitals(path)) == 1
     assert level3_hospital_rows(rows, **args)[0] == []
     rows[0]["SEC"] = ""
     with pytest.raises(ValueError):
@@ -115,8 +114,7 @@ def test_bundled_default_reference_selection(monkeypatch):
     manifest, paths = selected_reference_config()
     assert manifest == tools.REGISTRY_DATA / "manifest.json"
     counts = {
-        "heida": 2424, "level1_hospitals": 781, "level2_hospitals": 432,
-        "hospitals": 125, "unifast": 1955, "beis": 30364, "official_records": 80,
+        "heida": 2424, "hospitals": 1338, "unifast": 1955, "beis": 30364,
     }
     assert set(paths) == set(counts)
     entries = []
@@ -124,10 +122,19 @@ def test_bundled_default_reference_selection(monkeypatch):
         records = tools.LOADERS[label](path)
         assert len(records) == counts[label]
         entries.extend(records)
-    assert len(InstitutionIndex(entries).entries) == 36161
+    assert len(InstitutionIndex(entries).entries) == 36081
     report = tools.verify_bundled()
-    assert report["ched_heida_review_20261104.csv"]["rows"] == 321
-    assert report["philhealth_levels123_source_20260930.csv"]["rows"] == 1338
+    assert set(report) == {path.name for path in paths.values()}
+    assert report["philhealth_hospitals_20260930.csv"]["rows"] == 1338
+    with paths["hospitals"].open(encoding="utf-8", newline="") as handle:
+        hospital_rows_actual = list(csv.DictReader(handle))
+    from collections import Counter
+
+    assert Counter((r["facility_level"], r["ownership"]) for r in hospital_rows_actual) == {
+        ("Level 1", "public"): 326, ("Level 1", "private"): 455,
+        ("Level 2", "public"): 79, ("Level 2", "private"): 353,
+        ("Level 3", "public"): 63, ("Level 3", "private"): 62,
+    }
 
 
 def test_bundled_default_and_explicit_off(monkeypatch):
@@ -169,7 +176,7 @@ def test_bundled_default_rejects_corruption(monkeypatch, tmp_path):
     destination = tmp_path / "registry"
     shutil.copytree(tools.REGISTRY_DATA, destination)
     monkeypatch.setattr(tools, "REGISTRY_DATA", destination)
-    path = destination / "level1_hospitals_20260930.csv"
+    path = destination / "philhealth_hospitals_20260930.csv"
     path.write_bytes(path.read_bytes() + b"corrupt")
     with pytest.raises(ValueError, match="manifest hash"):
         selected_reference_config()

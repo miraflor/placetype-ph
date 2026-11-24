@@ -18,7 +18,7 @@ The separate **178-rule** specialized catalog handles activity patterns, institu
 
 ## Explicit local registry references
 
-Institutional enrichment is **enabled by default**. The package ships with CHED HEIDA (2,424 eligible records), PhilHealth Level 1–3 hospitals (1,338), UniFAST (1,955), DepEd (30,364) and 80 official institutional records. All 36,161 active reference records load locally with no separate download or configuration. The 321 withheld HEIDA records and hospital source tables are bundled for review and reproducibility, not loaded as additional evidence. Set `PLACETYPE_PH_INSTITUTION_REFERENCES` only to override with a validated local JSON configuration or use the literal `off` to disable the stage. Invalid configurations and corrupted bundled data fail closed. See `docs/INSTITUTION_REGISTRY_TOOLS.md`.
+Institutional enrichment is **enabled by default**. The four bundled national datasets are CHED HEIDA (2,424 eligible records), a single PhilHealth Level 1–3 hospital registry (1,338), UniFAST (1,955), and DepEd (30,364). All 36,081 reference records load locally without a separate download or configuration. Ambiguous HEIDA records are excluded. Set `PLACETYPE_PH_INSTITUTION_REFERENCES` only to override with a validated local JSON configuration or use the literal `off` to disable the stage. Invalid configurations and corrupted bundled data fail closed. See `docs/INSTITUTION_REGISTRY_TOOLS.md`.
 
 ```json
 {

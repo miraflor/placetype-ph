@@ -316,8 +316,8 @@ def load_heida(path: Path) -> tuple[Institution, ...]:
 
 
 def load_hospitals(path: Path) -> tuple[Institution, ...]:
-    """Typed Level 3 local registry; publication row IDs are not official facility IDs."""
-    return _load_hospitals(path, 3)
+    """Unified Level 1–3 hospital registry; publication rows are not facility IDs."""
+    return _load_hospitals(path, None)
 
 
 def load_level1_hospitals(path: Path) -> tuple[Institution, ...]:
@@ -330,7 +330,7 @@ def load_level2_hospitals(path: Path) -> tuple[Institution, ...]:
     return _load_hospitals(path, 2)
 
 
-def _load_hospitals(path: Path, level: int) -> tuple[Institution, ...]:
+def _load_hospitals(path: Path, level: int | None) -> tuple[Institution, ...]:
     rows = _read_rows(path, HOSPITAL_FIELDS)
     seen: set[tuple[str, str]] = set()
     result: list[Institution] = []
@@ -343,15 +343,14 @@ def _load_hospitals(path: Path, level: int) -> tuple[Institution, ...]:
             raise ValueError(f"hospital line {n}: missing facility identity")
         if v["ownership"] not in {"public", "private"} or v["domain"] != "health":
             raise ValueError(f"hospital line {n}: invalid sector/domain")
-        allowed = {
+        levels = {
             1: {"level 1", "level i", "level one"},
             2: {"level 2", "level ii", "level two"},
             3: {"level 3", "level iii", "level three"},
-        }[level]
+        }
+        allowed = levels[level] if level is not None else set().union(*levels.values())
         if key(v["facility_level"]) not in allowed:
-            raise ValueError(
-                f"hospital line {n}: only explicitly Level {level} hospitals supported"
-            )
+            raise ValueError(f"hospital line {n}: unsupported explicit hospital level")
         if v["evidence_type"] != "explicit_sector":
             raise ValueError(f"hospital line {n}: ownership requires explicit-sector evidence")
         expected_kind = "official_code" if src == "doh_nhfr" else "publication_row"

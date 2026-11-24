@@ -1,7 +1,7 @@
 ## Bundled national institutional references
 
-- Package HEIDA and all three PhilHealth hospital levels alongside existing references.
-- Load 36,161 active reference records by default, with unchanged promotion safeguards.
+- Package HEIDA and one national PhilHealth registry covering all three hospital levels; retire the city-specific seed, duplicate source tables, and withheld HEIDA records.
+- Load 36,081 active reference records by default, with unchanged promotion safeguards.
 - Validate the bundled manifest, include selected registry bytes in Express cache identity, and support explicit custom configuration or `off`.
 
 # Unreleased: classification completion
