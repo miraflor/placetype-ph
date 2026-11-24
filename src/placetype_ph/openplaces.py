@@ -63,13 +63,21 @@ def read_openplaces(path: str | Path) -> pd.DataFrame:
     if "canonical_id" not in frame.columns:
         raise OpenPlacesSchemaError("canonical_pois.parquet must contain canonical_id")
     ids = frame["canonical_id"]
-    if (
-        ids.isna().any()
-        or ids.astype(str).str.strip().eq("").any()
-        or ids.duplicated().any()
-    ):
+    if ids.isna().any() or ids.astype(str).str.strip().eq("").any() or ids.duplicated().any():
         raise OpenPlacesSchemaError("canonical_id must be non-null, non-blank, and unique")
-    if not any(f"{s}_name" in frame.columns or f"{s}_category" in frame.columns for s in SOURCES):
+    has_base_semantics = any(
+        f"{source}_name" in frame.columns or f"{source}_category" in frame.columns
+        for source in SOURCES
+    )
+    has_structured_overture = any(
+        field in frame.columns
+        for field in (
+            "overture_primary_category",
+            "overture_alternate_category",
+            "overture_basic_category",
+        )
+    )
+    if not (has_base_semantics or has_structured_overture):
         raise OpenPlacesSchemaError("no FSQ, Overture, or OSM semantic fields found")
     return frame
 
@@ -80,6 +88,17 @@ def source_evidence(row: Row) -> list[SourceEvidence]:
     for source in SOURCES:
         name = clean_text(row.get(f"{source}_name"))
         category = clean_text(row.get(f"{source}_category"))
+        if source == "overture" and not category:
+            # Keep PCPC/PSCC independent while recognizing structured source fields.
+            # PSIC uses a separate typed expansion of primary and alternate labels.
+            for field in (
+                "overture_primary_category",
+                "overture_alternate_category",
+                "overture_basic_category",
+            ):
+                category = clean_text(row.get(field))
+                if category:
+                    break
         if not name and not category:
             continue
         if source in {"fsq", "overture"} and overture_from_fsq:

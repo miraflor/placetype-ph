@@ -54,6 +54,7 @@ from .joint_crosswalk import (
 from .openplaces import read_openplaces
 from .pipeline import classify_openplaces
 from .retrieval import TaxonomyRetriever
+from .reviewed_psic import bundled_psic_crosswalk_path
 from .suggest import (
     SUGGESTION_COLUMNS,
     finalize_suggestion,
@@ -163,9 +164,7 @@ def _warn_structure_deviations(taxonomy: Taxonomy) -> list[str]:
     return deviations
 
 
-def _require_official_structure(
-    taxonomy: Taxonomy, *, allow_structure_deviation: bool
-) -> None:
+def _require_official_structure(taxonomy: Taxonomy, *, allow_structure_deviation: bool) -> None:
     """Fail an official fetch when known published counts do not match.
 
     `taxonomy fetch` claims to build a complete official reference taxonomy. A partial
@@ -721,9 +720,7 @@ def crosswalk_suggest(
 
     if recheck:
         joint_groups = int(frame["joint_key"].nunique())
-        console.print(
-            f"[bold]4/5[/bold] Peer-context recheck across {joint_groups:,} joint groups"
-        )
+        console.print(f"[bold]4/5[/bold] Peer-context recheck across {joint_groups:,} joint groups")
         with Progress(
             TextColumn("{task.description}"),
             BarColumn(),
@@ -973,9 +970,7 @@ def fetch_taxonomy(
     ] = None,
     allow_structure_deviation: Annotated[
         bool,
-        typer.Option(
-            help="Save a known official taxonomy even when published level counts differ"
-        ),
+        typer.Option(help="Save a known official taxonomy even when published level counts differ"),
     ] = False,
 ):
     scheme = _check_scheme(scheme)
@@ -988,13 +983,9 @@ def fetch_taxonomy(
         api_token = token or os.getenv("PSA_CLASSIFICATION_TOKEN")
         if not api_token:
             raise typer.BadParameter("PCPC fetch requires --token or PSA_CLASSIFICATION_TOKEN")
-        taxonomy = fetch_pcpc_api(
-            api_token, version, strict=strict, strict_levels=strict_levels
-        )
+        taxonomy = fetch_pcpc_api(api_token, version, strict=strict, strict_levels=strict_levels)
         _warn_level_gaps(taxonomy.structural_report())
-        _require_official_structure(
-            taxonomy, allow_structure_deviation=allow_structure_deviation
-        )
+        _require_official_structure(taxonomy, allow_structure_deviation=allow_structure_deviation)
         taxonomy.save(output)
         console.print(f"Wrote {len(taxonomy.nodes):,} PCPC nodes to {output}")
         return
@@ -1024,9 +1015,7 @@ def fetch_taxonomy(
         raise typer.Exit(2) from exc
     _report_discards(import_report)
     _warn_level_gaps(taxonomy.structural_report())
-    _require_official_structure(
-        taxonomy, allow_structure_deviation=allow_structure_deviation
-    )
+    _require_official_structure(taxonomy, allow_structure_deviation=allow_structure_deviation)
     taxonomy.save(output)
     console.print(f"Wrote {len(taxonomy.nodes):,} {scheme.upper()} nodes to {output}")
 
@@ -1172,16 +1161,13 @@ def _bootstrap_express_taxonomy(
                 f"but {scheme} {version} was requested[/red]"
             )
             raise typer.Exit(1)
-        console.print(
-            f"Reusing {scheme.upper()} {version} taxonomy: [dim]{path}[/dim]"
-        )
+        console.print(f"Reusing {scheme.upper()} {version} taxonomy: [dim]{path}[/dim]")
         return taxonomy
 
     local_source = find_local_taxonomy_source(reference_dir, scheme, version)
     if local_source is not None:
         console.print(
-            f"Building missing {scheme.upper()} {version} taxonomy from "
-            f"[dim]{local_source}[/dim]"
+            f"Building missing {scheme.upper()} {version} taxonomy from [dim]{local_source}[/dim]"
         )
         try:
             taxonomy, report = _import_workbook(
@@ -1193,26 +1179,18 @@ def _bootstrap_express_taxonomy(
                 strict_levels=False,
             )
         except TaxonomyError as exc:
-            console.print(
-                f"[yellow]Local taxonomy source could not be normalized:[/yellow] {exc}"
-            )
+            console.print(f"[yellow]Local taxonomy source could not be normalized:[/yellow] {exc}")
         else:
             _report_discards(report)
             _warn_level_gaps(taxonomy.structural_report())
             if (scheme, version) in EXPECTED_STRUCTURE:
-                _require_official_structure(
-                    taxonomy, allow_structure_deviation=False
-                )
+                _require_official_structure(taxonomy, allow_structure_deviation=False)
             path.parent.mkdir(parents=True, exist_ok=True)
             taxonomy.save(path)
-            console.print(
-                f"Wrote {len(taxonomy.nodes):,} {scheme.upper()} nodes to {path}"
-            )
+            console.print(f"Wrote {len(taxonomy.nodes):,} {scheme.upper()} nodes to {path}")
             return taxonomy
 
-    console.print(
-        f"No reusable local tree/source for {scheme.upper()} {version}; fetching it..."
-    )
+    console.print(f"No reusable local tree/source for {scheme.upper()} {version}; fetching it...")
     fetch_taxonomy(
         scheme=scheme,
         version=version,
@@ -1334,10 +1312,7 @@ def _print_express_io_coverage(run_dir: Path) -> None:
         counts = metrics["confidence_counts_for_map_ready"]
         confidence_table.add_row(
             resolution.upper(),
-            *[
-                _count_share(int(counts.get(label, 0)), map_ready)
-                for label in confidence_labels
-            ],
+            *[_count_share(int(counts.get(label, 0)), map_ready) for label in confidence_labels],
         )
     console.print(confidence_table)
     console.print(
@@ -1349,9 +1324,7 @@ def _print_express_io_coverage(run_dir: Path) -> None:
 
 @app.command("express")
 def express(
-    input_path: Annotated[
-        Path, typer.Argument(help="openplaces-ph canonical_pois.parquet")
-    ],
+    input_path: Annotated[Path, typer.Argument(help="openplaces-ph canonical_pois.parquet")],
     output: Annotated[
         Path | None,
         typer.Option(help="Final QGIS-ready GeoParquet"),
@@ -1468,10 +1441,7 @@ def express(
     # both so changing either possible source invalidates the cached express run.
     reference_states = [
         file_state(joint_reference),
-        *[
-            file_state(crosswalk_dir / f"{scheme}_{versions[scheme]}.csv")
-            for scheme in selected
-        ],
+        *[file_state(crosswalk_dir / f"{scheme}_{versions[scheme]}.csv") for scheme in selected],
     ]
 
     states = [
@@ -1587,9 +1557,7 @@ def express(
         raise typer.Exit(1)
 
     required_summary_columns = IO_MAP_COLUMNS if "psic" in selected else ()
-    if classification_run_ready(
-        run_dir, required_summary_columns=required_summary_columns
-    ):
+    if classification_run_ready(run_dir, required_summary_columns=required_summary_columns):
         console.print(f"Reusing completed classification run: [dim]{run_dir}[/dim]")
     else:
         classify(
@@ -1641,6 +1609,12 @@ def classify(
     crosswalk: Annotated[
         list[Path] | None, typer.Option(help="Repeat for one or more crosswalk CSVs")
     ] = None,
+    reviewed_psic: Annotated[
+        bool,
+        typer.Option(
+            help="Use bundled accepted PSIC Rev. 5 mappings; disable for legacy comparison"
+        ),
+    ] = True,
     llm: Annotated[str, typer.Option(help="none, hf, or ollama")] = "none",
     model: Annotated[str | None, typer.Option()] = None,
     passes: Annotated[int, typer.Option(min=1, max=7)] = 3,
@@ -1668,11 +1642,13 @@ def classify(
     if not selected:
         raise typer.BadParameter("no scheme selected")
 
-    cw = (
-        Crosswalk.load(crosswalk or [], strict_ambiguity=fail_on_ambiguous_crosswalk)
-        if crosswalk
-        else None
-    )
+    # The packaged crosswalk is accepted classification knowledge, not a
+    # suggestion worklist. Explicit user crosswalks are still supported, and
+    # conflicting rules fail validation rather than silently overriding either.
+    paths = list(crosswalk or [])
+    if reviewed_psic and "psic" in selected and (version or "rev5") == "rev5":
+        paths.append(bundled_psic_crosswalk_path())
+    cw = Crosswalk.load(paths, strict_ambiguity=fail_on_ambiguous_crosswalk) if paths else None
     role_cw = RoleCrosswalk.load(crosswalk or []) if crosswalk else None
     backend = _make_backend(llm, model)
     if workers > 1 and backend is not None:
@@ -1733,12 +1709,10 @@ def classify(
 @app.command("gis-export")
 def gis_export(
     run_dir: Annotated[Path, typer.Argument(help="PlaceType classification output directory")],
-    output: Annotated[
-        Path | None, typer.Option(help="Default: <run_dir>/gis.parquet")
-    ] = None,
-    reference_dir: Annotated[
-        Path, typer.Option(help="Taxonomy reference root")
-    ] = Path("reference"),
+    output: Annotated[Path | None, typer.Option(help="Default: <run_dir>/gis.parquet")] = None,
+    reference_dir: Annotated[Path, typer.Option(help="Taxonomy reference root")] = Path(
+        "reference"
+    ),
     with_status: Annotated[
         bool,
         typer.Option(
