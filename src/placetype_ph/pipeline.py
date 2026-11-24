@@ -28,6 +28,7 @@ from .io_mapping import (
 )
 from .models import ClassificationResult
 from .openplaces import SUMMARY_COLUMNS, read_openplaces
+from .reviewed_psic import crosswalk_fingerprint
 from .specialized.institutional_pipeline import maybe_resolve_institutions
 from .specialized.integration import enrich_summary
 from .specialized.ownership_io import (
@@ -298,6 +299,7 @@ def classify_openplaces(
                 "nodes": len(classifier.taxonomy.nodes),
                 "max_depth": classifier.taxonomy.max_depth,
                 "applicable_crosswalk_entries": classifier.applicable_crosswalk_entries,
+                "active_crosswalk_sha256": crosswalk_fingerprint(classifier.crosswalk),
                 "crosswalk_ambiguities": {
                     "rule_sets": len(classifier.ambiguities),
                     "rows_affected": classifier.ambiguity_rows,

@@ -17,6 +17,12 @@ from .models import (
 )
 from .openplaces import Row, entity_match_flags, evidence_text, source_evidence
 from .retrieval import TaxonomyRetriever
+from .reviewed_psic import (
+    accepted_administrative_role,
+    psic_source_evidence,
+    trusted_psic_source_rule,
+    unsafe_osm_compound,
+)
 from .taxonomy import Taxonomy
 from .traversal import HierarchicalTraverser
 
@@ -41,8 +47,7 @@ def _independent_activity_nonactivity_conflict(evidence: list[SourceEvidence]) -
     nonactivity_groups = {
         item.dependency_group
         for item in evidence
-        if item.mapping is not None
-        and item.mapping.mapping_kind == MappingKind.NOT_ACTIVITY
+        if item.mapping is not None and item.mapping.mapping_kind == MappingKind.NOT_ACTIVITY
     }
     return any(left != right for left in coded_groups for right in nonactivity_groups)
 
@@ -173,7 +178,10 @@ class EntityClassifier:
         out: list[SourceEvidence] = []
         flags: list[str] = []
         row_had_ambiguity = False
-        for e in source_evidence(row):
+        evidence_items = (
+            psic_source_evidence(row) if self.taxonomy.scheme == "psic" else source_evidence(row)
+        )
+        for e in evidence_items:
             entries: list[CrosswalkEntry] = []
             if self.crosswalk is not None:
                 found = self.crosswalk.matches(
@@ -190,8 +198,33 @@ class EntityClassifier:
                 entries = self._name_rule_precedence(list(found.entries), flags)
             if entries:
                 out.extend(replace(e, mapping=mapping) for mapping in entries)
+                if self.taxonomy.scheme == "psic":
+                    flags.append("ACCEPTED_CROSSWALK_RULE")
+                    # A reviewed name-only mapping need not suppress a curated,
+                    # potentially contradictory category floor. Compatible floors
+                    # refine; incompatible evidence requests review.
+                    if e.category and all(
+                        rule.source_field == SourceField.NAME for rule in entries
+                    ):
+                        category_rule = trusted_psic_source_rule(
+                            self.taxonomy, e.source, e.category
+                        )
+                        if category_rule is not None and category_rule.codes:
+                            out.append(replace(e, mapping=category_rule))
+                            flags.append("TRUSTED_CATEGORY_FLOOR")
             else:
-                out.append(replace(e, mapping=None))
+                source_rule = (
+                    trusted_psic_source_rule(self.taxonomy, e.source, e.category)
+                    if self.taxonomy.scheme == "psic"
+                    else None
+                )
+                if source_rule is None:
+                    out.append(replace(e, mapping=None))
+                else:
+                    out.append(replace(e, mapping=source_rule))
+                    flags.append(
+                        "TRUSTED_SOURCE_FLOOR" if source_rule.codes else "SOURCE_TERMINAL_POLICY"
+                    )
         if row_had_ambiguity:
             self.ambiguity_rows += 1
         return out, sorted(set(flags))
@@ -237,10 +270,7 @@ class EntityClassifier:
         fusion = fuse(self.taxonomy, mapped)
         eligibility = decide_eligibility(mapped)
 
-        if (
-            self.taxonomy.scheme == "psic"
-            and _independent_activity_nonactivity_conflict(mapped)
-        ):
+        if self.taxonomy.scheme == "psic" and _independent_activity_nonactivity_conflict(mapped):
             match_flags = entity_match_flags(row, True)
             status = "REVIEW_ENTITY_MATCH" if match_flags else "CONFLICT"
             return self._result(
@@ -249,16 +279,98 @@ class EntityClassifier:
                 status,
                 "FUSION",
                 candidate_codes=fusion.candidate_codes,
-                evidence_sources=[
-                    item.source for item in mapped if item.mapping is not None
-                ],
+                evidence_sources=[item.source for item in mapped if item.mapping is not None],
                 flags=(
-                    evidence_flags
-                    + fusion.flags
-                    + match_flags
-                    + ["ACTIVITY_NON_ACTIVITY_CONFLICT"]
+                    evidence_flags + fusion.flags + match_flags + ["ACTIVITY_NON_ACTIVITY_CONFLICT"]
                 ),
             )
+
+        # Multiple substantive OSM tags are not one activity unless every
+        # primary assertion has the same accepted mapping.
+        if self.taxonomy.scheme == "psic" and unsafe_osm_compound(row, mapped):
+            match_flags = entity_match_flags(row, True)
+            return self._result(
+                canonical_id,
+                None,
+                "REVIEW_ENTITY_MATCH" if match_flags else "CONFLICT",
+                "SOURCE_COMPOUND",
+                candidate_codes=fusion.candidate_codes,
+                evidence_sources=fusion.evidence_sources,
+                flags=evidence_flags + fusion.flags + match_flags + ["COMPOUND_OSM_MULTI_PRIMARY"],
+            )
+
+        # Dependent source assertions describing disjoint activities are not a
+        # licence to select their LCA as one invented principal activity.
+        if self.taxonomy.scheme == "psic" and any(
+            flag.startswith("DEPENDENT_CONFLICT:") for flag in fusion.flags
+        ):
+            match_flags = entity_match_flags(row, True)
+            return self._result(
+                canonical_id,
+                None,
+                "REVIEW_ENTITY_MATCH" if match_flags else "CONFLICT",
+                "FUSION",
+                candidate_codes=fusion.candidate_codes,
+                evidence_sources=fusion.evidence_sources,
+                flags=evidence_flags + fusion.flags + match_flags,
+            )
+
+        if self.taxonomy.scheme == "psic":
+            # Preserve negative eligibility and reviewed exact/name decisions.
+            admin_code, admin_reason = accepted_administrative_role(self.taxonomy, row, mapped)
+            if admin_code is None and admin_reason in {
+                "unrelated_activity_evidence",
+                "exact_classification_preserved",
+            }:
+                match_flags = entity_match_flags(row, True)
+                return self._result(
+                    canonical_id,
+                    None,
+                    "REVIEW_ENTITY_MATCH" if match_flags else "CONFLICT",
+                    "ADMINISTRATIVE_ROLE",
+                    candidate_codes=list(dict.fromkeys(fusion.candidate_codes + ["84120"])),
+                    evidence_sources=fusion.evidence_sources,
+                    flags=evidence_flags
+                    + fusion.flags
+                    + match_flags
+                    + ["ADMINISTRATIVE_ROLE_CONFLICT"],
+                )
+            if admin_code is not None and eligibility != Eligibility.NOT_ACTIVITY:
+                return self._result(
+                    canonical_id,
+                    admin_code,
+                    "SINGLE",
+                    "ADMINISTRATIVE_ROLE",
+                    candidate_codes=list(dict.fromkeys(fusion.candidate_codes + [admin_code])),
+                    evidence_sources=fusion.evidence_sources,
+                    flags=evidence_flags + fusion.flags + ["ADMINISTRATIVE_ROLE_ACCEPTED"],
+                    audit={
+                        "administrative_reason": admin_reason,
+                        "original_fusion_status": fusion.status.value,
+                        "original_fusion_code": fusion.code,
+                    },
+                )
+
+            # UNCODEABLE means the source category is too broad to assign a
+            # principal activity; it is distinct from NOT_PSIC_ACTIVITY.
+            coded_kinds = {MappingKind.EXACT, MappingKind.SUBTREE, MappingKind.UNION}
+            if (
+                any(
+                    e.mapping is not None and e.mapping.mapping_kind == MappingKind.UNCODEABLE
+                    for e in mapped
+                )
+                and not any(
+                    e.mapping is not None and e.mapping.mapping_kind in coded_kinds for e in mapped
+                )
+                and eligibility != Eligibility.NOT_ACTIVITY
+            ):
+                return self._result(
+                    canonical_id,
+                    None,
+                    "UNCODEABLE",
+                    "SOURCE_POLICY",
+                    flags=evidence_flags + fusion.flags,
+                )
 
         if self.taxonomy.scheme == "psic" and eligibility == Eligibility.NOT_ACTIVITY:
             return self._result(
