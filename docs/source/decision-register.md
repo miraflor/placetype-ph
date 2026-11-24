@@ -46,6 +46,6 @@ A complete `run.json` and unchanged fingerprints identify computation. They do n
 
 ## Explicit remaining engineering trade-offs
 
-The full input/result materialization limits RAM; optional institutional enrichment is not publication-atomic; Express's large input identity is size/mtime; a final published accuracy claim requires a representative adjudicated benchmark; official PCPC/PSCC normalization counts require source-specific verification. See [Limits](limitations.html).
+The full input/result materialization limits RAM; default-enabled institutional enrichment is not publication-atomic; Express's large input identity is size/mtime; a final published accuracy claim requires a representative adjudicated benchmark; official PCPC/PSCC normalization counts require source-specific verification. See [Limits](limitations.html).
 
 **Read with:** [Architecture](architecture.html) · [Reproducibility](reproducibility.html) · [Evaluation](evaluation.html).

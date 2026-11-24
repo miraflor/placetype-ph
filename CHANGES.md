@@ -1,3 +1,9 @@
+## Release documentation and source rights
+
+- Clarify the four bundled national registries and policy-aware linkage in documentation.
+- Correct the disputed PSIC group count and completeness-gate descriptions.
+- Record source-specific data rights evidence, including the uploader-declared MIT license and reported BEIS source date, without changing any dataset or classification logic.
+
 ## National institutional site resolution
 
 - Add explicit `REGISTRY_SITE_MATCH` evidence for tightly matched official hospital and HEIDA sites under evidence-weighted/extended only; strict retains the old promotion criteria.
