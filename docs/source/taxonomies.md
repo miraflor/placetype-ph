@@ -10,7 +10,7 @@
 | PCPC 2002 | Section → division → group → class → subclass → item | A candidate product/service family based on place evidence. |
 | PSCC 2022 | Chapter → heading → HS subheading → AHTN subheading → commodity | Traded good; requires commodity evidence or confirmed crosswalk. |
 
-The official PSIC Rev. 5 published structure is **22 sections, 88 divisions, 260 groups, 493 classes and 1,338 subclasses**. PCPC and PSCC count baselines are deliberately not hard-coded without validating the actual official source.
+The PSIC Rev. 5 published summary reports **22 sections, 88 divisions, 260 groups, 493 classes and 1,338 subclasses**. The July 2026 workbook contains 261 distinct groups. The group count is therefore not a hard external gate, unlike the other four published counts. PCPC and PSCC count baselines are deliberately not hard-coded without validating the actual official source.
 
 ## A tree, not numeric string truncation
 

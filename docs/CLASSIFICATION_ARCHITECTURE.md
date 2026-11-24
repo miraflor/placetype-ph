@@ -31,8 +31,10 @@ the coarser constraint and clear the incompatible finer code. Explicit code inpu
 is a manual override, not independently verified source evidence.
 
 Draft refinements and ownership hints remain advisory under the strict default.
-Registry input must be licensed and validated; the package does not bundle registries.
-Review distribution rights and attribution for all analytical reference tables.
+The four bundled national registries load by default; use an explicit custom configuration
+or `PLACETYPE_PH_INSTITUTION_REFERENCES=off` to override or disable enrichment.
+Registry site matches may resolve ownership only in evidence-weighted/extended modes.
+Review source-specific distribution rights and attribution in [DATA_SOURCES.md](../DATA_SOURCES.md#licensing).
 
 See the README and DATA_SOURCES.md for schemas and reference provenance.
 

@@ -25,9 +25,9 @@ For small files, `file_state` hashes contents; large input files above 8 MiB use
 
 ## Publication is not fully transactional
 
-The current classification pipeline writes `entity_classifications.parquet` before every optional enrichment and validation step has completed. If later institutional reference processing fails, the output directory can contain intermediate files that are **not a complete successful run**. Avoid treating the presence of Parquet files alone as an acceptance certificate. Check command success, a complete `run.json` with the declared outputs, and any required schema/provenance values.
+The current classification pipeline writes `entity_classifications.parquet` before every enrichment and validation step has completed. If later institutional reference processing fails, the output directory can contain intermediate files that are **not a complete successful run**. Avoid treating the presence of Parquet files alone as an acceptance certificate. Check command success, a complete `run.json` with the declared outputs, and any required schema/provenance values.
 
-`express` checks key output names and schema before reuse, but publication-directory atomicity remains an explicit limitation. The docs website itself is just static content; deploying it does not publish any establishment dataset or optional institution register.
+`express` checks key output names and schema before reuse, but publication-directory atomicity remains an explicit limitation. The docs website itself is just static content; deploying it does not publish any establishment dataset or bundled institutional register.
 
 ## Deterministic parallelism
 

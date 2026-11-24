@@ -18,13 +18,13 @@
 - The input and result DataFrames are held in memory even though row conversion is chunked; true bounded-memory national-scale streaming remains open.
 - Reviewed `EXACT` and `SUBTREE` have different stated rule meanings, but the current fusion implementation represents both as rooted constraints; exact singleton semantics are not globally enforced during fusion. This should be considered when auditing mixed evidence.
 - The default deterministic path is reproducible under fixed inputs and rule code; an optional external LLM can introduce backend nondeterminism despite cached prompt identity.
-- `classification_run_ready` requires manifests and output files/schema, but the pipeline may leave an intermediate classification Parquet after a later optional enrichment error. No all-or-nothing publication guarantee yet.
+- `classification_run_ready` requires manifests and output files/schema, but the pipeline may leave an intermediate classification Parquet after a later institutional enrichment error. No all-or-nothing publication guarantee yet.
 - Express hashes small input contents but uses size and modification time for large files. That cache identity is a performance optimization, not an archival integrity proof.
 - GitHub Pages is **documentation only**. It does not deploy Python classification, user-supplied data, institution registries or OpenPlaces output.
 
 ## Data provenance and licensing
 
-Official PSA statistical definitions are cited in the repository's [source guide](https://github.com/miraflor/placetype-ph/blob/main/DATA_SOURCES.md); normalized/derived tables may carry separate attribution and scope requirements. The package's MIT license is not permission to redistribute third-party institutional extracts. This documentation includes no institutional source records or proprietary downstream datasets.
+Official PSA statistical definitions are cited in the repository's [source guide](https://github.com/miraflor/placetype-ph/blob/main/DATA_SOURCES.md); normalized/derived tables may carry separate attribution and scope requirements. The package's MIT license does not grant rights over third-party institutional extracts. The [source-specific rights assessment](https://github.com/miraflor/placetype-ph/blob/main/DATA_SOURCES.md#licensing) identifies affirmative source notices and unresolved permissions; it is not blanket clearance. This documentation includes no institutional source records or proprietary downstream datasets.
 
 ## What still needs empirical work
 

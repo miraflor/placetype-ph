@@ -49,7 +49,7 @@
 </tr>
 </tbody>
 </table>
-<p>The official PSIC Rev. 5 published structure is <strong>22 sections, 88 divisions, 260 groups, 493 classes and 1,338 subclasses</strong>. PCPC and PSCC count baselines are deliberately not hard-coded without validating the actual official source.</p>
+<p>The PSIC Rev. 5 published summary reports <strong>22 sections, 88 divisions, 260 groups, 493 classes and 1,338 subclasses</strong>. The July 2026 workbook contains 261 distinct groups. The group count is therefore not a hard external gate, unlike the other four published counts. PCPC and PSCC count baselines are deliberately not hard-coded without validating the actual official source.</p>
 <h2 id="a-tree-not-numeric-string-truncation">A tree, not numeric string truncation</h2>
 <figure><img src="assets/diagrams/taxonomy.svg" alt="Explicit PSIC parent edges from section G through division 47 to group 4772 and more specific descendants."><figcaption>Figure 1 — Parent relationships govern ancestry. Section letters and cross-version recodings make numerical prefix slicing unsafe as a general algorithm.</figcaption></figure>
 <p>The functions <code>taxonomy.ancestors(code)</code>, <code>taxonomy.children(code)</code>, <code>taxonomy.lca(codes)</code> and <code>taxonomy.path_from_root(code)</code> use stored parent edges. A coarse classification <code>SUBTREE(47)</code> does not become a subclass just because one descendant is present in a partial extract; the evidence asserts the original root.</p>

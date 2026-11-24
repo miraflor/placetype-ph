@@ -117,8 +117,9 @@ $env:PSA_CLASSIFICATION_TOKEN="your_token"
 placetype taxonomy diagnose pcpc
 ```
 
-For PSIC Revision 5, the published structure is 22 sections, 88 divisions, 260 groups, 493
-classes and 1,338 sub-classes. Exact PCPC 2002 and PSCC 2022 counts are **not** hard-coded in
+For PSIC Revision 5, the published summary reports 22 sections, 88 divisions, 260 groups, 493
+classes and 1,338 sub-classes. The July 2026 workbook contains 261 groups; the group count
+is reported but is not a hard external validation gate until PSA reconciles the discrepancy. Exact PCPC 2002 and PSCC 2022 counts are **not** hard-coded in
 v0.1.2. PSA's current PCPC pages disagree on the division/item totals, and the PSCC pages expose
 the hierarchy but not one unambiguous count table. The first live diagnoses should establish the
 source/API counts before either scheme is frozen as a regression fixture.
@@ -249,10 +250,11 @@ becoming first-wins by sheet order.
 
 ### Checking against the published structure
 
-PSIC Revision 5 has an unambiguous published category count: 22 sections, 88 divisions, 260
-groups, 493 classes and 1,338 sub-classes. After any PSIC import, and on every `placetype taxonomy
-validate`, those counts are compared with the built tree and deviations are reported. PCPC 2002
-and PSCC 2022 exact counts are deliberately left unfrozen in v0.1.1 until the current API/workbook
+PSIC Revision 5 has published counts of 22 sections, 88 divisions, 493 classes and 1,338
+sub-classes. The web summary reports 260 groups but the July 2026 workbook has 261; group count
+is not a hard external gate. After any PSIC import, and on every `placetype taxonomy validate`,
+the other published counts are checked and deviations are reported. PCPC 2002
+and PSCC 2022 exact counts are deliberately left unfrozen in v0.1.2 until the current API/workbook
 has been diagnosed live.
 
 For a manual `import-xlsx` this comparison is advisory, because a deliberate partial extract is
@@ -662,7 +664,7 @@ A code set means that the activity of the place is **one** of the listed industr
 
 **Draft subclass narrowing (separate columns).** The bridge and concordance stop at PSIC groups. `io_subgroup_refinement_code`, `io_subgroup_refinement_basis`, `io16_subgroup_codes`, `io80_subgroup_codes` and `io240_subgroup_codes` give a narrower set for a Revision 5 class or subclass from `psic_rev5_io240_refinement.csv` (for example 86223, private dialysis center activities: IO240 232, private human health, instead of 231 or 232). All rows of that table are `draft`, so these columns never replace `io*_codes` or `io*_map_code`. Without an applicable row they repeat the candidate sets; `not_applied` means the row would have widened the set and was ignored.
 
-**Resolved codes with provenance.** `io16_resolved_code`, `io80_resolved_code` and `io240_resolved_code`, each with `_status` and `_source`, give one code per resolution when the evidence supports one and the reason when it does not. Order of authority: explicit input (`EXPLICIT_INPUT`, `EXPLICIT_OVERRIDES_PSIC`, `EXPLICIT_OUTSIDE_PSIC_SET`), verified institutional ownership (`VERIFIED_OWNERSHIP`), the PSIC map code (`PSIC_MAP`, `PSIC_RESOLVER` for the IO80 same-name resolver), then direct tag evidence. Direct evidence (`direct_io_status`, `direct_io80_code`, `direct_io16_code`, `direct_io80_candidates`, `direct_io_reason`) comes from 14 explicit OSM tag rules in `direct_io_rules.csv`, never from names. It can confirm a PSIC map code (`PSIC_DIRECT_AGREE`), choose inside an ambiguous PSIC set (`HYBRID_RESOLVED`; `shop=car` inside IO80 55 or 56 gives 56), or stand alone when PSIC has no I-O candidates (`DIRECT_FALLBACK`). It never overrides a contradicting PSIC result (`PSIC_DIRECT_DISAGREE`, `PSIC_DIRECT_CONFLICT`) and is not used when the PSIC status is `NOT_PSIC_ACTIVITY`, `UNCODEABLE`, `CONFLICT` or `REVIEW_ENTITY_MATCH` (`DIRECT_BLOCKED_BY_PSIC_STATUS`). The default `strict` policy does not use direct tags to resolve an ambiguous set or as a fallback, and does not adopt a code at an I-O level that depends on a draft bridge row (`io_mapping_draft_levels` lists those levels; a single candidate withheld for this reason has status `PROVISIONAL_BRIDGE_NOT_RESOLVED`); both CLI commands (`--io-resolution-policy`) and the Python API also accept `evidence-weighted` and `extended` (see [classification architecture](docs/CLASSIFICATION_ARCHITECTURE.md)). The three codes are then made to nest in the official hierarchy: a finer code from a stronger source sets its parents (`DERIVED_FROM_IO240`, `DERIVED_FROM_IO80`); otherwise the finer code is cleared (`LEVEL_CONFLICT`). Filter on `_source` to exclude evidence you do not accept, for example `direct`.
+**Resolved codes with provenance.** `io16_resolved_code`, `io80_resolved_code` and `io240_resolved_code`, each with `_status` and `_source`, give one code per resolution when the evidence supports one and the reason when it does not. Order of authority: explicit input (`EXPLICIT_INPUT`, `EXPLICIT_OVERRIDES_PSIC`, `EXPLICIT_OUTSIDE_PSIC_SET`), verified institutional ownership (`VERIFIED_OWNERSHIP`), qualified registry site linkage (`REGISTRY_SITE_MATCH`, only in non-strict policies and subject to its evidence ranking), the PSIC map code (`PSIC_MAP`, `PSIC_RESOLVER` for the IO80 same-name resolver), then direct tag evidence. Direct evidence (`direct_io_status`, `direct_io80_code`, `direct_io16_code`, `direct_io80_candidates`, `direct_io_reason`) comes from 14 explicit OSM tag rules in `direct_io_rules.csv`, never from names. It can confirm a PSIC map code (`PSIC_DIRECT_AGREE`), choose inside an ambiguous PSIC set (`HYBRID_RESOLVED`; `shop=car` inside IO80 55 or 56 gives 56), or stand alone when PSIC has no I-O candidates (`DIRECT_FALLBACK`). It never overrides a contradicting PSIC result (`PSIC_DIRECT_DISAGREE`, `PSIC_DIRECT_CONFLICT`) and is not used when the PSIC status is `NOT_PSIC_ACTIVITY`, `UNCODEABLE`, `CONFLICT` or `REVIEW_ENTITY_MATCH` (`DIRECT_BLOCKED_BY_PSIC_STATUS`). The default `strict` policy does not use direct tags to resolve an ambiguous set or as a fallback, and does not adopt a code at an I-O level that depends on a draft bridge row (`io_mapping_draft_levels` lists those levels; a single candidate withheld for this reason has status `PROVISIONAL_BRIDGE_NOT_RESOLVED`); both CLI commands (`--io-resolution-policy`) and the Python API also accept `evidence-weighted` and `extended` (see [classification architecture](docs/CLASSIFICATION_ARCHITECTURE.md)). The three codes are then made to nest in the official hierarchy: a finer code from a stronger source sets its parents (`DERIVED_FROM_IO240`, `DERIVED_FROM_IO80`); otherwise the finer code is cleared (`LEVEL_CONFLICT`). Filter on `_source` to exclude evidence you do not accept, for example `direct`.
 
 **Inferred ownership (separate columns).** `io_ownership_inferred_status` (`INFERRED` or `ABSTAIN`), `io_ownership_inferred_basis`, `io80_ownership_inferred_code` and `io240_ownership_inferred_code` give the public/private side suggested by an explicit source attribute (OSM `ownership=public`, Overture `public_school`) or by name and category hints, when the candidate sets are exactly an education or health ownership pair. Hints that disagree, or a private side contradicted by a government operator tag, abstain. These are labelled inferences: the strict default does not promote them.
 
@@ -839,8 +841,12 @@ The initial defaults are deliberately versioned:
 - PCPC: **2002**
 - PSCC: **2022**
 
-Source material comes from the Philippine Statistics Authority. The software is MIT licensed;
-reference data retain the terms of their official sources. See `reference/README.md`.
+The software is MIT licensed. Third-party statistical and institutional reference data retain
+their source-specific terms. Four national institutional snapshots load by default; no city-specific
+seed is bundled. Strict mode retains qualified registry site matches as provisional evidence;
+`evidence-weighted` and `extended` may use them subject to identity and I-O safeguards.
+See [data sources and rights assessment](DATA_SOURCES.md#licensing),
+[institution registry tools](docs/INSTITUTION_REGISTRY_TOOLS.md), and `reference/README.md`.
 
 ## What this baseline intentionally does not do
 

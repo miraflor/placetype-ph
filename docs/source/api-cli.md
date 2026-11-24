@@ -63,7 +63,7 @@ The snippet loads the normalized taxonomy file from the repository reference dir
 
 ## Specialized inspection and review
 
-The modules under `placetype_ph.specialized` provide validation, evidence extraction, candidate-only rule reconciliation, institutional preview and optional enrichment. See the repository's [specialized evidence guide](https://github.com/miraflor/placetype-ph/blob/main/docs/SPECIALIZED_EVIDENCE.md) and [Priority 2 reconciliation instructions](https://github.com/miraflor/placetype-ph/blob/main/docs/PRIORITY2_CROSSWALK_RECONCILIATION.md) before running those commands with external references.
+The modules under `placetype_ph.specialized` provide validation, evidence extraction, candidate-only rule reconciliation, institutional preview and default-enabled enrichment (explicit opt-out supported). See the repository's [specialized evidence guide](https://github.com/miraflor/placetype-ph/blob/main/docs/SPECIALIZED_EVIDENCE.md) and [Priority 2 reconciliation instructions](https://github.com/miraflor/placetype-ph/blob/main/docs/PRIORITY2_CROSSWALK_RECONCILIATION.md) before running those commands with external references.
 
 ## Input and output contracts
 

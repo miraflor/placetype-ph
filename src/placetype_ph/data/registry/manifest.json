@@ -16,7 +16,14 @@
         "public": 624,
         "private": 1329,
         "review": 2
-      }
+      },
+      "rights": "The source directory footer states that content is public domain unless otherwise stated. No separate unrestricted commercial grant was established for this snapshot; the Philippine government-work rules and exceptions, including approval for exploitation for profit where applicable, remain relevant.",
+      "rights_status": "public_domain_notice_subject_to_exceptions",
+      "rights_sources": [
+        "https://unifast.gov.ph/hei-list.html",
+        "https://lawphil.net/statutes/repacts/ra1997/ra_8293_1997.html"
+      ],
+      "rights_reviewed_on": "2026-11-25"
     },
     "deped_schools_national.csv.gz": {
       "reference_key": "beis",
@@ -28,14 +35,26 @@
       "source_uploader": "joshuagilodlsu",
       "identifier": "DepEd school ID, treated as unverified",
       "ownership_basis": "six-digit school ID prefix, a hint only (4 private; 1, 2, 3, 5 or 6 public); never promoted without a verified link",
-      "rights": "Original dataset license and redistribution clearance remain unverified. Retained at the repository owner’s direction; local cleaning does not establish redistribution rights.",
+      "rights": "Repository owner supplied the Kaggle listing text on 2026-11-25: uploader declares MIT and acknowledges DepEd BEIS masterlist data derived on 2026-01-30, scraped into DuckDB and exported to CSV. Project cleaning date is 2026-11-04. MIT permits reuse including commercial redistribution subject to retention of applicable copyright and license notices; the exact downloaded version and its applicable notices have not been recovered. The listing declaration does not independently establish the uploader's authority over protected underlying material or applicable DepEd source conditions. Retain source attribution, recover the version-specific notices, and establish any required source permission.",
       "counts": {
         "rows": 30364,
         "public_hint": 22561,
         "private_hint": 7309,
         "no_hint": 494
       },
-      "provenance": "30,364 unique school IDs; school_id, school_name and town_psgc retained; Windows-1252 input converted to UTF-8 and gzip-packaged. Kaggle listing and uploader identified by the repository owner; exact original snapshot date, downloaded version and license remain unverified."
+      "provenance": "30,364 unique school IDs; school_id, school_name and town_psgc retained; Windows-1252 input converted to UTF-8 and gzip-packaged. Kaggle listing and uploader identified by the repository owner; listing reports BEIS data derived on 2026-01-30 and declares MIT; exact downloaded version and applicable license notices remain unconfirmed.",
+      "rights_status": "uploader_declares_mit_exact_version_and_underlying_rights_unconfirmed",
+      "rights_sources": [
+        "https://www.kaggle.com/datasets/joshuagilodlsu/masterlist-of-deped-schools",
+        "https://www.mit.edu/~amini/LICENSE.md",
+        "https://www.deped.gov.ph/masterlist-of-elementary-schools/",
+        "https://lawphil.net/statutes/repacts/ra1997/ra_8293_1997.html"
+      ],
+      "rights_reviewed_on": "2026-11-25",
+      "rights_declared_license": "MIT",
+      "rights_declared_license_url": "https://www.mit.edu/~amini/LICENSE.md",
+      "rights_listing_evidence": "Kaggle listing text supplied by repository owner on 2026-11-25; not independently fetched.",
+      "rights_reported_upstream_source_date": "2026-01-30"
     },
     "ched_heida_eligible_20261104.csv": {
       "reference_key": "heida",
@@ -51,8 +70,14 @@
       "provenance": "institution_national_v1_20261104.csv",
       "source_artifact_sha256": "cf72c5f9bdef8aab62e0e60916c502381c07bd1e74128a2088e7f2422634276a",
       "scope": "2,424 eligible records from 2,745 directory entries; 321 excluded for ambiguous or unsupported institution types or identifiers.",
-      "rights": "Redistribution permission not independently confirmed; included at repository owner direction. Source terms remain applicable; no MIT license grant for third-party data.",
-      "sha256": "44bc86769f54bb0d5e311727f6eafe7b0fb07f1601995f37abf8b42f10b3281c"
+      "rights": "Public official directory of institutional facts. RA 8293 sections 175 and 176 provide a relevant legal basis for reuse of facts and qualifying government works. No dataset-specific redistribution grant was located for this snapshot. Third-party rights and approval for exploitation for profit where applicable remain relevant; obtain CHED confirmation before representing the snapshot as cleared for unrestricted redistribution.",
+      "sha256": "44bc86769f54bb0d5e311727f6eafe7b0fb07f1601995f37abf8b42f10b3281c",
+      "rights_status": "public_factual_directory_specific_terms_unverified",
+      "rights_sources": [
+        "https://heida.ched.gov.ph/hei-directory",
+        "https://lawphil.net/statutes/repacts/ra1997/ra_8293_1997.html"
+      ],
+      "rights_reviewed_on": "2026-11-25"
     },
     "philhealth_hospitals_20260930.csv": {
       "rows": 1338,
@@ -75,7 +100,7 @@
           "private": 62
         }
       },
-      "rights": "Official source; redistribution permission not independently confirmed.",
+      "rights": "PhilHealth website disclaimer permits reproduction, copying and downloading of information for educational or informative purposes without written permission. It also prohibits use for specified harmful purposes. This supports informative reference reuse; it is not an unrestricted commercial license. Check any publication-specific terms and obtain agency approval for exploitation for profit where required.",
       "reference_key": "hospitals",
       "source": "PhilHealth accredited hospitals, Levels 1–3, 2026-09-30",
       "sha256": "95756675ebff31c21d715f35465de9dd0c4dbcaf3844b0346de8c8381b5e2483",
@@ -1420,7 +1445,13 @@
         "1926": 74,
         "1927": 74,
         "1931": 74
-      }
+      },
+      "rights_status": "educational_informative_reuse_permission",
+      "rights_sources": [
+        "https://www.philhealth.gov.ph/disclaimer/",
+        "https://lawphil.net/statutes/repacts/ra1997/ra_8293_1997.html"
+      ],
+      "rights_reviewed_on": "2026-11-25"
     }
   }
 }

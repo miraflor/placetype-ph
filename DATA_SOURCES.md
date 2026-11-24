@@ -88,33 +88,50 @@ https://psa.gov.ph/classifications-api/pscc
 
 - `philhealth_hospitals_20260930.csv` (1,338 rows): PhilHealth accredited hospitals, Levels 1–3, as of 2026-09-30, https://www.philhealth.gov.ph/partners/providers/facilities/accredited/HOSP_093026.pdf. The manifest preserves the PDF hash, row and page provenance, level and ownership counts. Publication row IDs are not facility codes.
 - `unifast_hei_ra10931_20261104.csv.gz` (1,955 rows): UniFAST list of higher education institutions participating under RA 10931, https://unifast.gov.ph/hei-list.html, captured 2026-11-04. Participating institutions only; the record key is a local digest, not an official HEI code; location is the region only.
-- `deped_schools_national.csv.gz` (30,364 rows): a cleaned extract prepared on 2026-11-04 from [Masterlist of DepEd Schools](https://www.kaggle.com/datasets/joshuagilodlsu/masterlist-of-deped-schools) by Kaggle uploader `joshuagilodlsu` (`schools_town_psgc_clean.csv`, Windows-1252 converted to UTF-8, 30,364 unique school IDs; `school_id`, `school_name`, `town_psgc`). The original Kaggle listing and uploader are identified; the original snapshot date, downloaded version and license remain unverified. Retained at the repository owner’s direction; local cleaning does not establish redistribution rights. Ownership from the school ID prefix is a hint and is never promoted without a verified link.
-- `ched_heida_eligible_20261104.csv` (2,424 rows): CHED HEIDA directory, https://heida.ched.gov.ph/hei-directory, captured 2026-11-04; 321 ambiguous or unsupported entries excluded. Official HEI codes do not independently verify canonical site identity. Redistribution permission for CHED and PhilHealth data has not been independently established.
+- `deped_schools_national.csv.gz` (30,364 rows): a cleaned extract prepared on 2026-11-04 from [Masterlist of DepEd Schools](https://www.kaggle.com/datasets/joshuagilodlsu/masterlist-of-deped-schools) by Kaggle uploader `joshuagilodlsu` (`schools_town_psgc_clean.csv`, Windows-1252 converted to UTF-8, 30,364 unique school IDs; `school_id`, `school_name`, `town_psgc`). The Kaggle listing (text supplied by the repository owner on 2026-11-25) declares MIT and acknowledges BEIS data derived on 2026-01-30, scraped into DuckDB and exported to CSV. This is distinct from the project cleaning date. The exact downloaded version, its applicable notices and any necessary underlying source permissions remain unconfirmed. Ownership from the school ID prefix is a hint and is never promoted without a verified link.
+- `ched_heida_eligible_20261104.csv` (2,424 rows): CHED HEIDA directory, https://heida.ched.gov.ph/hei-directory, captured 2026-11-04; 321 ambiguous or unsupported entries excluded. Official HEI codes do not independently verify canonical site identity. See the source-specific rights assessment below for CHED and PhilHealth.
 
 ## Licensing
 
-PSA website pages state that website data/content are CC BY 4.0 unless otherwise stated. Check
-any file-specific notice before redistributing a downloaded workbook or a normalized derivative.
-The I-O industry codes and names in `psic_2019_to_io_2018.csv` follow the PSA 2018 input-output release; attribute them to the Philippine Statistics Authority (CC BY 4.0).
-The code in this repository is separately licensed under MIT.
+Rights review: 2026-11-25. The MIT license applies to the project's own software, not a blanket relicensing of third-party data. The registry manifest records the source-specific findings and evidence URLs. This is a documented rights assessment, not an agency authorization or legal opinion.
+
+### Philippine government and statistical data
+
+[Republic Act No. 8293](https://lawphil.net/statutes/repacts/ra1997/ra_8293_1997.html), sections 171.11, 173, 175 and 176, distinguishes factual data, original compilations and qualifying works created by government personnel in their official duties. Government works generally do not carry copyright under section 176.1, but the provision requires agency approval for exploitation for profit. Publication by a government body does not extinguish third-party copyrights (section 176.3). These provisions are not a blanket license for every hosted file.
+
+The [PSA terms of use](https://psa.gov.ph/terms-of-use) permit sharing and adaptation, including commercial use, under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/), unless a source states otherwise. Attribute PSA, identify transformations, preserve relevant technical notes, and avoid suggesting endorsement. This applies to PSA-origin codes, names and other eligible material in the derived PSIC/I-O references. Check the exact downloaded workbook or publication for more specific terms; some PSA publications carry separate terms. The project's analytical correspondences are not official PSA concordances.
+
+### National institutional snapshots
+
+| Source | Rights evidence | Remaining conditions or questions |
+| --- | --- | --- |
+| PhilHealth | [Website disclaimer](https://www.philhealth.gov.ph/disclaimer/): educational/informative reproduction without written permission. | Respect stated use limits and any file-specific terms; not an unrestricted commercial grant. |
+| UniFAST | [Source directory](https://unifast.gov.ph/hei-list.html): public-domain notice unless otherwise stated. | Check exceptions and the statutory government-work requirements where applicable. |
+| CHED HEIDA | [Public directory](https://heida.ched.gov.ph/hei-directory); factual-data and government-work provisions of RA 8293. | No snapshot-specific license located; confirm with CHED for unrestricted redistribution and exploitation for profit. |
+| DepEd via Kaggle | [Original listing](https://www.kaggle.com/datasets/joshuagilodlsu/masterlist-of-deped-schools); uploader `joshuagilodlsu`. | Uploader declares [MIT](https://www.mit.edu/~amini/LICENSE.md) and reports BEIS data derived on 2026-01-30 (listing text supplied by repository owner). Exact downloaded version, applicable copyright notices and underlying permissions remain unconfirmed. [DepEd's own school masterlist terms](https://www.deped.gov.ph/masterlist-of-elementary-schools/) require attribution, accuracy, same-license distribution of derivatives, and approval for modifications beyond editorial changes. They cannot be assumed to apply to the Kaggle copy. |
+
+All four datasets remain unchanged. The registry manifest preserves their checksums, row counts, provenance, and source dates. Presence in the package does not establish permission for downstream commercial use. No endorsement by the source agencies is implied. No personal contact fields have been added in this update.
+
+**Release clearance:** before further public distribution of the Kaggle-derived extract, confirm the downloaded version and retain its applicable MIT copyright and permission notices; establish any necessary underlying DepEd permissions, or replace it with an authorized national extract. Obtain source-agency confirmation where required, including for exploitation for profit. A pre-release designation does not resolve licensing questions. Existing publication of these files is not proof of clearance. Do not advertise all bundled data as MIT-licensed, CC0, or unconditionally commercially reusable.
 
 ## Published completeness checks used by PlaceType PH
 
-For **PSIC Revision 5**, PlaceType PH checks the published 22 / 88 / 260 / 493 / 1,338
-section-to-subclass structure after normalization.
+For **PSIC Revision 5**, PlaceType PH checks 22 sections, 88 divisions, 493 classes and
+1,338 subclasses. The published summary reports 260 groups; the July 2026 workbook
+contains 261. The disputed group count is not a hard external gate.
 
-For **PCPC 2002**, exact counts are not frozen in v0.1.1 because current PSA pages disagree on
+For **PCPC 2002**, exact counts are not frozen in v0.1.2 because current PSA pages disagree on
 the division/item totals. Diagnose the authenticated live API first and then freeze the observed
 structure.
 
 For **PSCC 2022**, the five hierarchy levels (chapter, heading, HS subheading, AHTN subheading,
-commodity) are known, but exact category counts are not frozen in v0.1.1. Run
+commodity) are known, but exact category counts are not frozen in v0.1.2. Run
 `placetype taxonomy diagnose pscc` against the current official workbook first; after a successful
 live import, freeze the observed counts and a small source-structure fixture rather than guessing.
 
 ### Expanded national snapshots
 
-- CHED HEIDA (2026-11-04): 2,424 eligible records recovered from the versioned national reference; 321 ambiguous or unsupported entries excluded from the package; original institution codes and addresses preserved. Source: https://heida.ched.gov.ph/hei-directory . No contact details added. Redistribution permission is not independently established; bundled at repository owner direction, subject to source terms.
+- CHED HEIDA (2026-11-04): 2,424 eligible records recovered from the versioned national reference; 321 ambiguous or unsupported entries excluded from the package; original institution codes and addresses preserved. Source: https://heida.ched.gov.ph/hei-directory . No contact details added. The specific redistribution terms remain unverified; see the rights assessment above.
 - PhilHealth (2026-09-30): 781 Level 1, 432 Level 2 and 125 Level 3 hospital records, consolidated into one 1,338-row runtime dataset. All 75 pages were processed, 596 infirmaries/dispensaries excluded; publication row IDs are not facility codes. The PDF hash and sector totals are recorded in `manifest.json`.
 
 The repository's software license does not grant rights over third-party source data. Classification reads the four bundled national datasets by default, with no environment configuration or network access. Separate review-only and hospital source tables are not bundled.
