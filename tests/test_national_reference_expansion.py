@@ -101,3 +101,75 @@ def test_config_accepts_new_keys(tmp_path):
     assert load_reference_config(config) == {
         "heida": path, "level1_hospitals": primary, "level2_hospitals": hospital,
     }
+
+
+
+def test_bundled_default_reference_selection(monkeypatch):
+    from placetype_ph.specialized import institutional_tools as tools
+    from placetype_ph.specialized.institutional_pipeline import (
+        ENVIRONMENT_KEY,
+        selected_reference_config,
+    )
+
+    monkeypatch.delenv(ENVIRONMENT_KEY, raising=False)
+    manifest, paths = selected_reference_config()
+    assert manifest == tools.REGISTRY_DATA / "manifest.json"
+    counts = {
+        "heida": 2424, "level1_hospitals": 781, "level2_hospitals": 432,
+        "hospitals": 125, "unifast": 1955, "beis": 30364, "official_records": 80,
+    }
+    assert set(paths) == set(counts)
+    entries = []
+    for label, path in paths.items():
+        records = tools.LOADERS[label](path)
+        assert len(records) == counts[label]
+        entries.extend(records)
+    assert len(InstitutionIndex(entries).entries) == 36161
+    report = tools.verify_bundled()
+    assert report["ched_heida_review_20261104.csv"]["rows"] == 321
+    assert report["philhealth_levels123_source_20260930.csv"]["rows"] == 1338
+
+
+def test_bundled_default_and_explicit_off(monkeypatch):
+    from placetype_ph.specialized import institutional_pipeline as pipeline
+
+    monkeypatch.delenv(pipeline.ENVIRONMENT_KEY, raising=False)
+    seen = {}
+
+    def resolve(classified, places, *, references):
+        seen.update(references)
+        return "enriched"
+
+    monkeypatch.setattr(pipeline, "resolve_from_references", resolve)
+    original = object()
+    assert pipeline.maybe_resolve_institutions(original, object()) == "enriched"
+    assert set(seen) == pipeline.BUNDLED_KEYS
+    monkeypatch.setenv(pipeline.ENVIRONMENT_KEY, "off")
+    assert pipeline.maybe_resolve_institutions(original, object()) is original
+
+
+def test_bundled_install_defaults_to_all_sources(tmp_path):
+    from placetype_ph.specialized import institutional_tools as tools
+    from placetype_ph.specialized.institutional_pipeline import BUNDLED_KEYS
+
+    config = tools.install_references(tmp_path / "refs")
+    assert set(load_reference_config(config)) == BUNDLED_KEYS
+
+
+def test_bundled_default_rejects_corruption(monkeypatch, tmp_path):
+    import shutil
+
+    from placetype_ph.specialized import institutional_tools as tools
+    from placetype_ph.specialized.institutional_pipeline import (
+        ENVIRONMENT_KEY,
+        selected_reference_config,
+    )
+
+    monkeypatch.delenv(ENVIRONMENT_KEY, raising=False)
+    destination = tmp_path / "registry"
+    shutil.copytree(tools.REGISTRY_DATA, destination)
+    monkeypatch.setattr(tools, "REGISTRY_DATA", destination)
+    path = destination / "level1_hospitals_20260930.csv"
+    path.write_bytes(path.read_bytes() + b"corrupt")
+    with pytest.raises(ValueError, match="manifest hash"):
+        selected_reference_config()

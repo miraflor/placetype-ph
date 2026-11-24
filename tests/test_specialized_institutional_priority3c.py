@@ -1,4 +1,4 @@
-"""Priority 3c: exact, opt-in ownership stage in the normal tagging pipeline."""
+"""Priority 3c: default bundled ownership stage in the normal tagging pipeline."""
 
 from __future__ import annotations
 
@@ -70,7 +70,7 @@ def hospitals(tmp_path: Path) -> Path:
 
 
 def test_disabled_is_exact_identity(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.delenv(ENVIRONMENT_KEY, raising=False)
+    monkeypatch.setenv(ENVIRONMENT_KEY, "off")
     old = classified()
     assert maybe_resolve_institutions(old, places()) is old
 

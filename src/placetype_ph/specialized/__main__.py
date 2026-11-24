@@ -170,8 +170,11 @@ def main(argv: list[str] | None = None) -> int:
     install.add_argument(
         "--include",
         nargs="+",
-        choices=("hospitals", "unifast", "beis", "official_records"),
-        default=["hospitals", "unifast", "beis", "official_records"],
+        choices=(
+            "hospitals", "level1_hospitals", "level2_hospitals", "heida",
+            "unifast", "beis", "official_records",
+        ),
+        default=None,
     )
     install.add_argument("--verified-links", type=Path)
     sub.add_parser("verify-registry-data", help="check bundled registry snapshots")

@@ -21,7 +21,7 @@ from .reviewed_psic import bundled_psic_crosswalk_path
 # V9.4.4 adds reviewed title-search rows, title-search review columns and the public or
 # private PSIC subtree proposal. V9.4.5 fingerprints institutional references and
 # withholds unsupported animal-shelter classification.
-EXPRESS_CACHE_VERSION = "joint-v9.4.5-classification-completion-hardening"
+EXPRESS_CACHE_VERSION = "joint-v9.4.6-bundled-national-registry"
 
 # Files at or below this size are keyed by content. Larger inputs keep the cheap
 # size/mtime identity, because hashing a full canonical_pois.parquet on every run costs
@@ -136,16 +136,12 @@ def _content_sha256(path: Path) -> str:
 
 
 def institutional_reference_state() -> dict[str, object]:
-    """Fail closed on invalid opt-in configuration, including on cached runs."""
-    from .specialized.institutional_pipeline import ENVIRONMENT_KEY, load_reference_config
+    """Fingerprint the exact default or custom registry selection."""
+    from .specialized.institutional_pipeline import selected_reference_config
 
-    raw = os.environ.get(ENVIRONMENT_KEY)
-    if raw is None:
+    config, references = selected_reference_config()
+    if config is None:
         return {"enabled": False}
-    if not raw.strip():
-        raise ValueError(f"{ENVIRONMENT_KEY} was set but is empty")
-    config = Path(raw)
-    references = load_reference_config(config)
     return {
         "enabled": True,
         "config_sha256": _content_sha256(config),

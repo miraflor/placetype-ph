@@ -1,6 +1,6 @@
 {
   "schema": "placetype-ph-registry-data-v1",
-  "note": "Local snapshots for the opt-in institution stage. Names and localities never verify identity on their own; only official codes and verified links can support promotion.",
+  "note": "Packaged snapshots loaded by default. Names, bare HEI codes and publication row IDs do not verify site identity; existing promotion guards apply.",
   "files": {
     "level3_hospitals_20260930.csv": {
       "reference_key": "hospitals",
@@ -76,6 +76,90 @@
         "qc_government": 11,
         "ched_cmo": 6
       }
+    },
+    "ched_heida_eligible_20261104.csv": {
+      "reference_key": "heida",
+      "rows": 2424,
+      "source": "CHED HEIDA national directory, 2026-11-04",
+      "source_url": "https://heida.ched.gov.ph/hei-directory",
+      "identifier": "official HEI code; not independently verified canonical site",
+      "ownership_basis": "explicit reviewed HEI type",
+      "counts": {
+        "private": 1760,
+        "public": 664
+      },
+      "provenance": "institution_national_v1_20261104.csv",
+      "source_artifact_sha256": "cf72c5f9bdef8aab62e0e60916c502381c07bd1e74128a2088e7f2422634276a",
+      "scope": "2,424 eligible records and 321 separately retained review records; original full national directory not reconstructed.",
+      "rights": "Redistribution permission not independently confirmed; included at repository owner direction. Source terms remain applicable; no MIT license grant for third-party data.",
+      "sha256": "44bc86769f54bb0d5e311727f6eafe7b0fb07f1601995f37abf8b42f10b3281c"
+    },
+    "ched_heida_review_20261104.csv": {
+      "reference_key": "",
+      "rows": 321,
+      "source": "CHED HEIDA withheld entries, 2026-11-04",
+      "source_url": "https://heida.ched.gov.ph/hei-directory",
+      "use": "Review only; never loaded for automatic ownership evidence.",
+      "rights": "Same source terms and unverified redistribution permission as eligible HEIDA snapshot.",
+      "sha256": "7e041473503a75fe1551bd68048c20ac5c2568eb2d7a19b59ec111b13fe06524"
+    },
+    "philhealth_levels123_source_20260930.csv": {
+      "reference_key": "",
+      "rows": 1338,
+      "source": "Transcription from official PhilHealth PDF, Levels 1–3 only",
+      "source_url": "https://www.philhealth.gov.ph/partners/providers/facilities/accredited/HOSP_093026.pdf",
+      "source_document_sha256": "9ef34056f893a5aa485619e71d8481f02da149ce61a1ca1d75686a2f4c81c0b4",
+      "extraction": "All 75 pages, exact ten-column headers (blank row-number header); all publication row numbers 1–1934 present once. Whitespace collapsed inside cells. Phone and email excluded. Publication row is not an official facility ID.",
+      "source_publication_rows": 1934,
+      "excluded_infirmaries_dispensaries": 596,
+      "counts": {
+        "level1": {
+          "public": 326,
+          "private": 455
+        },
+        "level2": {
+          "public": 79,
+          "private": 353
+        },
+        "level3": {
+          "public": 63,
+          "private": 62
+        }
+      },
+      "rights": "Official source; redistribution permission not independently confirmed.",
+      "sha256": "bdbbb3c5520584e6eab78369bd48f334e67e0358c506d01f45f8717e6b2c797e"
+    },
+    "level1_hospitals_20260930.csv": {
+      "reference_key": "level1_hospitals",
+      "rows": 781,
+      "source": "PhilHealth accredited hospitals 2026-09-30, Level 1",
+      "source_url": "https://www.philhealth.gov.ph/partners/providers/facilities/accredited/HOSP_093026.pdf",
+      "source_document_sha256": "9ef34056f893a5aa485619e71d8481f02da149ce61a1ca1d75686a2f4c81c0b4",
+      "identifier": "publication row number, not official facility code",
+      "ownership_basis": "explicit G/P column",
+      "counts": {
+        "public": 326,
+        "private": 455
+      },
+      "built_from": "philhealth_levels123_source_20260930.csv with hospital_rows",
+      "rights": "Official source; redistribution permission not independently confirmed.",
+      "sha256": "af137e2df2bfe1f784cbfe28641391073a38f9de221b1dbfc808b093f9f128c1"
+    },
+    "level2_hospitals_20260930.csv": {
+      "reference_key": "level2_hospitals",
+      "rows": 432,
+      "source": "PhilHealth accredited hospitals 2026-09-30, Level 2",
+      "source_url": "https://www.philhealth.gov.ph/partners/providers/facilities/accredited/HOSP_093026.pdf",
+      "source_document_sha256": "9ef34056f893a5aa485619e71d8481f02da149ce61a1ca1d75686a2f4c81c0b4",
+      "identifier": "publication row number, not official facility code",
+      "ownership_basis": "explicit G/P column",
+      "counts": {
+        "public": 79,
+        "private": 353
+      },
+      "built_from": "philhealth_levels123_source_20260930.csv with hospital_rows",
+      "rights": "Official source; redistribution permission not independently confirmed.",
+      "sha256": "f61fbb911e0c82a0ce1fb7a67a03505ce87ccdf4de27b30bf6fe32f7f1535dcc"
     }
   }
 }

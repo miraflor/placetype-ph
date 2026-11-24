@@ -1,11 +1,8 @@
-"""Opt-in institutional ownership for the normal classified-place export.
-
-Only activates when PLACETYPE_PH_INSTITUTION_REFERENCES points to an explicit,
-validated external configuration. Reuses Priority 3b without new promotion policy.
-"""
+"""Bundled institutional ownership enrichment; existing promotion policy is unchanged."""
 
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 from collections.abc import Mapping
@@ -28,6 +25,10 @@ from .institutional_registry import (
 from .institutional_shadow import InstitutionResolver, load_verified_links
 
 ENVIRONMENT_KEY = "PLACETYPE_PH_INSTITUTION_REFERENCES"
+BUNDLED_KEYS = frozenset({
+    "beis", "unifast", "hospitals", "official_records", "heida",
+    "level1_hospitals", "level2_hospitals",
+})
 CONFIG_SCHEMA = "placetype-ph-institution-reference-config-v1"
 REFERENCE_KEYS = frozenset({
     "beis", "unifast", "hospitals", "official_records", "verified_links",
@@ -77,6 +78,40 @@ def load_reference_config(path: Path) -> dict[str, Path]:
     return result
 
 
+def selected_reference_config() -> tuple[Path | None, dict[str, Path]]:
+    """Choose packaged defaults, a custom absolute configuration, or explicit off.
+
+    The same selector is used by classification and the Express cache. Verify
+    packaged snapshot hashes before returning paths; never silently fall back.
+    """
+    raw = os.environ.get(ENVIRONMENT_KEY)
+    if raw is not None:
+        if raw == "off":
+            return None, {}
+        if not raw.strip():
+            raise ValueError(f"{ENVIRONMENT_KEY} was set but is empty")
+        config = Path(raw)
+        return config, load_reference_config(config)
+
+    from .institutional_tools import REGISTRY_DATA, registry_manifest
+
+    manifest = REGISTRY_DATA / "manifest.json"
+    references: dict[str, Path] = {}
+    for name, entry in registry_manifest()["files"].items():
+        label = entry.get("reference_key")
+        if label not in BUNDLED_KEYS:
+            continue
+        if label in references or Path(name).name != name:
+            raise ValueError("invalid or duplicate bundled reference entry")
+        path = REGISTRY_DATA / name
+        if hashlib.sha256(path.read_bytes()).hexdigest() != entry["sha256"]:
+            raise ValueError(f"bundled registry file {name} does not match its manifest hash")
+        references[label] = path
+    if set(references) != BUNDLED_KEYS:
+        raise ValueError("incomplete bundled institutional references")
+    return manifest, references
+
+
 def resolve_from_references(
     classified: pd.DataFrame,
     places: pd.DataFrame,
@@ -110,11 +145,8 @@ def maybe_resolve_institutions(
     classified: pd.DataFrame,
     places: pd.DataFrame,
 ) -> pd.DataFrame:
-    """No-op by default; invalid opt-in configuration fails the pipeline closed."""
-    raw = os.environ.get(ENVIRONMENT_KEY)
-    if raw is None:
+    """Run bundled enrichment unless explicitly disabled; invalid inputs fail closed."""
+    _, references = selected_reference_config()
+    if not references:
         return classified
-    if not raw.strip():
-        raise ValueError(f"{ENVIRONMENT_KEY} was set but is empty")
-    references = load_reference_config(Path(raw))
     return resolve_from_references(classified, places, references=references)

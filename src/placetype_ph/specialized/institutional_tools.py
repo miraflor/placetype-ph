@@ -1,7 +1,7 @@
 """Tools around the institution registry: import, build, install, convert and review.
 
 None of these tools changes a classification. They prepare reference files that the
-opt-in institution stage reads (``PLACETYPE_PH_INSTITUTION_REFERENCES``), convert
+institution stage reads (``PLACETYPE_PH_INSTITUTION_REFERENCES``), convert
 verified-link files, and write review queues. Outputs are new files; an existing file is
 never overwritten.
 
@@ -348,20 +348,22 @@ def verify_bundled() -> dict[str, dict[str, Any]]:
         digest = _sha256(path)
         if digest != entry["sha256"]:
             raise ValueError(f"bundled registry file {name} does not match its manifest hash")
-        rows = None
         if entry.get("reference_key") in LOADERS:
             rows = len(LOADERS[entry["reference_key"]](path))
-            if rows != entry["rows"]:
-                raise ValueError(f"bundled registry file {name}: {rows} rows, manifest says "
-                                 f"{entry['rows']}")
-        report[name] = {"sha256": digest, "rows": rows if rows is not None else entry["rows"]}
+        else:
+            rows = len(read_table(path))
+        if rows != entry["rows"]:
+            raise ValueError(
+                f"bundled registry file {name}: {rows} rows, manifest says {entry['rows']}"
+            )
+        report[name] = {"sha256": digest, "rows": rows}
     return report
 
 
 def install_references(
     target: Path,
     *,
-    include: Iterable[str] = ("hospitals", "unifast", "beis", "official_records"),
+    include: Iterable[str] | None = None,
     verified_links: Path | None = None,
 ) -> Path:
     """Copy bundled snapshots into ``target`` and write ``institution_references.json``.
@@ -372,8 +374,8 @@ def install_references(
     returned file to use the references in a run.
     """
     target = Path(target).expanduser().resolve()
-    wanted = list(dict.fromkeys(include))
-    unknown = set(wanted) - {"hospitals", "unifast", "beis", "official_records"}
+    wanted = list(dict.fromkeys(LOADERS if include is None else include))
+    unknown = set(wanted) - LOADERS.keys()
     if unknown:
         raise ValueError(f"unknown reference types: {sorted(unknown)}")
     config_path = target / "institution_references.json"

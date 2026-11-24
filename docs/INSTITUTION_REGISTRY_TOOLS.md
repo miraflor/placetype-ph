@@ -1,6 +1,6 @@
 # Institution registry data and tools
 
-This page covers the registry snapshots bundled with PlaceType PH and the commands that prepare, check and review institution references. All commands are in `python -m placetype_ph.specialized`. None of them changes a classification. The institution stage stays opt-in: it runs only when `PLACETYPE_PH_INSTITUTION_REFERENCES` points to a reference configuration ([Priority 3c](PRIORITY3C_INSTITUTIONAL_PIPELINE.md)).
+This page covers the registry snapshots bundled with PlaceType PH and the commands that prepare, check and review institution references. All commands are in `python -m placetype_ph.specialized`. None of them changes a classification. The institution stage uses the bundled national references by default, with an optional custom configuration ([Priority 3c](PRIORITY3C_INSTITUTIONAL_PIPELINE.md)).
 
 ## Bundled snapshots
 
@@ -8,15 +8,22 @@ The snapshots are in `src/placetype_ph/data/registry/`. `manifest.json` records 
 
 | File | Reference type | Rows | Source | Identifier |
 |---|---|---|---|---|
+| `level1_hospitals_20260930.csv` | `level1_hospitals` | 781 | PhilHealth Level 1 | publication row |
+| `level2_hospitals_20260930.csv` | `level2_hospitals` | 432 | PhilHealth Level 2 | publication row |
+| `ched_heida_eligible_20261104.csv` | `heida` | 2,424 | CHED HEIDA directory | official HEI code; not site verification |
+| `ched_heida_review_20261104.csv` | (review only) | 321 | CHED HEIDA withheld entries | not active evidence |
+| `philhealth_levels123_source_20260930.csv` | (input) | 1,338 | PhilHealth source transcription | publication row |
 | `level3_hospitals_20260930.csv` | `hospitals` | 125 | PhilHealth list of accredited hospitals as of 2026-09-30, Level 3 rows | publication row number, not a facility code |
 | `philhealth_level3_source_20260930.csv` | (input) | 125 | transcription of the same PDF with its row and page numbers | rebuilds the file above byte for byte |
 | `unifast_hei_ra10931_20261104.csv.gz` | `unifast` | 1,955 | UniFAST list of participating higher education institutions, captured 2026-11-04 | local digest of region and name, not an official HEI code |
 | `deped_schools_national.csv.gz` | `beis` | 30,364 | project-cleaned extract of a Kaggle-hosted DepEd school masterlist (2026-11-04) | DepEd school ID, treated as unverified; ownership from the ID prefix is a hint only |
 | `official_records_quezon_city_seed.csv` | `official_records` | 80 | PhilHealth hospital list as of 2025-05-31, DepEd NCR directory of public schools, Quezon City list of government-owned hospitals, CHED CMO No. 02 s. 2025 | DepEd school IDs are official codes; other rows are publication rows |
 
-The DepEd extract was prepared on 2026-11-04 from a Kaggle-hosted school masterlist, via `schools_town_psgc_clean.csv` (Windows-1252 converted to UTF-8; 30,364 unique IDs). The exact Kaggle listing, uploader, source snapshot date and license remain unconfirmed. The owner directed that it remain bundled; local cleaning does not establish redistribution rights. The institution stage remains opt-in.
+The DepEd extract was prepared on 2026-11-04 from a Kaggle-hosted school masterlist, via `schools_town_psgc_clean.csv` (Windows-1252 converted to UTF-8; 30,364 unique IDs). The exact Kaggle listing, uploader, source snapshot date and license remain unconfirmed. The owner directed that it remain bundled; local cleaning does not establish redistribution rights. The institution stage is enabled by default.
 
-## Install the snapshots for a run
+## Optional: copy snapshots for a custom configuration
+
+Normal classification requires no installation step.
 
 ```powershell
 python -m placetype_ph.specialized verify-registry-data
@@ -26,7 +33,7 @@ if ($LASTEXITCODE -ne 0) { throw "Reference installation failed" }
 $env:PLACETYPE_PH_INSTITUTION_REFERENCES = "$HOME\placetype-references\institution_references.json"
 ```
 
-`install-references` checks every bundled file against the manifest, copies the chosen types (`--include hospitals unifast beis official_records`, all by default) and an optional `--verified-links` file, and writes `institution_references.json` with absolute paths. It refuses to overwrite existing files.
+`install-references` checks every bundled file against the manifest, copies the chosen types (`--include hospitals level1_hospitals level2_hospitals heida unifast beis official_records`, all by default) and an optional `--verified-links` file, and writes `institution_references.json` with absolute paths. It refuses to overwrite existing files.
 
 ## Official records
 
@@ -89,4 +96,4 @@ python -m placetype_ph.specialized augment-places --places canonical_pois.parque
   --source my_list --output canonical_pois_with_my_list.parquet
 ```
 
-The user file needs `source_id`, `name`, `lon` and `lat`. A row with a `canonical_id` adds codes and columns to that existing place; any other row becomes a new place `user-<source>-<source_id>`. Optional columns: `explicit_psic_code`, `explicit_io16_code`, `explicit_io80_code`, `explicit_io240_code` (or `psic_code`, `io16`, `io80`, `io240`), source fields such as `osm_category`, and any other column, kept as `aug_<source>__<column>`. Places are never matched by distance or name; spatial reconciliation belongs to the canonical-layer build. A conflicting explicit code, a bad coordinate, a duplicate `source_id`, repeated target `canonical_id`, conflicting source evidence or a source label already present stops the command and nothing is written. Source fields on an existing place may fill an empty field or agree with existing evidence; they never overwrite conflicting evidence. The supplied ID, name and coordinates are retained in `aug_<source>__source_id`, `aug_<source>__name`, `aug_<source>__lon` and `aug_<source>__lat`; canonical coordinates are unchanged. Express fingerprints the opt-in config and all referenced file contents, including verified links.
+The user file needs `source_id`, `name`, `lon` and `lat`. A row with a `canonical_id` adds codes and columns to that existing place; any other row becomes a new place `user-<source>-<source_id>`. Optional columns: `explicit_psic_code`, `explicit_io16_code`, `explicit_io80_code`, `explicit_io240_code` (or `psic_code`, `io16`, `io80`, `io240`), source fields such as `osm_category`, and any other column, kept as `aug_<source>__<column>`. Places are never matched by distance or name; spatial reconciliation belongs to the canonical-layer build. A conflicting explicit code, a bad coordinate, a duplicate `source_id`, repeated target `canonical_id`, conflicting source evidence or a source label already present stops the command and nothing is written. Source fields on an existing place may fill an empty field or agree with existing evidence; they never overwrite conflicting evidence. The supplied ID, name and coordinates are retained in `aug_<source>__source_id`, `aug_<source>__name`, `aug_<source>__lon` and `aug_<source>__lat`; canonical coordinates are unchanged. Express fingerprints the selected manifest or custom config and all referenced file contents, including verified links.

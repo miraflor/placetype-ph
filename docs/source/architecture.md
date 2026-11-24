@@ -12,7 +12,7 @@
 
 **Joint review workflow:** `joint_crosswalk.py` and `suggest.py` create worklists, preserve first-pass independence, and perform a bounded peer-context rerank. A peer recheck proposes no new code outside the first-pass candidate set. It is not a vote in the production `fuse()` algorithm.
 
-**Additive enrichment:** specialized activity, administrative, institutional and ownership modules attach review candidates and provenance. Opt-in institutional identity may refine a *separate* I–O candidate projection where stringent gates are satisfied. It does not silently replace primary PSIC.
+**Additive enrichment:** specialized activity, administrative, institutional and ownership modules attach review candidates and provenance. Default institutional identity enrichment may refine a *separate* I–O candidate projection where stringent gates are satisfied. It does not silently replace primary PSIC.
 
 **Publication:** `pipeline.py` produces audit-level and map-level Parquet, `io_mapping.py` attaches I–O sets, `gis.py` exports compact GeoParquet, and `run.json` records versions, fingerprints, and status counts.
 

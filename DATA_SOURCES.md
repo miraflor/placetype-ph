@@ -84,7 +84,7 @@ https://psa.gov.ph/classifications-api/pscc
 
 ## Institution registry snapshots
 
-`src/placetype_ph/data/registry/` holds local snapshots for the opt-in institution stage; `manifest.json` records the hash, row count, source address, identifier meaning and ownership basis of each file (see [institution registry data and tools](docs/INSTITUTION_REGISTRY_TOOLS.md)).
+`src/placetype_ph/data/registry/` holds bundled snapshots for the default institution stage; `manifest.json` records the hash, row count, source address, identifier meaning and ownership basis of each file (see [institution registry data and tools](docs/INSTITUTION_REGISTRY_TOOLS.md)).
 
 - `level3_hospitals_20260930.csv` (125 rows) and its source table `philhealth_level3_source_20260930.csv`: Level 3 rows of the PhilHealth list of accredited hospitals as of 2026-09-30, https://www.philhealth.gov.ph/partners/providers/facilities/accredited/HOSP_093026.pdf (PDF SHA-256 `9ef34056f893a5aa485619e71d8481f02da149ce61a1ca1d75686a2f4c81c0b4`). The PDF row number is a publication row, not a facility code.
 - `unifast_hei_ra10931_20261104.csv.gz` (1,955 rows): UniFAST list of higher education institutions participating under RA 10931, https://unifast.gov.ph/hei-list.html, captured 2026-11-04. Participating institutions only; the record key is a local digest, not an official HEI code; location is the region only.
@@ -111,3 +111,10 @@ For **PSCC 2022**, the five hierarchy levels (chapter, heading, HS subheading, A
 commodity) are known, but exact category counts are not frozen in v0.1.1. Run
 `placetype taxonomy diagnose pscc` against the current official workbook first; after a successful
 live import, freeze the observed counts and a small source-structure fixture rather than guessing.
+
+### Expanded national snapshots
+
+- CHED HEIDA (2026-11-04): 2,424 eligible records and 321 review-only records, recovered from the versioned national reference; original institution codes and addresses preserved. Source: https://heida.ched.gov.ph/hei-directory . No contact details added. Redistribution permission is not independently established; bundled at repository owner direction, subject to source terms.
+- PhilHealth (2026-09-30): 781 Level 1, 432 Level 2 and 125 Level 3 hospital records, with a 1,338-row source transcription. All 75 pages were processed, 596 infirmaries/dispensaries excluded; publication row IDs are not facility codes. The PDF hash and sector totals are recorded in `manifest.json`.
+
+The repository's software license does not grant rights over third-party source data. Classification reads the seven active reference files by default, with no environment configuration or network access. Review-only and source tables do not count as active references.

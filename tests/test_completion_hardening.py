@@ -81,7 +81,7 @@ def test_cache_fingerprints_all_reference_contents(tmp_path, monkeypatch):
     from placetype_ph.express import institutional_reference_state, pipeline_state
     from placetype_ph.specialized.institutional_pipeline import ENVIRONMENT_KEY
 
-    monkeypatch.delenv(ENVIRONMENT_KEY, raising=False)
+    monkeypatch.setenv(ENVIRONMENT_KEY, "off")
     assert institutional_reference_state() == {"enabled": False}
     disabled = pipeline_state()
     config, beis, links = _reference_config(tmp_path, monkeypatch)

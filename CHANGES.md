@@ -1,3 +1,9 @@
+## Bundled national institutional references
+
+- Package HEIDA and all three PhilHealth hospital levels alongside existing references.
+- Load 36,161 active reference records by default, with unchanged promotion safeguards.
+- Validate the bundled manifest, include selected registry bytes in Express cache identity, and support explicit custom configuration or `off`.
+
 # Unreleased: classification completion
 
 - 18 reviewed PSIC rows for categories that only a PSIC title search used to code (`psic_rev5_reviewed.csv`, now 346 rows). Eleven keep the search result; seven correct it: `water_park` (OSM and Overture) 93210 amusement parks instead of 50 water transport, `animal_shelter` withheld pending authoritative mapping rather than using pet care services or animal production, `bowling_alley` 93297 bowling halls instead of 32403 equipment manufacture, `motorcycle_manufacturer` 3091 instead of 30915 engines only, `shop=trade` wholesale or retail trade (46 or 47) instead of 47 only, and `pharmaceutical_company` manufacture or wholesale of pharmaceuticals (21 or 46430) instead of 21 only. `office=administrative` is reviewed as uncodeable.
@@ -7,7 +13,7 @@
 - New reference type `official_records` and commands `install-references`, `verify-registry-data`, `import-registry-export` (DOH NHFR and DepEd exports), `build-level3-hospitals`, `convert-links` (registry-layout verified-link files), `review-institutions` (review queue) and `augment-places` (user-supplied places with explicit codes). See [institution registry data and tools](docs/INSTITUTION_REGISTRY_TOOLS.md).
 - Rows that have only `category` and `sources` are classified after their per-source fields are inferred (flags `LEGACY_SOURCE_FIELDS_*`); `read_openplaces` accepts such files.
 - Entity-match flags also read `match_distance_m` and `match_name_score`. Compound detection in `placetype suggest` (and so in title search) ignores descriptive OSM attributes (brand, cuisine, operator, takeaway, opening hours, contact and payment keys and similar) and accepts the listed compatible tag pairs, such as a cafe with a coffee shop tag.
-- Express cache version `joint-v9.4.5-classification-completion-hardening`; fingerprints institutional configuration and all reference files by content, including verified links. Invalid opt-in configuration fails closed.
+- Express cache version `joint-v9.4.5-classification-completion-hardening`; fingerprints institutional configuration and all reference files by content, including verified links. Invalid custom configuration fails closed.
 - Augmentation rejects repeated canonical targets and conflicting source fields, preserves supplied ID/name/coordinates for audit, and fills empty semantic fields without overwriting existing evidence.
 - DepEd snapshot retained unchanged; provenance clarified as the project-cleaned 2026-11-04 extract from a Kaggle-hosted masterlist (original listing, date and license unconfirmed).
 
