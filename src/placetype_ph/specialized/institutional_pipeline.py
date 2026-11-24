@@ -18,7 +18,10 @@ from .institutional_promotion import resolve_institutional_ownership
 from .institutional_registry import (
     InstitutionIndex,
     load_beis,
+    load_heida,
     load_hospitals,
+    load_level1_hospitals,
+    load_level2_hospitals,
     load_official_records,
     load_unifast,
 )
@@ -26,7 +29,10 @@ from .institutional_shadow import InstitutionResolver, load_verified_links
 
 ENVIRONMENT_KEY = "PLACETYPE_PH_INSTITUTION_REFERENCES"
 CONFIG_SCHEMA = "placetype-ph-institution-reference-config-v1"
-REFERENCE_KEYS = frozenset({"beis", "unifast", "hospitals", "official_records", "verified_links"})
+REFERENCE_KEYS = frozenset({
+    "beis", "unifast", "hospitals", "official_records", "verified_links",
+    "heida", "level1_hospitals", "level2_hospitals",
+})
 
 
 def load_reference_config(path: Path) -> dict[str, Path]:
@@ -83,6 +89,11 @@ def resolve_from_references(
     records = (
         (load_beis(references["beis"]) if "beis" in references else ())
         + (load_unifast(references["unifast"]) if "unifast" in references else ())
+        + (load_heida(references["heida"]) if "heida" in references else ())
+        + (load_level1_hospitals(references["level1_hospitals"])
+           if "level1_hospitals" in references else ())
+        + (load_level2_hospitals(references["level2_hospitals"])
+           if "level2_hospitals" in references else ())
         + (load_hospitals(references["hospitals"]) if "hospitals" in references else ())
         + (
             load_official_records(references["official_records"])

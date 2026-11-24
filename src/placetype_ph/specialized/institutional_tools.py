@@ -44,7 +44,10 @@ from .institutional_registry import (
     https_host,
     key,
     load_beis,
+    load_heida,
     load_hospitals,
+    load_level1_hospitals,
+    load_level2_hospitals,
     load_official_records,
     load_unifast,
 )
@@ -58,6 +61,9 @@ LOADERS: dict[str, Callable[[Path], tuple[Institution, ...]]] = {
     "beis": load_beis,
     "unifast": load_unifast,
     "hospitals": load_hospitals,
+    "heida": load_heida,
+    "level1_hospitals": load_level1_hospitals,
+    "level2_hospitals": load_level2_hospitals,
     "official_records": load_official_records,
 }
 # Source family of a verified link, taken from the official host of its source URL.
@@ -71,6 +77,7 @@ LINK_SOURCE_BY_HOST = {
     "philhealth.gov.ph": "philhealth_hospitals",
     "www.philhealth.gov.ph": "philhealth_hospitals",
     "unifast.gov.ph": "unifast_ra10931",
+    "heida.ched.gov.ph": "ched_hei",
     "ched.gov.ph": "ched_cmo",
     "www.ched.gov.ph": "ched_cmo",
     "quezoncity.gov.ph": "qc_government",
@@ -218,21 +225,37 @@ def _level3(value: str) -> bool:
 def level3_hospital_rows(
     records: Iterable[Mapping[str, Any]], *, source: str, url: str, as_of: str
 ) -> tuple[list[dict[str, str]], Counter[str]]:
-    """Level 3 hospital reference rows from an official table, with counts.
+    return hospital_rows(records, source=source, url=url, as_of=as_of, level=3)
+
+
+def hospital_rows(
+    records: Iterable[Mapping[str, Any]], *, source: str, url: str, as_of: str, level: int
+) -> tuple[list[dict[str, str]], Counter[str]]:
+    """Explicit Level 1, 2 or 3 hospital reference rows from an official table.
 
     A PhilHealth row number is a publication row, never a facility identifier, and is
     stored as ``<as_of>:row-<number>``. An NHFR code is an official facility code.
     """
     if source not in {"philhealth_hospitals", "doh_nhfr"}:
         raise ValueError("source must be philhealth_hospitals or doh_nhfr")
+    if level not in {1, 2, 3}:
+        raise ValueError("hospital level must be 1, 2 or 3")
     _iso_date(as_of, "as_of")
     output: list[dict[str, str]] = []
     stats: Counter[str] = Counter()
     for n, record in enumerate(records, start=2):
         stats["input"] += 1
-        level = _field(record, "CAT", "Hospital Level", "Service Capability Level", "Level",
-                       "Hospital Classification")
-        if not _level3(level):
+        observed_level = _field(
+            record, "CAT", "Hospital Level", "Service Capability Level", "Level",
+            "Hospital Classification",
+        )
+        matches = _level3(observed_level) if level == 3 else bool(
+            re.fullmatch(
+                {1: r"(?:level\s*)?(?:1|i|one)", 2: r"(?:level\s*)?(?:2|ii|two)"}[level],
+                key(observed_level),
+            )
+        )
+        if not matches:
             stats["other_hospital_level"] += 1
             continue
         name = _field(record, "NAME OF HEALTH FACILITY", "Health Facility Name",
@@ -256,7 +279,7 @@ def level3_hospital_rows(
             kind = "publication_row"
         if not identifier or not name or not side:
             raise ValueError(
-                f"Level 3 hospital input row {n}: missing row number or official code, "
+                f"Level {level} hospital input row {n}: missing row number or official code, "
                 "name, or explicit G/P ownership"
             )
         output.append(
@@ -274,7 +297,7 @@ def level3_hospital_rows(
                 "as_of": as_of,
                 "id_kind": kind,
                 "evidence_type": "explicit_sector",
-                "facility_level": "Level 3",
+                "facility_level": f"Level {level}",
             }
         )
         stats["included"] += 1
@@ -350,7 +373,7 @@ def install_references(
     """
     target = Path(target).expanduser().resolve()
     wanted = list(dict.fromkeys(include))
-    unknown = set(wanted) - set(LOADERS)
+    unknown = set(wanted) - {"hospitals", "unifast", "beis", "official_records"}
     if unknown:
         raise ValueError(f"unknown reference types: {sorted(unknown)}")
     config_path = target / "institution_references.json"
@@ -564,6 +587,8 @@ def _official_ids(place: Mapping[str, Any], tags: dict[str, list[str]],
     if record.source == "doh_nhfr":
         observed = _unique([*(_text(place.get(k)) for k in ("nhfr_code", "doh_facility_code")),
                             *tags.get("ref:nhfr", []), *tags.get("nhfr:code", [])])
+    elif record.source == "ched_hei":
+        observed = _unique([_text(place.get("ched_hei_code")), *tags.get("ref:ched", [])])
     elif record.source.startswith("deped"):
         observed = _unique([*(_text(place.get(k)) for k in ("deped_school_id", "beis_school_id",
                                                             "school_id")),
