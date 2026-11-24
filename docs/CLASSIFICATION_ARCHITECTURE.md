@@ -75,3 +75,11 @@ its original value remains in the summary and the promotion reason records the
 conflict. Untyped and stronger competing claims still require review. A public
 operator is not proof of public ownership; verified private ownership is retained
 with an audit reason where the only competing evidence is a government operator.
+
+## Title search and reviewed rows
+
+The reviewed crosswalk decides PSIC codes. A search of the PSIC titles (the query plan, guards and thresholds of `placetype suggest`) is reported in `psic_search_*` columns for places left with status `EMPTY`, and for name-only places as `NAME_ONLY_CANDIDATES`. It never sets `psic_code`, because a strong title match can still be wrong: before review, the search coded `water_park` as water transport and `bowling_alley` as bowling equipment manufacture. A category is coded once a reviewed row exists; 18 such rows were added after review of the search results, seven of them correcting the search.
+
+## Public or private PSIC subtree
+
+PSIC Revision 5 names the ownership side in the leaf titles of several education and health subtrees (for example 8611 public and 8612 private hospital activities). When a place has an ownership side, `institution_psic_proposal_*` reports the subtree of that side and checks that its I-O mapping, including the draft class and subclass narrowing, is exactly the expected public or private member of the IO80 and IO240 pair. When some leaves do not name a side (for example division 85), no PSIC subtree is proposed, and only the I-O side is proposed if both the row's candidate sets and the mapping of the unchanged PSIC code are exactly the pair. The side comes, in order, from verified institution resolution, institution evidence, or a labelled inference; `institution_psic_proposal_side_basis` says which. The columns are diagnostic and change no code.

@@ -23,6 +23,7 @@ Create a JSON configuration *outside the repository*, for example:
     "beis": "C:\\Users\\YOUR_USER\\Downloads\\beis.csv",
     "unifast": "C:\\Users\\YOUR_USER\\Downloads\\unifast.csv",
     "hospitals": "C:\\Users\\YOUR_USER\\Downloads\\hospitals.csv",
+    "official_records": "C:\\Users\\YOUR_USER\\Downloads\\official_records.csv",
     "verified_links": "C:\\Users\\YOUR_USER\\Downloads\\verified_links.json"
   }
 }
@@ -31,7 +32,11 @@ Create a JSON configuration *outside the repository*, for example:
 Include **only** references you actually have. Each path must be absolute and
 point to an existing file; at least one reference is required. Formats, schemas
 and evidence promotion are **exactly those of Priority 3 and 3b**. A hospital
-reference must be the validated fourteen-column Level 3 source format.
+reference must be the validated fourteen-column Level 3 source format. An
+`official_records` reference is the twelve-column format described in
+[institution registry data and tools](INSTITUTION_REGISTRY_TOOLS.md). The command
+`python -m placetype_ph.specialized install-references` writes such a
+configuration for the snapshots bundled with the package.
 
 Activate the explicit configuration in your current PowerShell session:
 
@@ -56,8 +61,8 @@ entity ordering remain unchanged; the resolver explicitly checks this.
   assign an I/O sector, or use a new ownership heuristic.
 - Provisional BEIS, UniFAST, name matches, publication-row identifiers, and bare
   source ownership remain non-promotable under Priority 3b rules.
-- Reference files are local and user-supplied; this integration is not a
-  reference-data acquisition or validation study.
+- Reference files are local. Bundled snapshots and the import, build, convert and
+  review commands are described in [institution registry data and tools](INSTITUTION_REGISTRY_TOOLS.md).
 - Automatic ownership enrichment is **opt-in**, not on by default.
 - The installer requires the merged Priority 3b modules and a fresh feature
   branch from the latest remote `main`, and fails closed on unexpected pipeline

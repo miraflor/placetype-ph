@@ -34,7 +34,8 @@
 <li><strong>Optional traversal.</strong> If no deterministic result resolves the case and an LLM backend is configured, use restricted taxonomy descent; an unsupported model answer cannot erase a defensible accepted code.</li>
 </ol>
 <h2 id="scope-of-the-reviewed-policy">Scope of the reviewed policy</h2>
-<p>The 328 packaged rules load by default only for <strong>PSIC Rev. 5</strong>. <code>--no-reviewed-psic</code> disables the new operational source interpretation, trusted floors, and administrative policy. Explicit custom crosswalks can remain active, so this comparison is a controlled policy change rather than a complete “no classification” mode. Other PSIC revisions do not inherit Rev. 5-specific trusted rules.</p>
+<p>The 346 packaged rules load by default only for <strong>PSIC Rev. 5</strong>. <code>--no-reviewed-psic</code> disables the new operational source interpretation, trusted floors, and administrative policy. Explicit custom crosswalks can remain active, so this comparison is a controlled policy change rather than a complete “no classification” mode. Other PSIC revisions do not inherit Rev. 5-specific trusted rules.</p>
+<p>For a place left with status <code>EMPTY</code>, the <code>psic_search_*</code> columns report a PSIC title search (the query plan, guards and thresholds of <code>placetype suggest</code>), and a name-only place gets <code>NAME_ONLY_CANDIDATES</code>. The search never sets <code>psic_code</code>; a category becomes coded only through a reviewed row.</p>
 <h2 id="status-and-audit-fields">Status and audit fields</h2>
 <table>
 <thead>

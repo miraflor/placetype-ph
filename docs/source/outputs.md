@@ -14,7 +14,7 @@ One row per canonical place, preserving available geometry/location and convenie
 
 Important: `io80_codes = "74; 75"` means **one of two** candidate industries, not two simultaneously observed industries. A singleton map code or a labelled resolver decision is distinct from a policy-resolved code. See [PSIC to I–O](io-projection.html).
 
-The detailed classification table includes JSON `admissible_roots`; the place summary includes `psic_admissible_roots`, `io_mapping_draft_levels`, draft subgroup sets, direct I–O evidence, ownership inferences and `io*_resolved_code`, `io*_resolved_status`, `io*_resolved_source`. These resolved columns are also available in GIS export. Candidate, refined, inferred and resolved values are not interchangeable.
+The detailed classification table includes JSON `admissible_roots`; the place summary includes `psic_admissible_roots`, `io_mapping_draft_levels`, draft subgroup sets, direct I–O evidence, ownership inferences and `io*_resolved_code`, `io*_resolved_status`, `io*_resolved_source`. These resolved columns are also available in GIS export. Candidate, refined, inferred and resolved values are not interchangeable. Two review groups are added: `psic_search_*` (PSIC title search for places without a code; never sets `psic_code`) and `institution_psic_proposal_*` (the public or private PSIC subtree implied by a known ownership side; diagnostic only).
 
 ## `run.json` manifest
 

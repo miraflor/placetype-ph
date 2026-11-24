@@ -134,6 +134,10 @@ def _source_identities(row: Mapping[str, Any]) -> set[tuple[str, str]]:
             ids.add(("doh_nhfr", part.partition("=")[2].strip()))
         if part.startswith("ref:deped=") or part.startswith("ref:deped:school="):
             ids.add(("deped_beis", part.partition("=")[2].strip()))
+    # A DepEd school ID is one identifier, whichever DepEd list carries it.
+    for source, value in list(ids):
+        if source == "deped_beis":
+            ids.update((("deped_masterlist", value), ("deped_public", value)))
     if clean(row.get("official_id_source")) and clean(row.get("official_id")):
         ids.add((clean(row["official_id_source"]).casefold(), clean(row["official_id"]).casefold()))
     return ids

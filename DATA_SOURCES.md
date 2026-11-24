@@ -82,6 +82,15 @@ API documentation:
 
 https://psa.gov.ph/classifications-api/pscc
 
+## Institution registry snapshots
+
+`src/placetype_ph/data/registry/` holds local snapshots for the opt-in institution stage; `manifest.json` records the hash, row count, source address, identifier meaning and ownership basis of each file (see [institution registry data and tools](docs/INSTITUTION_REGISTRY_TOOLS.md)).
+
+- `level3_hospitals_20260930.csv` (125 rows) and its source table `philhealth_level3_source_20260930.csv`: Level 3 rows of the PhilHealth list of accredited hospitals as of 2026-09-30, https://www.philhealth.gov.ph/partners/providers/facilities/accredited/HOSP_093026.pdf (PDF SHA-256 `9ef34056f893a5aa485619e71d8481f02da149ce61a1ca1d75686a2f4c81c0b4`). The PDF row number is a publication row, not a facility code.
+- `unifast_hei_ra10931_20261104.csv.gz` (1,955 rows): UniFAST list of higher education institutions participating under RA 10931, https://unifast.gov.ph/hei-list.html, captured 2026-11-04. Participating institutions only; the record key is a local digest, not an official HEI code; location is the region only.
+- `deped_schools_national.csv.gz` (30,364 rows): a cleaned extract prepared on 2026-11-04 from a Kaggle-hosted DepEd school masterlist (`schools_town_psgc_clean.csv`, Windows-1252 converted to UTF-8, 30,364 unique school IDs; `school_id`, `school_name`, `town_psgc`). The exact Kaggle listing, uploader, original snapshot date and license remain unconfirmed. Retained at the repository owner’s direction; local cleaning does not establish redistribution rights. Ownership from the school ID prefix is a hint and is never promoted without a verified link.
+- `official_records_quezon_city_seed.csv` (80 rows): Quezon City records from the PhilHealth hospital list as of 2025-05-31, the DepEd NCR directory of public schools, the Quezon City list of government-owned hospitals and CHED CMO No. 02 s. 2025.
+
 ## Licensing
 
 PSA website pages state that website data/content are CC BY 4.0 unless otherwise stated. Check

@@ -59,7 +59,7 @@ if ($LASTEXITCODE -ne 0) { throw &quot;Taxonomy validation failed&quot; }
   --output-dir output\iloilo-reviewed
 if ($LASTEXITCODE -ne 0) { throw &quot;Reviewed classification failed&quot; }
 </code></pre>
-<p>The default PSIC Rev. 5 run includes the <strong>328 bundled accepted mappings</strong> and the conservative operational rules. It does not call an LLM. A custom reviewed crosswalk may be supplied with repeated <code>--crosswalk</code> arguments. Conflicting exact keys are validation errors; they do not silently override the packaged rules.</p>
+<p>The default PSIC Rev. 5 run includes the <strong>346 bundled accepted mappings</strong> and the conservative operational rules. It does not call an LLM. A custom reviewed crosswalk may be supplied with repeated <code>--crosswalk</code> arguments. Conflicting exact keys are validation errors; they do not silently override the packaged rules.</p>
 <h2 id="make-a-controlled-legacy-comparison">Make a controlled legacy comparison</h2>
 <pre><code class="language-powershell">placetype classify $places `
   --schemes psic --llm none --no-reviewed-psic `

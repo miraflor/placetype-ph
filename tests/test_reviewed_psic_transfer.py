@@ -59,7 +59,7 @@ def _classify(**kwargs: str):
 def test_reviewed_package_exists_with_complete_decision_types():
     with bundled_psic_crosswalk_path().open(encoding="utf-8", newline="") as f:
         rules = list(csv.DictReader(f))
-    assert len(rules) == 328
+    assert len(rules) == 346
     assert {r["mapping_kind"] for r in rules} == {
         "EXACT",
         "SUBTREE",
@@ -71,7 +71,7 @@ def test_reviewed_package_exists_with_complete_decision_types():
         r["source"] == "overture" and r["source_value"] == "bank" and r["codes"] == "641"
         for r in rules
     )
-    assert Crosswalk.load([bundled_psic_crosswalk_path()]).count_for("psic", "rev5") == 328
+    assert Crosswalk.load([bundled_psic_crosswalk_path()]).count_for("psic", "rev5") == 346
 
 
 def test_osm_compound_auxiliary_does_not_create_another_activity():

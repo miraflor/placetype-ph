@@ -19,13 +19,14 @@ from .institutional_registry import (
     InstitutionIndex,
     load_beis,
     load_hospitals,
+    load_official_records,
     load_unifast,
 )
 from .institutional_shadow import InstitutionResolver, load_verified_links
 
 ENVIRONMENT_KEY = "PLACETYPE_PH_INSTITUTION_REFERENCES"
 CONFIG_SCHEMA = "placetype-ph-institution-reference-config-v1"
-REFERENCE_KEYS = frozenset({"beis", "unifast", "hospitals", "verified_links"})
+REFERENCE_KEYS = frozenset({"beis", "unifast", "hospitals", "official_records", "verified_links"})
 
 
 def load_reference_config(path: Path) -> dict[str, Path]:
@@ -83,6 +84,11 @@ def resolve_from_references(
         (load_beis(references["beis"]) if "beis" in references else ())
         + (load_unifast(references["unifast"]) if "unifast" in references else ())
         + (load_hospitals(references["hospitals"]) if "hospitals" in references else ())
+        + (
+            load_official_records(references["official_records"])
+            if "official_records" in references
+            else ()
+        )
     )
     links = load_verified_links(references.get("verified_links"))
     resolver = InstitutionResolver(InstitutionIndex(records), links)

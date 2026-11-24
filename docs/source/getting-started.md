@@ -50,7 +50,7 @@ placetype classify $places `
 if ($LASTEXITCODE -ne 0) { throw "Reviewed classification failed" }
 ```
 
-The default PSIC Rev. 5 run includes the **328 bundled accepted mappings** and the conservative operational rules. It does not call an LLM. A custom reviewed crosswalk may be supplied with repeated `--crosswalk` arguments. Conflicting exact keys are validation errors; they do not silently override the packaged rules.
+The default PSIC Rev. 5 run includes the **346 bundled accepted mappings** and the conservative operational rules. It does not call an LLM. A custom reviewed crosswalk may be supplied with repeated `--crosswalk` arguments. Conflicting exact keys are validation errors; they do not silently override the packaged rules.
 
 ## Make a controlled legacy comparison
 

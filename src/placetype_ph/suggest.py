@@ -688,6 +688,22 @@ _FSQ_COMPONENT_RE = re.compile(
 )
 
 
+_OSM_DESCRIPTIVE_KEYS = frozenset(
+    {
+        "brand",
+        "cuisine",
+        "delivery",
+        "drive_through",
+        "internet_access",
+        "opening_hours",
+        "operator",
+        "outdoor_seating",
+        "takeaway",
+        "wheelchair",
+    }
+)
+
+
 def _has_multiple_source_components(source: str, value: str) -> bool:
     """True when one source_value represents multiple independently meaningful labels."""
     source = source.casefold().strip()
@@ -704,25 +720,29 @@ def _has_multiple_source_components(source: str, value: str) -> bool:
         # Explicit broad buckets may themselves contain several corroborating OSM tags.
         if raw.casefold() in _OSM_UNCODEABLE_EXACT:
             return False
-        # Only observed amenity+healthcare duplicates are treated as corroboration.
         items = [item.strip() for item in raw.split(" | ") if item.strip()]
         if len(items) <= 1:
             return False
+        # Imported here: the specialized package imports this module indirectly.
+        from .specialized.source_evidence import COMPATIBLE_OSM_PAIRS
+
         tags: dict[str, str] = {}
         for item in items:
             if "=" not in item:
                 return True
             key, val = item.split("=", 1)
-            tags[key.strip().casefold()] = val.strip().casefold()
-        pairs = frozenset(tags.items())
-        coherent = {
-            frozenset({("amenity", "pharmacy"), ("healthcare", "pharmacy")}),
-            frozenset({("amenity", "clinic"), ("healthcare", "clinic")}),
-            frozenset({("amenity", "dentist"), ("healthcare", "dentist")}),
-            frozenset({("amenity", "doctors"), ("healthcare", "doctor")}),
-            frozenset({("amenity", "townhall"), ("office", "government")}),
-        }
-        return pairs not in coherent
+            key = key.strip().casefold()
+            # Descriptive attributes of the activity do not add a second principal
+            # activity. The list is short on purpose: a key such as building= still
+            # makes the category compound for a suggestion.
+            if key in _OSM_DESCRIPTIVE_KEYS or key.startswith(("contact:", "payment:")):
+                continue
+            tags[key] = val.strip().casefold()
+        if len(tags) <= 1:
+            return False
+        # Only listed corroborating pairs (amenity and healthcare duplicates, cafe with a
+        # coffee or tea shop tag, bank with an ATM, town hall with a government office).
+        return frozenset(f"{k}={v}" for k, v in tags.items()) not in COMPATIBLE_OSM_PAIRS
 
     if source == "overture":
         # Explicit conjunction/disjunction marks a semantically compound label,

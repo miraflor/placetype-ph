@@ -16,7 +16,13 @@ from .models import (
     SourceEvidence,
     SourceField,
 )
-from .openplaces import Row, entity_match_flags, evidence_text, source_evidence
+from .openplaces import (
+    Row,
+    entity_match_flags,
+    evidence_text,
+    infer_legacy_source_fields,
+    source_evidence,
+)
 from .retrieval import TaxonomyRetriever
 from .reviewed_psic import (
     accepted_administrative_role,
@@ -377,6 +383,13 @@ class EntityClassifier:
         return result
 
     def classify_row(self, row: Row, product_text: str | None = None) -> ClassificationResult:
+        row, legacy_flags = infer_legacy_source_fields(row)
+        result = self._classify_row(row, product_text)
+        if legacy_flags:
+            result.flags = [*result.flags, *legacy_flags]
+        return result
+
+    def _classify_row(self, row: Row, product_text: str | None) -> ClassificationResult:
         canonical_id = str(row["canonical_id"])
         explicit = self._explicit_code(row)
         mapped, evidence_flags = self._mapped_evidence(row)

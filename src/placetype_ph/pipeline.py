@@ -37,12 +37,14 @@ from .models import ClassificationResult
 from .openplaces import SUMMARY_COLUMNS, read_openplaces
 from .reviewed_psic import crosswalk_fingerprint
 from .specialized.institutional_pipeline import maybe_resolve_institutions
+from .specialized.institutional_psic import institution_psic_proposals
 from .specialized.integration import enrich_summary
 from .specialized.ownership_io import (
     ownership_io_metadata,
     refine_verified_institutional_io,
 )
 from .text import clean_text
+from .title_search import title_search_columns, title_search_metadata
 
 _JSON_FIELDS = ("candidate_codes", "evidence_sources", "flags", "audit", "admissible_roots")
 _RESULT_COLUMNS = [f.name for f in fields(ClassificationResult)]
@@ -165,7 +167,13 @@ def classify_openplaces(
     workers: int = 1,
     role_crosswalk: RoleCrosswalk | None = None,
     io_resolution_policy: str = "strict",
+    psic_title_search: bool = True,
 ) -> tuple[Path, Path]:
+    """Classify an OpenPlaces export and write the classification outputs.
+
+    ``psic_title_search`` adds ``psic_search_*`` review columns for places that the
+    reviewed PSIC rules leave without a code; it never sets ``psic_code``.
+    """
     if io_resolution_policy not in RESOLUTION_POLICIES:
         raise ValueError(f"unknown I-O resolution policy {io_resolution_policy!r}")
     if workers < 1:
@@ -239,6 +247,11 @@ def classify_openplaces(
         part = part.rename(columns={c: f"{scheme}_{c}" for c in columns})
         summary = summary.merge(part, on="canonical_id", how="left", validate="one_to_one")
 
+    title_search: dict[str, object] | None = None
+    if "psic" in classifiers and psic_title_search:
+        summary = title_search_columns(summary, frame, classifiers["psic"].taxonomy)
+        title_search = title_search_metadata(summary)
+
     # I-O industry sets follow from the PSIC classification only; see io_mapping.py.
     io_mapping: dict[str, object] | None = None
     if io_crosswalk is not None:
@@ -293,6 +306,11 @@ def classify_openplaces(
         io_mapping["resolution"] = {
             **resolution_metadata(summary, direct_rules), "selected_policy": io_resolution_policy
         }
+        # Diagnostic only: the public or private PSIC subtree implied by a known side.
+        summary, proposal_metadata = institution_psic_proposals(
+            summary, classifiers["psic"].taxonomy, io_crosswalk
+        )
+        io_mapping["institution_psic_proposal"] = proposal_metadata
     summary_path = out_dir / "classified_pois.parquet"
     summary.to_parquet(summary_path, index=False)
 
@@ -355,6 +373,7 @@ def classify_openplaces(
             for scheme, classifier in classifiers.items()
         },
         "io_mapping": io_mapping,
+        "psic_title_search": title_search,
         "outputs": {
             "entity_classifications": classifications.name,
             "classified_pois": summary_path.name,

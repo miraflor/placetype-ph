@@ -1,0 +1,81 @@
+{
+  "schema": "placetype-ph-registry-data-v1",
+  "note": "Local snapshots for the opt-in institution stage. Names and localities never verify identity on their own; only official codes and verified links can support promotion.",
+  "files": {
+    "level3_hospitals_20260930.csv": {
+      "reference_key": "hospitals",
+      "rows": 125,
+      "sha256": "4f4427dfe4bb40f428f7d143fafc2167c8b194e767a6022c54505ce4dda2b0c8",
+      "source": "PhilHealth list of accredited hospitals, as of 2026-09-30 (HOSP_093026.pdf), Level 3 rows",
+      "source_url": "https://www.philhealth.gov.ph/partners/providers/facilities/accredited/HOSP_093026.pdf",
+      "source_document_sha256": "9ef34056f893a5aa485619e71d8481f02da149ce61a1ca1d75686a2f4c81c0b4",
+      "identifier": "publication row number of the PDF, stored as 2026-09-30:row-<number>; not a facility code",
+      "ownership_basis": "explicit sector column (G or P)",
+      "counts": {
+        "public": 63,
+        "private": 62
+      },
+      "built_from": "philhealth_level3_source_20260930.csv with level3_hospital_rows"
+    },
+    "philhealth_level3_source_20260930.csv": {
+      "reference_key": "",
+      "rows": 125,
+      "sha256": "65fc98dd42431e76082bbab3daee3af289c0ad4253e3613c4cfd0f2feb77b350",
+      "source": "transcription of the Level 3 rows of HOSP_093026.pdf with the original row numbers and page numbers",
+      "source_url": "https://www.philhealth.gov.ph/partners/providers/facilities/accredited/HOSP_093026.pdf",
+      "use": "input of build-level3-hospitals; rebuilds level3_hospitals_20260930.csv byte for byte"
+    },
+    "unifast_hei_ra10931_20261104.csv.gz": {
+      "reference_key": "unifast",
+      "rows": 1955,
+      "sha256": "7c41667bbff0e82199781c01aa42e81ebca45fbc0ffc1320142c5dd6d30f3fde",
+      "source": "UniFAST list of higher education institutions participating under RA 10931, captured 2026-11-04",
+      "source_url": "https://unifast.gov.ph/hei-list.html",
+      "scope": "participating HEIs only, not all operating HEIs",
+      "identifier": "local digest of region and name; not an official HEI code",
+      "location": "region only",
+      "ownership_basis": "HEI type: SUC and LUC public, Private HEI private, CHED Supervised Institution left for review",
+      "counts": {
+        "public": 624,
+        "private": 1329,
+        "review": 2
+      }
+    },
+    "deped_schools_national.csv.gz": {
+      "reference_key": "beis",
+      "rows": 30364,
+      "sha256": "78d4f20ad200384c70dd4a05203d90c609b67378f1a00405ca4b13b338d674cd",
+      "source": "Cleaned extract prepared in project development on 2026-11-04 from a Kaggle-hosted DepEd school masterlist; intermediate schools_town_psgc_clean.csv",
+      "source_url": null,
+      "identifier": "DepEd school ID, treated as unverified",
+      "ownership_basis": "six-digit school ID prefix, a hint only (4 private; 1, 2, 3, 5 or 6 public); never promoted without a verified link",
+      "rights": "Original dataset license and redistribution clearance remain unverified. Retained at the repository owner’s direction; local cleaning does not establish redistribution rights.",
+      "counts": {
+        "rows": 30364,
+        "public_hint": 22561,
+        "private_hint": 7309,
+        "no_hint": 494
+      },
+      "provenance": "30,364 unique school IDs; school_id, school_name and town_psgc retained; Windows-1252 input converted to UTF-8 and gzip-packaged. Exact Kaggle listing, uploader, source snapshot date and license not confirmed."
+    },
+    "official_records_quezon_city_seed.csv": {
+      "reference_key": "official_records",
+      "rows": 80,
+      "sha256": "f37689eaf48307739deb4d539d2d67555b9677cd20b4d9dabc71f15ceed04edc",
+      "source": "Quezon City seed of official records: PhilHealth accredited hospital list as of 2025-05-31, DepEd NCR directory of public schools, Quezon City list of government-owned hospitals, CHED CMO No. 02 s. 2025",
+      "source_urls": [
+        "https://www.philhealth.gov.ph/partners/providers/facilities/accredited/HOSP_053125.pdf",
+        "https://www.depedncr.com.ph/directory-of-public-schools/",
+        "https://quezoncity.gov.ph/qcitizen-guides/government-owned-hospitals-in-quezon-city/",
+        "https://ched.gov.ph/wp-content/uploads/CMO-NO.-02-S.-2025.pdf"
+      ],
+      "identifier": "DepEd school IDs are official codes; the other rows are publication rows",
+      "counts": {
+        "philhealth_hospitals": 40,
+        "deped_public": 23,
+        "qc_government": 11,
+        "ched_cmo": 6
+      }
+    }
+  }
+}

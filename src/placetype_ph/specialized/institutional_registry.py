@@ -59,6 +59,55 @@ HOSPITAL_HOSTS = {
     "philhealth_hospitals": frozenset({"philhealth.gov.ph", "www.philhealth.gov.ph"}),
 }
 REGION_RE = re.compile(r"^(\d{2}[A-Z]?)\s*-\s*(.+)$", re.I)
+# Official records: named sites with an explicit public/private sector from an official
+# publication, a directory or an official export (see ``load_official_records``).
+OFFICIAL_FIELDS = (
+    "source",
+    "source_id",
+    "name",
+    "domain",
+    "ownership",
+    "city",
+    "address",
+    "aliases",
+    "source_url",
+    "as_of",
+    "id_kind",
+    "evidence_type",
+)
+DEPED_HOSTS = frozenset(
+    {"deped.gov.ph", "www.deped.gov.ph", "depedncr.com.ph", "www.depedncr.com.ph"}
+)
+# For each source: allowed official hosts, required domain and side ("" = either),
+# allowed identifier kinds and allowed evidence types.
+OFFICIAL_SOURCES: dict[str, tuple[frozenset[str], str, str, frozenset[str], frozenset[str]]] = {
+    "doh_nhfr": (
+        frozenset({"nhfr.doh.gov.ph", "hfsrb.doh.gov.ph"}),
+        "health", "", frozenset({"official_code"}), frozenset({"explicit_sector"}),
+    ),
+    "deped_masterlist": (
+        DEPED_HOSTS, "education", "", frozenset({"official_code"}),
+        frozenset({"explicit_sector"}),
+    ),
+    "deped_public": (
+        frozenset({"depedncr.com.ph", "www.depedncr.com.ph"}), "education", "public",
+        frozenset({"official_code"}), frozenset({"official_public_directory"}),
+    ),
+    "ched_cmo": (
+        frozenset({"ched.gov.ph", "www.ched.gov.ph", "legacy.ched.gov.ph"}), "education",
+        "private", frozenset({"publication_row"}), frozenset({"official_private_list"}),
+    ),
+    "philhealth_hospitals": (
+        frozenset({"philhealth.gov.ph", "www.philhealth.gov.ph"}), "health", "",
+        frozenset({"publication_row"}), frozenset({"explicit_sector"}),
+    ),
+    "qc_government": (
+        frozenset({"quezoncity.gov.ph"}), "", "public", frozenset({"publication_row"}),
+        frozenset({"official_public_directory"}),
+    ),
+}
+# A publication date, a year, a month, or an access date written as accessed-YYYY-MM-DD.
+AS_OF_RE = re.compile(r"(?:accessed-)?\d{4}(?:-\d{2}(?:-\d{2})?)?")
 
 
 def clean(value: Any) -> str:
@@ -260,6 +309,68 @@ def load_hospitals(path: Path) -> tuple[Institution, ...]:
                 as_of=v["as_of"],
                 id_kind=v["id_kind"],
                 evidence_type="explicit_sector",
+                site_scope="site",
+            )
+        )
+    return tuple(result)
+
+
+def _as_of(value: str, line: int) -> str:
+    if not AS_OF_RE.fullmatch(value):
+        raise ValueError(f"official record line {line}: invalid as_of {value!r}")
+    digits = value.removeprefix("accessed-")
+    if len(digits) == 10:
+        _date(digits)
+    return value
+
+
+def load_official_records(path: Path) -> tuple[Institution, ...]:
+    """Official sites with an explicit sector; names never verify identity on their own.
+
+    Each row names its source, and the source decides which official HTTPS hosts, domain,
+    side, identifier kind and evidence type are allowed (``OFFICIAL_SOURCES``). DOH NHFR
+    and DepEd codes are ``official_code`` identifiers that can match a place's own
+    external ID; directory and publication rows (``publication_row``) cannot. A row
+    without a city is refused, because a name-and-city match needs the city.
+    """
+    rows = _read_rows(path, OFFICIAL_FIELDS)
+    seen: set[tuple[str, str]] = set()
+    result: list[Institution] = []
+    for n, row in enumerate(rows, 2):
+        v = {col: clean(row[col]) for col in OFFICIAL_FIELDS}
+        src = v["source"]
+        if src not in OFFICIAL_SOURCES:
+            raise ValueError(f"official record line {n}: unknown source {src!r}")
+        hosts, domain, side, kinds, evidence = OFFICIAL_SOURCES[src]
+        if https_host(v["source_url"]) not in hosts:
+            raise ValueError(f"official record line {n}: URL is not an official {src} host")
+        if v["domain"] not in {"education", "health"} or (domain and v["domain"] != domain):
+            raise ValueError(f"official record line {n}: invalid domain for {src}")
+        if v["ownership"] not in {"public", "private"} or (side and v["ownership"] != side):
+            raise ValueError(f"official record line {n}: invalid ownership for {src}")
+        if v["id_kind"] not in kinds or v["evidence_type"] not in evidence:
+            raise ValueError(f"official record line {n}: identifier or evidence type mismatch")
+        if not v["source_id"] or not v["name"] or not v["city"]:
+            raise ValueError(f"official record line {n}: source_id, name and city are required")
+        _as_of(v["as_of"], n)
+        ident = (src, v["source_id"].casefold())
+        if ident in seen:
+            raise ValueError(f"official record line {n}: duplicate source identifier")
+        seen.add(ident)
+        result.append(
+            Institution(
+                src,
+                v["source_id"],
+                v["name"],
+                v["domain"],
+                v["ownership"],
+                city=v["city"],
+                address=v["address"],
+                aliases=tuple(x.strip() for x in v["aliases"].split("|") if x.strip()),
+                source_url=v["source_url"],
+                as_of=v["as_of"],
+                id_kind=v["id_kind"],
+                evidence_type=v["evidence_type"],
                 site_scope="site",
             )
         )

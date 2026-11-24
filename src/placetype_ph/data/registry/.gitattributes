@@ -1,0 +1,3 @@
+# Preserve exact registry snapshot bytes across platforms.
+*.csv text eol=lf
+*.csv.gz -text
