@@ -9,6 +9,13 @@ The design rule is simple:
 > Return the deepest code supported by the evidence. If the evidence cannot distinguish
 > children, stop at the parent. Never force a leaf.
 
+The `placetype classify` command now uses 328 packaged, reviewed PSIC Rev. 5
+source mappings by default. Use `--no-reviewed-psic` for a legacy PSIC
+comparison (disabling the new source interpretation, ontology floors, and
+administrative correction while retaining explicitly supplied crosswalks).
+See [Reviewed PSIC integration](docs/REVIEWED_PSIC_INTEGRATION.md) for
+provenance, confidence boundaries, and reproducibility.
+
 ## Scope
 
 The package supports three taxonomies with different semantics:
@@ -110,7 +117,7 @@ placetype taxonomy diagnose pcpc
 
 For PSIC Revision 5, the published structure is 22 sections, 88 divisions, 260 groups, 493
 classes and 1,338 sub-classes. Exact PCPC 2002 and PSCC 2022 counts are **not** hard-coded in
-v0.1.1. PSA's current PCPC pages disagree on the division/item totals, and the PSCC pages expose
+v0.1.2. PSA's current PCPC pages disagree on the division/item totals, and the PSCC pages expose
 the hierarchy but not one unambiguous count table. The first live diagnoses should establish the
 source/API counts before either scheme is frozen as a regression fixture.
 

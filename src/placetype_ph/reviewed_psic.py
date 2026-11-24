@@ -111,7 +111,12 @@ def trusted_psic_source_rule(
     Retrieval suggestions, unreviewed specialist proposals, generic suffixes and
     arbitrary names cannot create accepted PSIC codes here. No LLM is called.
     """
-    if taxonomy.scheme != "psic" or not category or source not in {"osm", "overture", "fsq"}:
+    if (
+        taxonomy.scheme != "psic"
+        or taxonomy.version != "rev5"
+        or not category
+        or source not in {"osm", "overture", "fsq"}
+    ):
         return None
     prepared = prepare_suggestion(taxonomy, source, category)
     terminal = prepared.terminal
@@ -168,7 +173,7 @@ def accepted_administrative_role(
     not override reviewed name rules, negative activity assertions, an exact coded
     activity, or a disjoint unrelated activity. Ownership is irrelevant here.
     """
-    if taxonomy.scheme != "psic" or "84120" not in taxonomy.nodes:
+    if taxonomy.scheme != "psic" or taxonomy.version != "rev5" or "84120" not in taxonomy.nodes:
         return None, "unavailable_administration_code"
     from .specialized.institutions import administrative
 
