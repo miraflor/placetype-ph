@@ -69,3 +69,20 @@ def test_light_theme_readability_and_text_contrast():
     assert "font-size: 16.5px" in css  # intentionally larger reading text
     assert "@media (max-width: 580px)" in css
     assert "@media (prefers-reduced-motion: reduce)" in css
+
+
+def test_theme_control_is_in_every_header():
+    """Keep the visible toggle in the top bar and its persisted preference wired."""
+    docs = Path(__file__).resolve().parents[1] / "docs"
+    for page in docs.glob("*.html"):
+        source = page.read_text(encoding="utf-8")
+        assert source.count('id="theme-toggle"') == 1, page
+        header = source.split('class="topbar"', 1)[1].split('class="reading-layout"', 1)[0]
+        assert 'id="theme-toggle"' in header, page
+        assert 'aria-label="Switch to dark mode"' in header, page
+        assert 'class="theme-moon"' in header and 'class="theme-sun"' in header, page
+        assert source.index('localStorage.getItem') < source.index('assets/css/site.css'), page
+    script = (docs / "assets/js/site.js").read_text(encoding="utf-8")
+    assert "localStorage.setItem(themeKey, next)" in script
+    assert "applyTheme(stored === 'dark' ? 'dark' : 'light')" in script
+    assert "Switch to ${target} mode" in script

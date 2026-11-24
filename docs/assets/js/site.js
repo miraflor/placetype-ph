@@ -3,12 +3,29 @@
   'use strict';
   const root = document.documentElement;
   const themeKey = 'placetype-ph-docs-theme';
-  try { const stored = localStorage.getItem(themeKey); if (stored === 'dark' || stored === 'light') root.dataset.theme = stored; } catch (_) { /* private mode */ }
   const theme = document.getElementById('theme-toggle');
-  if (theme) theme.addEventListener('click', () => {
+  const meta = document.querySelector('meta[name="theme-color"]');
+  function applyTheme(value) {
+    const dark = value === 'dark';
+    root.dataset.theme = dark ? 'dark' : 'light';
+    if (theme) {
+      const target = dark ? 'light' : 'dark';
+      theme.setAttribute('aria-label', `Switch to ${target} mode`);
+      theme.title = `Switch to ${target} mode`;
+      theme.querySelector('.theme-label').textContent = dark ? 'Light mode' : 'Dark mode';
+    }
+    if (meta) meta.content = dark ? '#142a20' : '#ffffff';
+  }
+  let stored = null;
+  try { stored = localStorage.getItem(themeKey); } catch (_) { /* private mode */ }
+  applyTheme(stored === 'dark' ? 'dark' : 'light');
+  theme?.addEventListener('click', () => {
     const next = root.dataset.theme === 'dark' ? 'light' : 'dark';
-    root.dataset.theme = next;
+    applyTheme(next);
     try { localStorage.setItem(themeKey, next); } catch (_) { /* private mode */ }
+  });
+  window.addEventListener('storage', event => {
+    if (event.key === themeKey || event.key === null) applyTheme(event.newValue);
   });
 
   const menu = document.querySelector('.menu-toggle');
