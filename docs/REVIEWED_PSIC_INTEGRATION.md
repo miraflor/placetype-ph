@@ -65,8 +65,8 @@ This integration does **not** prove empirical classification accuracy on a
 representative Philippine evaluation sample. It does not automatically accept
 any of the remaining unreviewed candidate mappings, enable LLMs, infer
 commodities from business type, or guarantee that historical classified datasets
-are regenerated. Existing optional institution-reference loading remains
-explicit, and I/O industry projection stays downstream of primary PSIC.
+are regenerated. Institutional references load by default, can be overridden or switched
+off, and I/O industry projection stays downstream of primary PSIC.
 
 ## Legacy comparisons, version scope and Express caches
 

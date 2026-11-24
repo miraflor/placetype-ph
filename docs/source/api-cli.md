@@ -67,6 +67,6 @@ The modules under `placetype_ph.specialized` provide validation, evidence extrac
 
 ## Input and output contracts
 
-For exact columns, see [Source evidence](sources.html) and [Outputs](outputs.html). A missing `canonical_id`, invalid gold codes, conflicting exact crosswalk keys, an incomplete taxonomy, or an invalid opt-in institutional configuration should fail rather than yielding a plausible-looking partial classification.
+For exact columns, see [Source evidence](sources.html) and [Outputs](outputs.html). A missing `canonical_id`, invalid gold codes, conflicting exact crosswalk keys, an incomplete taxonomy, or an invalid custom institutional configuration or corrupted bundled registry should fail rather than yielding a plausible-looking partial classification.
 
 **Source:** [`cli.py`](https://github.com/miraflor/placetype-ph/blob/main/src/placetype_ph/cli.py) · [`pipeline.py`](https://github.com/miraflor/placetype-ph/blob/main/src/placetype_ph/pipeline.py).

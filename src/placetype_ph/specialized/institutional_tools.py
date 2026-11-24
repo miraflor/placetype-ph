@@ -770,7 +770,9 @@ def review_institutions(
                                             _text(place.get("overture_name")))
                                 if v and SUBUNIT.search(v))
             issues = []
-            if evidence not in {"PROVISIONAL", "EXACT_EXTERNAL_ID", "VERIFIED_LINK"}:
+            if evidence not in {
+                "PROVISIONAL", "EXACT_EXTERNAL_ID", "VERIFIED_LINK", "REGISTRY_SITE_MATCH"
+            }:
                 issues.append("registry_status_requires_review")
             if name_relation in {"RAW_SOURCE_NAMES_DISAGREE_REVIEW",
                                  "RAW_NAME_DIFFERS_FROM_OFFICIAL_REVIEW"}:

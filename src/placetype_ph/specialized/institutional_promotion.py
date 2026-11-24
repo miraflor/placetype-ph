@@ -1,4 +1,4 @@
-"""Opt-in verified institutional ownership resolution after independent taxonomy tagging.
+"""Institutional ownership resolution after independent taxonomy tagging.
 
 This is a native PlaceType PH post-classification stage, not a new PSIC classifier.
 It never changes or infers PSIC, PCPC, PSCC, or IO fields. Provisional matches,
@@ -27,8 +27,9 @@ from .institutional_registry import (
     load_unifast,
 )
 from .institutional_shadow import InstitutionResolver, load_verified_links
+from .institutional_site import SITE_MATCH
 
-POLICY = "institution-verified-ownership-promotion-v2"
+POLICY = "institution-ownership-promotion-v3-national-site"
 NEW_FIELDS = (
     "institution_resolution_status",
     "institution_resolved_ownership",
@@ -38,7 +39,7 @@ NEW_FIELDS = (
     "institution_candidate_ownership",
     "institution_evidence_status",
 )
-PROMOTABLE = frozenset({"VERIFIED_LINK", "EXACT_EXTERNAL_ID"})
+PROMOTABLE = frozenset({"VERIFIED_LINK", "EXACT_EXTERNAL_ID", SITE_MATCH})
 INELIGIBLE_ACTIVITY = frozenset(
     {
         "REVIEW",
@@ -72,8 +73,9 @@ def resolve_institutional_ownership(
     places: pd.DataFrame,
     *,
     resolver: InstitutionResolver,
+    allow_registry_site_match: bool = False,
 ) -> pd.DataFrame:
-    """Append verified institutional ownership results, preserving all original columns.
+    """Append eligible institutional ownership results, preserving all original columns.
 
     `classified` is authoritative for PSIC and existing tagging; `places` supplies
     original names/tags and external identity assertions. Exact join is required.
@@ -117,7 +119,9 @@ def resolve_institutional_ownership(
             evidence = assessment.status
             owner, basis, refs = "", assessment.basis, "|".join(assessment.source_references)
             status, reason = assessment.status, assessment.reason
-            if assessment.status in PROMOTABLE and assessment.promotion_eligible:
+            if assessment.status == SITE_MATCH and not allow_registry_site_match:
+                status, reason = "PROVISIONAL", "registry_site_match_withheld_by_strict_policy"
+            elif assessment.status in PROMOTABLE and assessment.promotion_eligible:
                 if assessment.domain not in {"education", "health"} or candidate not in {
                     "public",
                     "private",
@@ -142,7 +146,11 @@ def resolve_institutional_ownership(
                         owner = candidate
                         hint = clean(record.get("ownership_candidate")).casefold()
                         if provisional_hint and hint in {"public", "private"} and hint != candidate:
-                            reason = "verified_ownership_overrides_provisional_hint"
+                            reason = (
+                                "registry_site_match_overrides_provisional_hint"
+                                if assessment.status == SITE_MATCH
+                                else "verified_ownership_overrides_provisional_hint"
+                            )
             elif assessment.status in PROMOTABLE:
                 status, reason = "REVIEW", "strong_status_without_promotion_eligibility"
         decisions.append(
@@ -243,7 +251,14 @@ def main(argv: list[str] | None = None) -> int:
             str(p.resolve()): _sha256(p) for p in (*refs, args.classified, args.places)
         },
         "status_counts": dict(sorted(Counter(promoted["institution_resolution_status"]).items())),
-        "resolved_verified": int((promoted["institution_resolution_status"] == "RESOLVED").sum()),
+        "resolved_verified": int((
+            promoted["institution_resolution_status"].eq("RESOLVED")
+            & promoted["institution_evidence_status"].ne(SITE_MATCH)
+        ).sum()),
+        "resolved_registry_site_matches": int((
+            promoted["institution_resolution_status"].eq("RESOLVED")
+            & promoted["institution_evidence_status"].eq(SITE_MATCH)
+        ).sum()),
         "original_classification_columns_changed": 0,
         "original_classification_rows_changed": 0,
         "name_only_matches_promoted": 0,
@@ -277,7 +292,7 @@ def main(argv: list[str] | None = None) -> int:
         if staging.exists():
             shutil.rmtree(staging)
     print(
-        "PASS: resolved verified institution ownership; "
+        "PASS: resolved eligible institution ownership; "
         "PSIC/PCPC/PSCC and existing columns unchanged"
     )
     return 0

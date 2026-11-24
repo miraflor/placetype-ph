@@ -292,7 +292,10 @@ def classify_openplaces(
     summary = summary.merge(role_frame, on="canonical_id", how="left", validate="one_to_one")
 
     summary = enrich_summary(summary, frame)
-    summary = maybe_resolve_institutions(summary, frame)
+    if io_resolution_policy in {"evidence-weighted", "extended"}:
+        summary = maybe_resolve_institutions(summary, frame, allow_registry_site_match=True)
+    else:
+        summary = maybe_resolve_institutions(summary, frame)
     summary = refine_verified_institutional_io(summary)
     refinement_metadata = ownership_io_metadata(summary)
     if refinement_metadata is not None and io_mapping is not None:

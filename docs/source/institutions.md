@@ -53,6 +53,30 @@ When strong institutional identity actually resolves ownership, `ownership_io.py
 | PSIC 85 education | 74 / 229 | 75 / 230 |
 | PSIC 86 human health | 76 / 231 | 77 / 232 |
 
-The gate additionally requires a `SINGLE` PSIC result, eligible mapped division/group status, valid bridge basis, exact two-element public/private ambiguity, complete official reference provenance, and checked bundled numeric/name correspondence. Otherwise the refinement abstains. These are not default assignments for every school or clinic.
+The gate additionally requires a `SINGLE`, `INTERSECT`, `NESTED` or `MANUAL` PSIC result, eligible mapped division/group status, valid bridge basis, exact two-element public/private ambiguity, complete official reference provenance, and checked bundled numeric/name correspondence. Otherwise the refinement abstains. These are not default assignments for every school or clinic.
 
 **Implementation:** [`institutional_pipeline.py`](https://github.com/miraflor/placetype-ph/blob/main/src/placetype_ph/specialized/institutional_pipeline.py) · [`ownership_io.py`](https://github.com/miraflor/placetype-ph/blob/main/src/placetype_ph/specialized/ownership_io.py) · [institutional data guide](https://github.com/miraflor/placetype-ph/blob/main/docs/PRIORITY3_INSTITUTIONAL_IDENTITY.md).
+
+## National registry site linkage
+
+National registry linkage is enabled with the four bundled datasets. A unique
+PhilHealth hospital may resolve ownership from exact canonical name, independently
+supplied matching municipality, and exact sufficiently specific street/building
+address; its publication row is still not a facility ID. A HEIDA record additionally
+requires the observed official HEI code and municipality within the listed address.
+Both routes require compatible accepted hospital (861...) or higher-education
+(854...) activity, nonconflicting identifying evidence and explicit registry sector.
+They produce `REGISTRY_SITE_MATCH`, not `VERIFIED_LINK` or `EXACT_EXTERNAL_ID`.
+This is deterministic source-backed linkage, not independent verification or a
+calibrated probability of identity. Strict retains the candidate for audit but does not promote it. Only evidence-weighted
+and extended accept the match, through the existing exact-pair and hierarchy checks, with
+separate `REGISTRY_SITE_MATCH` status and `psic+registry_site` source. Name-only,
+city-only, fuzzy, publication-ID-only, and bare HEI-code matches remain insufficient.
+UniFAST can corroborate an anchored HEIDA match only on agreeing name, region and
+ownership; conflicting or duplicate plausible sites remain review cases. A matching
+DepEd prefix remains advisory; only a compatible official site record with explicit
+sector can resolve school ownership. Agreement on the same DepEd ID, exact name
+and municipality PSGC allows the provisional BEIS row to corroborate that official
+record, not create ownership authority. Separate canonical POIs sharing a promoted
+registry reference remain blocked. No fifth registry, fuzzy matching, or new source
+data is introduced. Coverage depends on actual independent POI attributes.

@@ -58,7 +58,7 @@ entity ordering remain unchanged; the resolver explicitly checks this.
 
 - Does not make a new PSIC determination, override reviewed classifications,
   assign an I/O sector, or use a new ownership heuristic.
-- Provisional BEIS, UniFAST, name matches, publication-row identifiers, and bare
+- Provisional BEIS, UniFAST alone, name-only matches, publication-row identifiers, and bare
   source ownership remain non-promotable under Priority 3b rules.
 - Reference files are local. Bundled snapshots and the import, build, convert and
   review commands are described in [institution registry data and tools](INSTITUTION_REGISTRY_TOOLS.md).
@@ -74,3 +74,5 @@ and adds one module, one test module and this document. It does not change
 `cli.py`, the taxonomy classifier, reference crosswalks, or rule files.
 
 Installer note: v2 keeps the new institutional_pipeline import before specialized.integration to satisfy Ruff I001.
+
+See [national registry site linkage](source/institutions.md) for the policy-scoped matching rules. Strict retains site matches as candidates; evidence-weighted and extended may resolve them.

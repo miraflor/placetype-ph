@@ -83,3 +83,5 @@ The reviewed crosswalk decides PSIC codes. A search of the PSIC titles (the quer
 ## Public or private PSIC subtree
 
 PSIC Revision 5 names the ownership side in the leaf titles of several education and health subtrees (for example 8611 public and 8612 private hospital activities). When a place has an ownership side, `institution_psic_proposal_*` reports the subtree of that side and checks that its I-O mapping, including the draft class and subclass narrowing, is exactly the expected public or private member of the IO80 and IO240 pair. When some leaves do not name a side (for example division 85), no PSIC subtree is proposed, and only the I-O side is proposed if both the row's candidate sets and the mapping of the unchanged PSIC code are exactly the pair. The side comes, in order, from verified institution resolution, institution evidence, or a labelled inference; `institution_psic_proposal_side_basis` says which. The columns are diagnostic and change no code.
+
+See [national registry site linkage](source/institutions.md) for the policy-scoped matching rules. Strict retains site matches as candidates; evidence-weighted and extended may resolve them.

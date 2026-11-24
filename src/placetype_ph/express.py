@@ -21,7 +21,7 @@ from .reviewed_psic import bundled_psic_crosswalk_path
 # V9.4.4 adds reviewed title-search rows, title-search review columns and the public or
 # private PSIC subtree proposal. V9.4.5 fingerprints institutional references and
 # withholds unsupported animal-shelter classification.
-EXPRESS_CACHE_VERSION = "joint-v9.4.6-bundled-national-registry"
+EXPRESS_CACHE_VERSION = "joint-v9.4.8-policy-scoped-site-resolution"
 
 # Files at or below this size are keyed by content. Larger inputs keep the cheap
 # size/mtime identity, because hashing a full canonical_pois.parquet on every run costs

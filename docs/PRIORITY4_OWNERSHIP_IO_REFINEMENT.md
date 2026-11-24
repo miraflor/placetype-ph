@@ -5,8 +5,8 @@
 Adds a **downstream, additive refinement** of the built-in `IOCrosswalk` candidate
 sets after Priority 3c institutional ownership resolution, without a new
 classification engine or changing PSIC, PCPC, PSCC, IO80 name resolution, or the
-base I/O sets. No extra environment variable is needed: when
-`PLACETYPE_PH_INSTITUTION_REFERENCES` is unset, Priority 3c returns unchanged
+base I/O sets. The institutional stage runs by default with four bundled national
+references. When `PLACETYPE_PH_INSTITUTION_REFERENCES=off`, it adds no columns
 and this stage is exactly a no-op.
 
 The existing `src/placetype_ph/specialized/projection.py` is an *optional*,
@@ -16,7 +16,7 @@ externally supplied refinement catalog. It is not a replacement for the bundled
 ## Evidence rule
 
 Only `institution_resolution_status=RESOLVED` with ownership `public`/`private`,
-a `VERIFIED_LINK` or `EXACT_EXTERNAL_ID` evidence status, and nonempty verified
+a `VERIFIED_LINK` or `EXACT_EXTERNAL_ID` evidence status (or `REGISTRY_SITE_MATCH` under evidence-weighted/extended only), and nonempty
 reference and basis qualify. Furthermore:
 
 * The primary PSIC classification must have `psic_status` `SINGLE`, `INTERSECT`, `NESTED` or
@@ -69,7 +69,7 @@ fingerprints remain the authoritative provenance of the numeric mappings.
 
 ## No-op semantics and safety
 
-- Feature disabled: returns the *same DataFrame object*, adds no fields, and
+- Feature disabled (`PLACETYPE_PH_INSTITUTION_REFERENCES=off`): returns the same DataFrame object, adds no fields, and
   does not change the run metadata.
 - Feature enabled: preserves all original columns and row order, rejects
   duplicate canonical IDs, incomplete schema, malformed candidate sets, and
@@ -95,3 +95,5 @@ The preexisting `classify_openplaces` function writes
 This Priority 4 change does **not** retrofit full run-directory atomicity.
 That operational hardening should be addressed separately rather than
 represented as already resolved by this narrowly scoped projection.
+
+See [national registry site linkage](source/institutions.md) for the policy-scoped matching rules. Strict retains site matches as candidates; evidence-weighted and extended may resolve them.

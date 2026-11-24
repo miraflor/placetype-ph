@@ -16,7 +16,7 @@
 | Automatic adoption | Convenience workflow choice | Express promotes no-verdict suggestions by default *with audit status*; conservative operators can hold them. |
 | Optional LLM | Hierarchical classification and constrained decoding | Legal-child traversal, `STOP_HERE`, `INSUFFICIENT`, multi-pass consensus and cached prompt identity. |
 | Administrative function | PSIC Rev. 5 activity distinction | Narrow 84120 office correction with exact/unrelated evidence vetoes; ownership separately adjudicated. |
-| Institution identity | Verified linking and source attribution | Opt-in references, exact official site identity constraints, provisional name matches never silently promoted. |
+| Institution identity | Verified linking and source attribution | Four national references load by default; strict accepts verified links and qualified official site IDs; narrowly matched registry sites are candidates in strict and eligible in evidence-weighted/extended. |
 | I–O concordance | PSA 2018 I–O industrial system | Derived PSIC 2019 concordance and separate Rev. 5 bridge; candidate sets with provisional status and confidence. |
 | Map publication | GeoParquet standard and taxonomy hierarchy | Preserve geometry and actual ancestor paths; fail on schema/taxonomy drift. |
 | Evaluation | Hierarchical classification metrics | Report code-production rate separately from exact/hierarchy-compatible correctness and negative code avoidance. |

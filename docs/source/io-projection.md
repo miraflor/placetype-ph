@@ -43,7 +43,7 @@ Use `--io-resolution-policy strict` (default) for conservative resolution; `evid
 
 ## Ownership narrowing is separate
 
-For narrowly eligible public/private education or human-health pairs, strongly verified institutional ownership can produce `io80_refined_*` and `io240_refined_*` columns. The **original** candidate sets and basic I–O mapping statuses remain unchanged; see [Institutions](institutions.html).
+For narrowly eligible public/private education or human-health pairs, eligible official-ID or verified-link evidence, or explicitly labelled `REGISTRY_SITE_MATCH` evidence under evidence-weighted/extended only, can produce `io80_refined_*` and `io240_refined_*` columns. The **original** candidate sets and basic I–O mapping statuses remain unchanged; see [Institutions](institutions.html).
 
 ## Interpretation boundary
 

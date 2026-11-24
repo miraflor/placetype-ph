@@ -1,10 +1,10 @@
 # Priority 3b — Verified institutional ownership post-classification stage
 
-This is an **opt-in, native PlaceType PH post-classification integration** of Priority 3 institutional identity decisions. The stage adds resolved institutional ownership fields for strictly verified evidence. It does not alter PSIC, PCPC, PSCC, reviewed crosswalks, candidate sets, or any original classification column. It does not use any other project's code at runtime.
+This is an **native PlaceType PH post-classification integration, enabled by default** of Priority 3 institutional identity decisions. The stage adds resolved institutional ownership fields for independently reviewed links, qualified official site IDs, and narrowly qualified national registry site matches. It does not alter PSIC, PCPC, PSCC, reviewed crosswalks, candidate sets, or any original classification column. It does not use any other project's code at runtime.
 
 ## Eligibility and unchanged semantics
 
-Only `VERIFIED_LINK` and `EXACT_EXTERNAL_ID` decisions with `promotion_eligible=True` may populate `institution_resolved_ownership`. Both require compatible PSIC education/health activity, no blocked/uncertain activity status, source-domain eligibility, no subunit or incompatible source categories, and no conflict with existing ownership evidence. A genuine external facility ID also requires the Priority 3 resolver's site, name, locality, official code, provenance, and ownership checks. Verified canonical links must have been independently reviewed, with provenance.
+Only `VERIFIED_LINK` and `EXACT_EXTERNAL_ID` (all policies), or `REGISTRY_SITE_MATCH` (evidence-weighted and extended only) decisions with `promotion_eligible=True` may populate `institution_resolved_ownership`. All require compatible PSIC education/health activity, no blocked/uncertain activity status, source-domain eligibility, no subunit or incompatible source categories, and no conflict with existing ownership evidence. A genuine external facility ID also requires the Priority 3 resolver's site, name, locality, official code, provenance, and ownership checks. Verified canonical links must have been independently reviewed, with provenance.
 
 Name-only matches, BEIS-format records with unverified provenance, UniFAST local digests, PhilHealth PDF publication rows, OSM/Overture ownership claims by themselves, operator names, and conflicting signals **cannot produce a verified owner**. They remain candidate or review evidence in separate fields. The `institution_resolution_status=RESOLVED` value describes the new institutional ownership attribute only—not PSIC, PCPC, PSCC, IO80, IO240, or IO16.
 
@@ -12,7 +12,7 @@ This deliberately does **not** use a less strict name/ownership hint to choose a
 
 ## CLI
 
-Inputs must be the actual classified POI output and the original source-record table, both carrying unique `canonical_id` with matching entity sets. The independent classified table is authoritative for `psic_code` and `psic_status`. Sources supply names, categories, locality, and registered IDs. All reference files are **explicitly supplied**, locally stored, and validated through Priority 3 adapters; none are downloaded or bundled.
+Inputs must be the actual classified POI output and the original source-record table, both carrying unique `canonical_id` with matching entity sets. The independent classified table is authoritative for `psic_code` and `psic_status`. Sources supply names, categories, locality, and registered IDs. The main pipeline uses four validated bundled references by default. The standalone diagnostic CLI below takes explicit local files; no network access is used.
 
 ```powershell
 python -m placetype_ph.specialized.institutional_promotion `
@@ -32,8 +32,8 @@ Remove `--dry-run` to create `classified_with_institutions.parquet` and `institu
 | Field | Description |
 |---|---|
 | `institution_resolution_status` | `RESOLVED`, `REVIEW`, `ABSTAIN`, `PROVISIONAL`, `EXPLICIT_SOURCE_CLAIM`, `NO_EVIDENCE`, or another original evidence status |
-| `institution_resolved_ownership` | `public`/`private` **only** for eligible verified evidence |
-| `institution_resolution_basis` | Official-ID or verified-link evidence basis, otherwise advisory basis |
+| `institution_resolved_ownership` | `public`/`private` **only** for eligible source-backed identity evidence |
+| `institution_resolution_basis` | Official-ID, verified-link or registry-site evidence basis, otherwise advisory basis |
 | `institution_resolution_reference` | Registry source identifiers, preserving original provenance |
 | `institution_resolution_reason` | Explanation for promotion, review, or abstention |
 | `institution_candidate_ownership` | Candidate owner, never conflated with verified ownership |
@@ -43,4 +43,6 @@ Remove `--dry-run` to create `classified_with_institutions.parquet` and `institu
 
 ## Limitations and next parity checkpoint
 
-This stage can be invoked after PlaceType PH's ordinary classification and is tested against the Priority 3 evidence module. **It is not automatically called by the main `placetype-ph` CLI.** An unconditional main-pipeline patch cannot be safely built from an unavailable current `pipeline.py` checkout. Automatic invocation, optional CLI flags for reference files, verified-source ownership promotion, and IO industry resolution should follow a pinned source review. Neither a successful smoke test nor the presence of this code should be described as full production-pipeline or IO classification parity.
+The main `placetype classify` and `placetype express` workflows now invoke institutional enrichment by default. Set `PLACETYPE_PH_INSTITUTION_REFERENCES=off` to disable it. The standalone command remains available for diagnostic use.
+
+See [national registry site linkage](source/institutions.md) for the policy-scoped matching rules. Strict retains site matches as candidates; evidence-weighted and extended may resolve them.
