@@ -121,6 +121,7 @@ def _gate(row: Mapping[str, Any], domain: str) -> tuple[str, str]:
 def _source_identities(row: Mapping[str, Any]) -> set[tuple[str, str]]:
     ids = set()
     for field, source in (
+        ("ched_hei_code", "ched_hei"),
         ("nhfr_code", "doh_nhfr"),
         ("doh_facility_code", "doh_nhfr"),
         ("deped_school_id", "deped_beis"),
@@ -130,6 +131,8 @@ def _source_identities(row: Mapping[str, Any]) -> set[tuple[str, str]]:
         if clean(row.get(field)):
             ids.add((source, clean(row[field]).casefold()))
     for part in _parts(row):
+        if part.startswith("ref:ched="):
+            ids.add(("ched_hei", part.partition("=")[2].strip().casefold()))
         if part.startswith("ref:nhfr="):
             ids.add(("doh_nhfr", part.partition("=")[2].strip()))
         if part.startswith("ref:deped=") or part.startswith("ref:deped:school="):
@@ -444,6 +447,8 @@ class InstitutionResolver:
                 if match.source == "deped_beis"
                 else "unifast_participating_hei"
                 if match.source == "unifast_ra10931"
+                else "ched_heida_provisional"
+                if match.source == "ched_hei"
                 else "registry_name_city_provisional"
             )
             return InstitutionDecision(

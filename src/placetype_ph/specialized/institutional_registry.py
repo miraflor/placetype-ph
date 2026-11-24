@@ -269,8 +269,68 @@ def load_unifast(path: Path) -> tuple[Institution, ...]:
     return tuple(result)
 
 
+HEIDA_FIELDS = ("source_id", "name", "hei_type", "ownership", "address", "source_url", "as_of")
+HEIDA_URL = "https://heida.ched.gov.ph/hei-directory"
+HEIDA_PUBLIC_TYPES = frozenset({
+    "Chartered State College/University (Main)",
+    "Chartered State College/University (Satellite Campus)",
+    "Local Government College/University",
+})
+HEIDA_PRIVATE_TYPES = frozenset({
+    "Private Non-Sectarian Non-Stock", "Private Non-Sectarian Stock",
+    "Private Sectarian Non-Stock", "Private Sectarian Stock",
+    "Private Non-Sectarian Foundation", "Private Sectarian Foundation",
+    "Private Non-Stock Non-Profit Corporation",
+})
+
+
+def load_heida(path: Path) -> tuple[Institution, ...]:
+    """CHED directory codes identify institutions, not independently verified sites."""
+    result: list[Institution] = []
+    seen: set[str] = set()
+    for n, row in enumerate(_read_rows(path, HEIDA_FIELDS), 2):
+        v = {col: clean(row[col]) for col in HEIDA_FIELDS}
+        code, typ = v["source_id"], v["hei_type"]
+        side = (
+            "public" if typ in HEIDA_PUBLIC_TYPES
+            else "private" if typ in HEIDA_PRIVATE_TYPES else ""
+        )
+        if (not re.fullmatch(r"(?:[0-9]+(?: ?[A-Za-z][A-Za-z0-9]*)?|N_[0-9]+)", code, re.I)
+                or "xxx" in code.casefold() or not v["name"]):
+            raise ValueError(f"HEIDA line {n}: invalid HEI code/name")
+        if not side or v["ownership"] != side:
+            raise ValueError(f"HEIDA line {n}: unreviewed or conflicting HEI ownership")
+        if v["source_url"] != HEIDA_URL:
+            raise ValueError(f"HEIDA line {n}: invalid source URL")
+        _date(v["as_of"])
+        if code.casefold() in seen:
+            raise ValueError(f"HEIDA line {n}: duplicate HEI code")
+        seen.add(code.casefold())
+        result.append(Institution(
+            "ched_hei", code, v["name"], "education", side,
+            address=v["address"], source_url=HEIDA_URL, as_of=v["as_of"],
+            id_kind="official_code", evidence_type=f"ched_hei_type:{typ}",
+            site_scope="organization",
+        ))
+    return tuple(result)
+
+
 def load_hospitals(path: Path) -> tuple[Institution, ...]:
-    """Typed Level 3 local registry; publication row IDs are not official facility IDs."""
+    """Unified Level 1–3 hospital registry; publication rows are not facility IDs."""
+    return _load_hospitals(path, None)
+
+
+def load_level1_hospitals(path: Path) -> tuple[Institution, ...]:
+    """Typed Level 1 local registry, separate from higher-level snapshots."""
+    return _load_hospitals(path, 1)
+
+
+def load_level2_hospitals(path: Path) -> tuple[Institution, ...]:
+    """Typed Level 2 local registry, separate from the Level 3 snapshot."""
+    return _load_hospitals(path, 2)
+
+
+def _load_hospitals(path: Path, level: int | None) -> tuple[Institution, ...]:
     rows = _read_rows(path, HOSPITAL_FIELDS)
     seen: set[tuple[str, str]] = set()
     result: list[Institution] = []
@@ -283,8 +343,14 @@ def load_hospitals(path: Path) -> tuple[Institution, ...]:
             raise ValueError(f"hospital line {n}: missing facility identity")
         if v["ownership"] not in {"public", "private"} or v["domain"] != "health":
             raise ValueError(f"hospital line {n}: invalid sector/domain")
-        if key(v["facility_level"]) not in {"level 3", "level iii", "level three"}:
-            raise ValueError(f"hospital line {n}: only explicitly Level 3 hospitals supported")
+        levels = {
+            1: {"level 1", "level i", "level one"},
+            2: {"level 2", "level ii", "level two"},
+            3: {"level 3", "level iii", "level three"},
+        }
+        allowed = levels[level] if level is not None else set().union(*levels.values())
+        if key(v["facility_level"]) not in allowed:
+            raise ValueError(f"hospital line {n}: unsupported explicit hospital level")
         if v["evidence_type"] != "explicit_sector":
             raise ValueError(f"hospital line {n}: ownership requires explicit-sector evidence")
         expected_kind = "official_code" if src == "doh_nhfr" else "publication_row"

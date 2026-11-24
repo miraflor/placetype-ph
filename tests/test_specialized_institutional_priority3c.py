@@ -1,4 +1,4 @@
-"""Priority 3c: exact, opt-in ownership stage in the normal tagging pipeline."""
+"""Priority 3c: default bundled ownership stage in the normal tagging pipeline."""
 
 from __future__ import annotations
 
@@ -70,7 +70,7 @@ def hospitals(tmp_path: Path) -> Path:
 
 
 def test_disabled_is_exact_identity(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.delenv(ENVIRONMENT_KEY, raising=False)
+    monkeypatch.setenv(ENVIRONMENT_KEY, "off")
     old = classified()
     assert maybe_resolve_institutions(old, places()) is old
 
@@ -157,10 +157,10 @@ def test_missing_reference_is_error(tmp_path: Path) -> None:
 def test_invalid_registry_data_fails_closed(tmp_path: Path) -> None:
     path = hospitals(tmp_path)
     path.write_text(
-        path.read_text(encoding="utf-8").replace("Level 3", "Level 1"),
+        path.read_text(encoding="utf-8").replace("Level 3", "Infirmary"),
         encoding="utf-8",
     )
-    with pytest.raises(ValueError, match="Level 3"):
+    with pytest.raises(ValueError, match="unsupported explicit hospital level"):
         resolve_from_references(classified(), places(), references={"hospitals": path})
 
 

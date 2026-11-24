@@ -18,7 +18,7 @@ The separate **178-rule** specialized catalog handles activity patterns, institu
 
 ## Explicit local registry references
 
-Institutional enrichment is **opt-in** via `PLACETYPE_PH_INSTITUTION_REFERENCES`, pointing to a validated local JSON config with existing absolute reference file paths. Supported reference keys are `beis`, `unifast`, `hospitals`, `official_records`, and `verified_links`. The package bundles snapshots of Level 3 hospitals, UniFAST institutions, a DepEd school list and a Quezon City seed of official records; `python -m placetype_ph.specialized install-references` copies them and writes the configuration. The same command group imports DOH NHFR and DepEd exports, builds a Level 3 hospital reference from its official table, converts registry-layout verified-link files and writes a review queue that never verifies identity (see `docs/INSTITUTION_REGISTRY_TOOLS.md` in the repository). Absence of the environment variable is a no-op. An explicitly configured, invalid reference fails the run.
+Institutional enrichment is **enabled by default**. The four bundled national datasets are CHED HEIDA (2,424 eligible records), a single PhilHealth Level 1–3 hospital registry (1,338), UniFAST (1,955), and DepEd (30,364). All 36,081 reference records load locally without a separate download or configuration. Ambiguous HEIDA records are excluded. Set `PLACETYPE_PH_INSTITUTION_REFERENCES` only to override with a validated local JSON configuration or use the literal `off` to disable the stage. Invalid configurations and corrupted bundled data fail closed. See `docs/INSTITUTION_REGISTRY_TOOLS.md`.
 
 ```json
 {
@@ -42,7 +42,7 @@ This is only a configuration illustration: it does not assert that any particula
 | OSM/Overture owner/operator claim | Explicit source claim, not independently verified ownership. |
 | Religious prefix / “National” in name | Never sufficient alone to establish legal ownership. |
 
-Wrong-site branches, incompatible PSIC domains, duplicate identities, or contradictory evidence force review or abstention. No external registry dataset is bundled by this package's institutional component, and no network download is required to run the default classification.
+Wrong-site branches, incompatible PSIC domains, duplicate identities, or contradictory evidence force review or abstention. The packaged registry is available offline; no network download is required for default institutional enrichment.
 
 ## Exact gated I–O candidate refinement
 

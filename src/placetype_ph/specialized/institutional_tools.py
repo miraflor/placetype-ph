@@ -1,16 +1,15 @@
 """Tools around the institution registry: import, build, install, convert and review.
 
 None of these tools changes a classification. They prepare reference files that the
-opt-in institution stage reads (``PLACETYPE_PH_INSTITUTION_REFERENCES``), convert
+institution stage reads (``PLACETYPE_PH_INSTITUTION_REFERENCES``), convert
 verified-link files, and write review queues. Outputs are new files; an existing file is
 never overwritten.
 
 - ``import_official_export``: DOH NHFR or DepEd masterlist exports (CSV or Excel) with an
   explicit public/private sector, to official-record rows. A row without an explicit
   sector is left out, never guessed. NHFR rows are kept only for hospitals.
-- ``level3_hospital_rows``: an official Level 3 hospital table (the PhilHealth accredited
-  hospital list transcribed with its row numbers, or an NHFR export) to the Level 3
-  hospital reference read by ``load_hospitals``.
+- ``hospital_rows``: an official hospital table (PhilHealth publication rows or an
+  NHFR export) to a unified Level 1–3 reference read by ``load_hospitals``.
 - ``install_references``: copy the bundled reference snapshots, after checking their
   hashes, into a folder and write the reference configuration that points to them.
 - ``convert_registry_links``: convert a verified-link file in the registry layout
@@ -44,7 +43,10 @@ from .institutional_registry import (
     https_host,
     key,
     load_beis,
+    load_heida,
     load_hospitals,
+    load_level1_hospitals,
+    load_level2_hospitals,
     load_official_records,
     load_unifast,
 )
@@ -58,6 +60,9 @@ LOADERS: dict[str, Callable[[Path], tuple[Institution, ...]]] = {
     "beis": load_beis,
     "unifast": load_unifast,
     "hospitals": load_hospitals,
+    "heida": load_heida,
+    "level1_hospitals": load_level1_hospitals,
+    "level2_hospitals": load_level2_hospitals,
     "official_records": load_official_records,
 }
 # Source family of a verified link, taken from the official host of its source URL.
@@ -71,6 +76,7 @@ LINK_SOURCE_BY_HOST = {
     "philhealth.gov.ph": "philhealth_hospitals",
     "www.philhealth.gov.ph": "philhealth_hospitals",
     "unifast.gov.ph": "unifast_ra10931",
+    "heida.ched.gov.ph": "ched_hei",
     "ched.gov.ph": "ched_cmo",
     "www.ched.gov.ph": "ched_cmo",
     "quezoncity.gov.ph": "qc_government",
@@ -218,21 +224,41 @@ def _level3(value: str) -> bool:
 def level3_hospital_rows(
     records: Iterable[Mapping[str, Any]], *, source: str, url: str, as_of: str
 ) -> tuple[list[dict[str, str]], Counter[str]]:
-    """Level 3 hospital reference rows from an official table, with counts.
+    return hospital_rows(records, source=source, url=url, as_of=as_of, level=3)
+
+
+def hospital_rows(
+    records: Iterable[Mapping[str, Any]], *, source: str, url: str, as_of: str,
+    level: int | None = None,
+) -> tuple[list[dict[str, str]], Counter[str]]:
+    """Explicit Level 1, 2 or 3 hospital reference rows from an official table.
 
     A PhilHealth row number is a publication row, never a facility identifier, and is
     stored as ``<as_of>:row-<number>``. An NHFR code is an official facility code.
     """
     if source not in {"philhealth_hospitals", "doh_nhfr"}:
         raise ValueError("source must be philhealth_hospitals or doh_nhfr")
+    if level not in {None, 1, 2, 3}:
+        raise ValueError("hospital level must be 1, 2 or 3")
     _iso_date(as_of, "as_of")
     output: list[dict[str, str]] = []
     stats: Counter[str] = Counter()
     for n, record in enumerate(records, start=2):
         stats["input"] += 1
-        level = _field(record, "CAT", "Hospital Level", "Service Capability Level", "Level",
-                       "Hospital Classification")
-        if not _level3(level):
+        observed_level = _field(
+            record, "CAT", "Hospital Level", "Service Capability Level", "Level",
+            "Hospital Classification",
+        )
+        patterns = {
+            1: r"(?:level\s*)?(?:1|i|one)",
+            2: r"(?:level\s*)?(?:2|ii|two)",
+            3: r"(?:level\s*)?(?:3|iii|three)",
+        }
+        actual_level = next(
+            (n for n, pattern in patterns.items() if re.fullmatch(pattern, key(observed_level))),
+            None,
+        )
+        if actual_level is None or (level is not None and actual_level != level):
             stats["other_hospital_level"] += 1
             continue
         name = _field(record, "NAME OF HEALTH FACILITY", "Health Facility Name",
@@ -256,7 +282,8 @@ def level3_hospital_rows(
             kind = "publication_row"
         if not identifier or not name or not side:
             raise ValueError(
-                f"Level 3 hospital input row {n}: missing row number or official code, "
+                f"Level {actual_level} hospital input row {n}: "
+                "missing row number or official code, "
                 "name, or explicit G/P ownership"
             )
         output.append(
@@ -274,7 +301,7 @@ def level3_hospital_rows(
                 "as_of": as_of,
                 "id_kind": kind,
                 "evidence_type": "explicit_sector",
-                "facility_level": "Level 3",
+                "facility_level": f"Level {actual_level}",
             }
         )
         stats["included"] += 1
@@ -325,20 +352,22 @@ def verify_bundled() -> dict[str, dict[str, Any]]:
         digest = _sha256(path)
         if digest != entry["sha256"]:
             raise ValueError(f"bundled registry file {name} does not match its manifest hash")
-        rows = None
         if entry.get("reference_key") in LOADERS:
             rows = len(LOADERS[entry["reference_key"]](path))
-            if rows != entry["rows"]:
-                raise ValueError(f"bundled registry file {name}: {rows} rows, manifest says "
-                                 f"{entry['rows']}")
-        report[name] = {"sha256": digest, "rows": rows if rows is not None else entry["rows"]}
+        else:
+            rows = len(read_table(path))
+        if rows != entry["rows"]:
+            raise ValueError(
+                f"bundled registry file {name}: {rows} rows, manifest says {entry['rows']}"
+            )
+        report[name] = {"sha256": digest, "rows": rows}
     return report
 
 
 def install_references(
     target: Path,
     *,
-    include: Iterable[str] = ("hospitals", "unifast", "beis", "official_records"),
+    include: Iterable[str] | None = None,
     verified_links: Path | None = None,
 ) -> Path:
     """Copy bundled snapshots into ``target`` and write ``institution_references.json``.
@@ -349,17 +378,17 @@ def install_references(
     returned file to use the references in a run.
     """
     target = Path(target).expanduser().resolve()
-    wanted = list(dict.fromkeys(include))
-    unknown = set(wanted) - set(LOADERS)
+    files = registry_manifest()["files"]
+    by_key = {entry["reference_key"]: name for name, entry in files.items()
+              if entry.get("reference_key") in LOADERS}
+    wanted = list(dict.fromkeys(by_key if include is None else include))
+    unknown = set(wanted) - by_key.keys()
     if unknown:
         raise ValueError(f"unknown reference types: {sorted(unknown)}")
     config_path = target / "institution_references.json"
     if config_path.exists():
         raise FileExistsError(f"refusing to overwrite existing configuration: {config_path}")
     verify_bundled()
-    files = registry_manifest()["files"]
-    by_key = {entry["reference_key"]: name for name, entry in files.items()
-              if entry.get("reference_key") in LOADERS}
     plan: dict[str, tuple[Path, Path]] = {}
     for label in wanted:
         name = by_key[label]
@@ -564,6 +593,8 @@ def _official_ids(place: Mapping[str, Any], tags: dict[str, list[str]],
     if record.source == "doh_nhfr":
         observed = _unique([*(_text(place.get(k)) for k in ("nhfr_code", "doh_facility_code")),
                             *tags.get("ref:nhfr", []), *tags.get("nhfr:code", [])])
+    elif record.source == "ched_hei":
+        observed = _unique([_text(place.get("ched_hei_code")), *tags.get("ref:ched", [])])
     elif record.source.startswith("deped"):
         observed = _unique([*(_text(place.get(k)) for k in ("deped_school_id", "beis_school_id",
                                                             "school_id")),
@@ -863,6 +894,7 @@ __all__ = [
     "convert_registry_links",
     "import_official_export",
     "install_references",
+    "hospital_rows",
     "level3_hospital_rows",
     "load_references",
     "read_table",

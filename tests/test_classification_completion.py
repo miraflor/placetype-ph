@@ -230,25 +230,30 @@ def test_proposal_needs_full_pair_and_a_side(taxonomy, io_crosswalk):
 
 def test_bundled_registry_snapshots_match_manifest():
     report = tools.verify_bundled()
-    assert report["level3_hospitals_20260930.csv"]["rows"] == 125
+    assert report["philhealth_hospitals_20260930.csv"]["rows"] == 1338
     assert report["deped_schools_national.csv.gz"]["rows"] == 30364
     assert report["unifast_hei_ra10931_20261104.csv.gz"]["rows"] == 1955
-    assert report["official_records_quezon_city_seed.csv"]["rows"] == 80
+    assert report["ched_heida_eligible_20261104.csv"]["rows"] == 2424
 
 
-def test_hospital_reference_rebuilds_from_its_source_table(tmp_path):
-    rows, stats = tools.level3_hospital_rows(
-        tools.read_table(REGISTRY / "philhealth_level3_source_20260930.csv"),
-        source="philhealth_hospitals",
-        url="https://www.philhealth.gov.ph/partners/providers/facilities/accredited/HOSP_093026.pdf",
+def test_hospital_reference_builds_all_levels(tmp_path):
+    source = [
+        {"No": str(level), "NAME OF HEALTH FACILITY": f"Hospital {level}",
+         "CAT": f"LEVEL {level}", "SEC": "G"}
+        for level in (1, 2, 3)
+    ]
+    rows, stats = tools.hospital_rows(
+        source, source="philhealth_hospitals",
+        url=("https://www.philhealth.gov.ph/partners/providers/facilities/"
+             "accredited/HOSP_093026.pdf"),
         as_of="2026-09-30",
     )
-    assert stats["included"] == 125
+    assert stats["included"] == 3
     target = tmp_path / "hospitals.csv"
     from placetype_ph.specialized.institutional_registry import HOSPITAL_FIELDS, load_hospitals
 
-    assert tools.write_reference(target, rows, HOSPITAL_FIELDS, load_hospitals) == 125
-    assert target.read_bytes() == (REGISTRY / "level3_hospitals_20260930.csv").read_bytes()
+    assert tools.write_reference(target, rows, HOSPITAL_FIELDS, load_hospitals) == 3
+    assert len(load_hospitals(target)) == 3
     with pytest.raises(FileExistsError):
         tools.write_reference(target, rows, HOSPITAL_FIELDS, load_hospitals)
 
@@ -268,7 +273,6 @@ def _write(path: Path, header: list[str], rows: list[list[str]]) -> Path:
 
 
 def test_official_records_follow_their_source_rules(tmp_path):
-    assert len(load_official_records(REGISTRY / "official_records_quezon_city_seed.csv")) == 80
     good = ["deped_public", "136539", "A School", "education", "public", "Quezon City", "", "",
             "https://www.depedncr.com.ph/directory-of-public-schools/", "2026-11-01",
             "official_code", "official_public_directory"]

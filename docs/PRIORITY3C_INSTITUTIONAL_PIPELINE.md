@@ -1,18 +1,17 @@
-# Priority 3c: opt-in ownership enrichment in the standard pipeline
+# Priority 3c: default ownership enrichment in the standard pipeline
 
 Priority 3c wires the existing Priority 3b `resolve_institutional_ownership` into
 `classify_openplaces`, **after** the existing per-taxonomy classification and
 specialized evidence enrichment, and **before** the existing classified POI export.
 It does not introduce any new eligibility or promotion rules.
 
-## Disabled by default
+## Enabled by default
 
-When `PLACETYPE_PH_INSTITUTION_REFERENCES` is absent, the stage returns the exact
-existing in-memory classification frame unchanged and adds **no columns**.
-Nothing is downloaded, no references are loaded, and the current workflow and
-outputs remain unchanged.
+A normal run reads the four packaged national registry snapshots. No environment
+variable, installation of reference files, network request or separate download is
+needed. The manifest and active file checksums are verified before use.
 
-## Explicit opt-in
+## Optional custom configuration
 
 Create a JSON configuration *outside the repository*, for example:
 
@@ -47,8 +46,8 @@ $env:PLACETYPE_PH_INSTITUTION_REFERENCES = "$HOME\Downloads\institution_referenc
 Remove-Item Env:\PLACETYPE_PH_INSTITUTION_REFERENCES
 ```
 
-An invalid or empty opt-in configuration **fails the classification run** before
-publishing the classified summary. A missing environment variable is a no-op.
+An invalid or empty custom configuration **fails the classification run** before
+publishing the classified summary. An absent environment variable selects the bundled references. Set the variable to the literal `off` only to explicitly disable enrichment.
 
 When enabled, the existing `classified_pois.parquet` receives the seven
 `institution_resolution_*` / institutional evidence columns documented for
@@ -63,7 +62,7 @@ entity ordering remain unchanged; the resolver explicitly checks this.
   source ownership remain non-promotable under Priority 3b rules.
 - Reference files are local. Bundled snapshots and the import, build, convert and
   review commands are described in [institution registry data and tools](INSTITUTION_REGISTRY_TOOLS.md).
-- Automatic ownership enrichment is **opt-in**, not on by default.
+- Automatic institutional evidence enrichment is **enabled by default**; promotion guards are unchanged.
 - The installer requires the merged Priority 3b modules and a fresh feature
   branch from the latest remote `main`, and fails closed on unexpected pipeline
   structure. The installer never commits, pushes, merges or deploys.

@@ -33,13 +33,18 @@ def _import_export(args: argparse.Namespace) -> int:
 
 def _build_hospitals(args: argparse.Namespace) -> int:
     from .institutional_registry import HOSPITAL_FIELDS, load_hospitals
-    from .institutional_tools import level3_hospital_rows, read_table, write_reference
+    from .institutional_tools import hospital_rows, read_table, write_reference
 
-    rows, stats = level3_hospital_rows(
-        read_table(args.input), source=args.source, url=args.source_url, as_of=args.as_of
+    legacy = args.command == "build-level3-hospitals"
+    rows, stats = hospital_rows(
+        read_table(args.input), source=args.source, url=args.source_url, as_of=args.as_of,
+        level=3 if legacy else None,
     )
-    if len(rows) < 100 and not args.allow_partial:
-        raise ValueError("the table has fewer than 100 Level 3 hospitals; use --allow-partial")
+    if not args.allow_partial:
+        if legacy and len(rows) < 100:
+            raise ValueError("the table has fewer than 100 Level 3 hospitals; use --allow-partial")
+        if not legacy and {r["facility_level"] for r in rows} != {"Level 1", "Level 2", "Level 3"}:
+            raise ValueError("all three hospital levels required; use --allow-partial")
     report = {"records": len(rows), "counts": dict(stats), "source_url": args.source_url,
               "as_of": args.as_of}
     if not args.check:
@@ -107,6 +112,7 @@ TOOL_COMMANDS = {
     "convert-links": _convert_links,
     "import-registry-export": _import_export,
     "build-level3-hospitals": _build_hospitals,
+    "build-hospitals": _build_hospitals,
     "install-references": _install,
     "verify-registry-data": _verify,
     "review-institutions": _review,
@@ -152,7 +158,8 @@ def main(argv: list[str] | None = None) -> int:
     export.add_argument("--city", default="", help="keep only this city (default: all)")
     export.add_argument("--output", type=Path, required=True)
     build = sub.add_parser(
-        "build-level3-hospitals", help="Level 3 hospital reference from an official table"
+        "build-hospitals", aliases=["build-level3-hospitals"],
+        help="Hospital reference from an official table (all levels by default)",
     )
     build.add_argument("--input", type=Path, required=True)
     build.add_argument(
@@ -170,8 +177,8 @@ def main(argv: list[str] | None = None) -> int:
     install.add_argument(
         "--include",
         nargs="+",
-        choices=("hospitals", "unifast", "beis", "official_records"),
-        default=["hospitals", "unifast", "beis", "official_records"],
+        choices=("hospitals", "heida", "unifast", "beis"),
+        default=None,
     )
     install.add_argument("--verified-links", type=Path)
     sub.add_parser("verify-registry-data", help="check bundled registry snapshots")

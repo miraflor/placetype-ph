@@ -30,7 +30,7 @@
 <h2 id="specialized-advisory-evidence">Specialized advisory evidence</h2>
 <p>The separate <strong>178-rule</strong> specialized catalog handles activity patterns, institution types, source-specific signals, and review candidates. It emits audit fields such as <code>specialized_status</code>, <code>specialized_candidate_codes</code>, <code>administrative_candidate_code</code>, <code>ownership_candidate</code>, registry evidence fields and <code>specialized_audit</code>. These advisory candidates do <strong>not</strong> silently overwrite accepted PSIC, PCPC or PSCC decisions. A source label suggesting “public” is not equal to registry verification.</p>
 <h2 id="explicit-local-registry-references">Explicit local registry references</h2>
-<p>Institutional enrichment is <strong>opt-in</strong> via <code>PLACETYPE_PH_INSTITUTION_REFERENCES</code>, pointing to a validated local JSON config with existing absolute reference file paths. Supported reference keys are <code>beis</code>, <code>unifast</code>, <code>hospitals</code>, <code>official_records</code>, and <code>verified_links</code>. The package bundles snapshots of Level 3 hospitals, UniFAST institutions, a DepEd school list and a Quezon City seed of official records; <code>python -m placetype_ph.specialized install-references</code> copies them and writes the configuration. The same command group imports DOH NHFR and DepEd exports, builds a Level 3 hospital reference from its official table, converts registry-layout verified-link files and writes a review queue that never verifies identity (see <code>docs/INSTITUTION_REGISTRY_TOOLS.md</code> in the repository). Absence of the environment variable is a no-op. An explicitly configured, invalid reference fails the run.</p>
+<p>Institutional enrichment is <strong>enabled by default</strong>. The four bundled national datasets are CHED HEIDA (2,424 eligible records), a single PhilHealth Level 1–3 hospital registry (1,338), UniFAST (1,955), and DepEd (30,364). All 36,081 reference records load locally without a separate download or configuration. Ambiguous HEIDA records are excluded. Set <code>PLACETYPE_PH_INSTITUTION_REFERENCES</code> only to override with a validated local JSON configuration or use the literal <code>off</code> to disable the stage. Invalid configurations and corrupted bundled data fail closed. See <code>docs/INSTITUTION_REGISTRY_TOOLS.md</code>.</p>
 <pre><code class="language-json">{
   &quot;schema&quot;: &quot;placetype-ph-institution-reference-config-v1&quot;,
   &quot;references&quot;: {
@@ -74,7 +74,7 @@
 </tr>
 </tbody>
 </table>
-<p>Wrong-site branches, incompatible PSIC domains, duplicate identities, or contradictory evidence force review or abstention. No external registry dataset is bundled by this package's institutional component, and no network download is required to run the default classification.</p>
+<p>Wrong-site branches, incompatible PSIC domains, duplicate identities, or contradictory evidence force review or abstention. The packaged registry is available offline; no network download is required for default institutional enrichment.</p>
 <h2 id="exact-gated-i-o-candidate-refinement">Exact gated I–O candidate refinement</h2>
 <p>When strong institutional identity actually resolves ownership, <code>ownership_io.py</code> can append <em>separate refined candidate columns</em> for eligible <strong>education</strong> (PSIC division 85) or <strong>human health</strong> (division 86). The original I–O candidate sets are never overwritten.</p>
 <table>
