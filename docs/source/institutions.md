@@ -18,7 +18,7 @@ The separate **178-rule** specialized catalog handles activity patterns, institu
 
 ## Explicit local registry references
 
-Institutional enrichment is **opt-in** via `PLACETYPE_PH_INSTITUTION_REFERENCES`, pointing to a validated local JSON config with existing absolute reference file paths. Supported reference keys are `beis`, `unifast`, `hospitals`, and `verified_links`. Absence of the environment variable is a no-op. An explicitly configured, invalid reference fails the run.
+Institutional enrichment is **opt-in** via `PLACETYPE_PH_INSTITUTION_REFERENCES`, pointing to a validated local JSON config with existing absolute reference file paths. Supported reference keys are `beis`, `unifast`, `hospitals`, `official_records`, and `verified_links`. The package bundles snapshots of Level 3 hospitals, UniFAST institutions, a DepEd school list and a Quezon City seed of official records; `python -m placetype_ph.specialized install-references` copies them and writes the configuration. The same command group imports DOH NHFR and DepEd exports, builds a Level 3 hospital reference from its official table, converts registry-layout verified-link files and writes a review queue that never verifies identity (see `docs/INSTITUTION_REGISTRY_TOOLS.md` in the repository). Absence of the environment variable is a no-op. An explicitly configured, invalid reference fails the run.
 
 ```json
 {

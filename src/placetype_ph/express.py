@@ -18,7 +18,10 @@ from .reviewed_psic import bundled_psic_crosswalk_path
 # epistemic floor and backs immediate PSIC sibling disagreements off exactly one level.
 # V9.4 adds classification corrections: UNION I-O mapping, the official IO240 hierarchy,
 # category precedence over packaged keyword name rules, and the newer administrative rule.
-EXPRESS_CACHE_VERSION = "joint-v9.4.3-classification-resolution"
+# V9.4.4 adds reviewed title-search rows, title-search review columns and the public or
+# private PSIC subtree proposal. V9.4.5 fingerprints institutional references and
+# withholds unsupported animal-shelter classification.
+EXPRESS_CACHE_VERSION = "joint-v9.4.5-classification-completion-hardening"
 
 # Files at or below this size are keyed by content. Larger inputs keep the cheap
 # size/mtime identity, because hashing a full canonical_pois.parquet on every run costs
@@ -123,6 +126,33 @@ def file_state(path: Path) -> str:
     return f"stat:{path.parent.name}/{path.name}:{stat.st_size}:{stat.st_mtime_ns}"
 
 
+def _content_sha256(path: Path) -> str:
+    """Hash all bytes of an institutional reference, even for large registries."""
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def institutional_reference_state() -> dict[str, object]:
+    """Fail closed on invalid opt-in configuration, including on cached runs."""
+    from .specialized.institutional_pipeline import ENVIRONMENT_KEY, load_reference_config
+
+    raw = os.environ.get(ENVIRONMENT_KEY)
+    if raw is None:
+        return {"enabled": False}
+    if not raw.strip():
+        raise ValueError(f"{ENVIRONMENT_KEY} was set but is empty")
+    config = Path(raw)
+    references = load_reference_config(config)
+    return {
+        "enabled": True,
+        "config_sha256": _content_sha256(config),
+        "references": {label: _content_sha256(path) for label, path in references.items()},
+    }
+
+
 def pipeline_state(io_resolution_policy: str = "strict") -> str:
     """Stable description of every tuning value express passes downstream."""
     from .io_mapping import BRIDGE_FILE, CONCORDANCE_FILE, HIERARCHY_FILE, REFINEMENT_FILE
@@ -142,6 +172,7 @@ def pipeline_state(io_resolution_policy: str = "strict") -> str:
         {
             "suggest": SUGGEST_PARAMS,
             "classify": CLASSIFY_PARAMS,
+            "institutional_references": institutional_reference_state(),
             "io_resolution": {
                 "selected_policy": io_resolution_policy,
                 "implementation_policy": POLICY,

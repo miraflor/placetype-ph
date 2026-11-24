@@ -22,7 +22,7 @@
 | --- | --- | --- |
 | Official taxonomy | `taxonomy.py`, `taxonomy_import.py` | Nodes have explicit parents, levels, and versioned fingerprints. |
 | Canonical input | `openplaces.py` | Read canonical IDs and typed source fields; no new entity linkage. |
-| Reviewed decisions | `crosswalk.py`, `reviewed_psic.py` | Version-scoped exact/contains/regex rules; bundled 328 PSIC Rev. 5 rows. |
+| Reviewed decisions | `crosswalk.py`, `reviewed_psic.py` | Version-scoped exact/contains/regex rules; bundled 346 PSIC Rev. 5 rows. |
 | Evidence fusion | `fusion.py`, `eligibility.py` | Hierarchy intersection, dependency grouping, conflict or abstention. |
 | Optional decision fallback | `retrieval.py`, `traversal.py`, `cache.py` | Local TF-IDF, bounded taxonomy traversal, deterministic cache identity. |
 | Joint review | `joint_crosswalk.py`, `suggest.py` | Candidate worklist, first-pass control, diagnostic rerank. |

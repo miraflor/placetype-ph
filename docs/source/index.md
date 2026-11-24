@@ -7,7 +7,7 @@
 
 <div class="metric-grid">
 <div class="metric"><b>3</b><span>distinct statistical classification systems</span></div>
-<div class="metric"><b>328</b><span>bundled reviewed PSIC Rev. 5 rules</span></div>
+<div class="metric"><b>346</b><span>bundled reviewed PSIC Rev. 5 rules</span></div>
 <div class="metric"><b>178</b><span>specialized advisory activity rules</span></div>
 </div>
 

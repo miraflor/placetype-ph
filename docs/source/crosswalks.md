@@ -16,7 +16,7 @@
 
 ## Bundled reviewed inventory
 
-PlaceType PH 0.1.2 carries **328 reviewed PSIC Rev. 5 entries**, consisting of 246 `SUBTREE`, 34 `EXACT`, two `UNION`, 17 `NOT_ACTIVITY`, and 29 `UNCODEABLE` rows: 193 Overture and 135 OSM. The 178-rule specialized advisory catalog is a **different** resource with a different authority level. The older 1,993-row worklist is not 1,993 accepted decisions.
+PlaceType PH 0.1.2 carries **346 reviewed PSIC Rev. 5 entries**, consisting of 249 `SUBTREE`, 45 `EXACT`, four `UNION`, 17 `NOT_ACTIVITY`, and 31 `UNCODEABLE` rows: 201 Overture and 145 OSM. The first 328 are the transferred reviewed set; eighteen were added after review of PSIC title-search results, and seven of those correct the search result. The 178-rule specialized advisory catalog is a **different** resource with a different authority level. The older 1,993-row worklist is not 1,993 accepted decisions.
 
 These counts describe reviewed *rules*, not the number of establishments correctly classified in a benchmark.
 

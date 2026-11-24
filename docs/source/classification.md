@@ -16,7 +16,9 @@
 
 ## Scope of the reviewed policy
 
-The 328 packaged rules load by default only for **PSIC Rev. 5**. `--no-reviewed-psic` disables the new operational source interpretation, trusted floors, and administrative policy. Explicit custom crosswalks can remain active, so this comparison is a controlled policy change rather than a complete “no classification” mode. Other PSIC revisions do not inherit Rev. 5-specific trusted rules.
+The 346 packaged rules load by default only for **PSIC Rev. 5**. `--no-reviewed-psic` disables the new operational source interpretation, trusted floors, and administrative policy. Explicit custom crosswalks can remain active, so this comparison is a controlled policy change rather than a complete “no classification” mode. Other PSIC revisions do not inherit Rev. 5-specific trusted rules.
+
+For a place left with status `EMPTY`, the `psic_search_*` columns report a PSIC title search (the query plan, guards and thresholds of `placetype suggest`), and a name-only place gets `NAME_ONLY_CANDIDATES`. The search never sets `psic_code`; a category becomes coded only through a reviewed row.
 
 ## Status and audit fields
 

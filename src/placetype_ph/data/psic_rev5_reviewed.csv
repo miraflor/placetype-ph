@@ -285,6 +285,24 @@ osm,leisure=fitness_centre,psic,rev5,SUBTREE,9311,exact,0.98,expanded reviewed h
 osm,leisure=resort,psic,rev5,SUBTREE,551,exact,0.98,expanded reviewed high-confidence OSM category rule,category
 osm,leisure=beach_resort,psic,rev5,EXACT,55103,exact,0.98,expanded reviewed high-confidence OSM category rule,category
 osm,office=it,psic,rev5,SUBTREE,62,exact,0.98,expanded reviewed high-confidence OSM category rule,category
+osm,shop=department_store,psic,rev5,EXACT,47191,exact,0.99,reviewed title-search result: department store retail,category
+osm,shop=gift,psic,rev5,EXACT,47192,exact,0.99,reviewed title-search result: gift and novelty goods retail,category
+osm,shop=trade,psic,rev5,UNION,46|47,exact,0.9,"trade suppliers sell to businesses and to the public; reviewed as wholesale or retail trade (the title search proposed retail trade, 47, only)",category
+overture,pharmaceutical_company,psic,rev5,UNION,21|46430,exact,0.9,"a pharmaceutical company may manufacture or distribute; reviewed as manufacture of pharmaceuticals or wholesale of pharmaceutical goods (the title search proposed manufacture, 21, only)",category
+overture,architectural_designer,psic,rev5,EXACT,71101,exact,0.99,reviewed title-search result: architectural consulting,category
+osm,shop=motorcycle_parts,psic,rev5,EXACT,47832,exact,0.99,reviewed title-search result: motorcycle parts and accessories retail,category
+overture,solar_installation,psic,rev5,EXACT,43211,exact,0.99,reviewed title-search result: installation of solar panels,category
+osm,shop=seafood,psic,rev5,EXACT,47215,exact,0.99,reviewed title-search result: fish and seafood retail,category
+osm,shop=beverages,psic,rev5,SUBTREE,4722,exact,0.99,reviewed title-search result: beverage retail,category
+osm,leisure=water_park,psic,rev5,EXACT,93210,exact,0.95,"water parks are amusement parks; the title search proposed water transport (50), which is wrong",category
+overture,water_park,psic,rev5,EXACT,93210,exact,0.95,"water parks are amusement parks; the title search proposed water transport (50), which is wrong",category
+overture,animal_shelter,psic,rev5,UNCODEABLE,,exact,1.0,"animal rescue and sheltering cannot be assumed to be commercial pet boarding or animal production; pending authoritative activity mapping",category
+overture,bowling_alley,psic,rev5,EXACT,93297,exact,0.99,"operation of bowling halls; the title search proposed manufacture of bowling equipment (32403), which is wrong",category
+osm,healthcare=dialysis,psic,rev5,EXACT,86223,exact,0.95,"dialysis centres, as for the reviewed Overture category dialysis_clinic",category
+osm,shop=eggs,psic,rev5,EXACT,47212,exact,0.99,reviewed title-search result: eggs and dairy products retail,category
+osm,office=administrative,psic,rev5,UNCODEABLE,,exact,1.0,"the tag does not say whose administration (company head office, government or other); the title search proposed section O, which is business support services",category
+overture,telecommunications_service,psic,rev5,SUBTREE,61,exact,0.99,reviewed title-search result: telecommunications,category
+overture,motorcycle_manufacturer,psic,rev5,SUBTREE,3091,exact,0.95,manufacture of motorcycles; the title search proposed engines only (30915),category
 osm,\b(?:internet|cyber)\s+caf[eé]\b,psic,rev5,EXACT,61202,regex,0.97,high-precision reviewed name rule: internet cafe,name
 osm,(?<!internet )(?<!cyber )\bcaf[eé]\b|\bcoffee\s+(?:shop|house)\b|\btea\s+(?:house|room)\b|\bmilk\s+tea\b,psic,rev5,SUBTREE,563,regex,0.97,high-precision reviewed name rule: cafe/coffee/tea establishment,name
 osm,\b(?:dental|dentist|orthodont(?:ic|ics|ist))\b,psic,rev5,SUBTREE,862,regex,0.97,high-precision reviewed name rule: dental establishment,name

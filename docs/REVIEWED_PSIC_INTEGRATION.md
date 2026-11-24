@@ -3,9 +3,11 @@
 ## Scope
 
 The installed `src/placetype_ph/data/psic_rev5_reviewed.csv` is a packaged,
-version-scoped, audited set of **328 accepted OSM and Overture PSIC mappings**.
-It contains 246 `SUBTREE`, 34 `EXACT`, two `UNION`, 17 `NOT_ACTIVITY`, and
-29 `UNCODEABLE` decisions. This is the reviewed mapping source for PSIC Rev. 5;
+version-scoped, audited set of **346 accepted OSM and Overture PSIC mappings**.
+It contains 249 `SUBTREE`, 46 `EXACT`, four `UNION`, 17 `NOT_ACTIVITY`, and
+30 `UNCODEABLE` decisions. The first 328 rows are the transferred reviewed set;
+18 rows (notes beginning "reviewed title-search result" or naming the corrected
+search result) were added for categories that only a PSIC title search used to code. This is the reviewed mapping source for PSIC Rev. 5;
 it is not the 1,993-row unreviewed category worklist, and is not a machine
 suggestion catalogue.
 

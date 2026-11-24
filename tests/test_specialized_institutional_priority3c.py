@@ -178,6 +178,7 @@ def test_pipeline_imports_follow_ruff_order() -> None:
     source = inspect.getsource(pipeline)
     expected = (
         "from .specialized.institutional_pipeline import maybe_resolve_institutions\n"
+        "from .specialized.institutional_psic import institution_psic_proposals\n"
         "from .specialized.integration import enrich_summary\n"
     )
     assert expected in source

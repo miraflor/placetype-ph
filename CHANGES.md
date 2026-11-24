@@ -1,3 +1,16 @@
+# Unreleased: classification completion
+
+- 18 reviewed PSIC rows for categories that only a PSIC title search used to code (`psic_rev5_reviewed.csv`, now 346 rows). Eleven keep the search result; seven correct it: `water_park` (OSM and Overture) 93210 amusement parks instead of 50 water transport, `animal_shelter` withheld pending authoritative mapping rather than using pet care services or animal production, `bowling_alley` 93297 bowling halls instead of 32403 equipment manufacture, `motorcycle_manufacturer` 3091 instead of 30915 engines only, `shop=trade` wholesale or retail trade (46 or 47) instead of 47 only, and `pharmaceutical_company` manufacture or wholesale of pharmaceuticals (21 or 46430) instead of 21 only. `office=administrative` is reviewed as uncodeable.
+- PSIC title search as review columns `psic_search_*` for places left with status `EMPTY`, including name-only places. The search never sets `psic_code`. `placetype classify --no-psic-title-search` leaves the columns out. `run.json` records the counts under `psic_title_search`.
+- Diagnostic `institution_psic_proposal_*` columns: the public or private PSIC subtree implied by a known ownership side, checked against the I-O mapping. They never change a code.
+- Registry snapshots bundled in `src/placetype_ph/data/registry/` with a manifest: 125 Level 3 hospitals with their PhilHealth source table, 1,955 UniFAST institutions, 30,364 DepEd schools (redistribution rights not verified) and an 80-row Quezon City seed of official records.
+- New reference type `official_records` and commands `install-references`, `verify-registry-data`, `import-registry-export` (DOH NHFR and DepEd exports), `build-level3-hospitals`, `convert-links` (registry-layout verified-link files), `review-institutions` (review queue) and `augment-places` (user-supplied places with explicit codes). See [institution registry data and tools](docs/INSTITUTION_REGISTRY_TOOLS.md).
+- Rows that have only `category` and `sources` are classified after their per-source fields are inferred (flags `LEGACY_SOURCE_FIELDS_*`); `read_openplaces` accepts such files.
+- Entity-match flags also read `match_distance_m` and `match_name_score`. Compound detection in `placetype suggest` (and so in title search) ignores descriptive OSM attributes (brand, cuisine, operator, takeaway, opening hours, contact and payment keys and similar) and accepts the listed compatible tag pairs, such as a cafe with a coffee shop tag.
+- Express cache version `joint-v9.4.5-classification-completion-hardening`; fingerprints institutional configuration and all reference files by content, including verified links. Invalid opt-in configuration fails closed.
+- Augmentation rejects repeated canonical targets and conflicting source fields, preserves supplied ID/name/coordinates for audit, and fills empty semantic fields without overwriting existing evidence.
+- DepEd snapshot retained unchanged; provenance clarified as the project-cleaned 2026-11-04 extract from a Kaggle-hosted masterlist (original listing, date and license unconfirmed).
+
 # Unreleased: classification and I-O resolution
 
 - Preserve accepted union roots as structured classification output; reject invalid or missing UNION metadata.
@@ -31,7 +44,7 @@ Improved classification knowledge and resolution while retaining review-based PS
 - Labelled ownership inferences from explicit source attributes or name hints in `io_ownership_inferred_*` and `io*_ownership_inferred_code`; not used in strict resolved columns.
 - Optional input columns `explicit_psic_code` (status `MANUAL`) and `explicit_io16_code`, `explicit_io80_code`, `explicit_io240_code`, validated before classification.
 - `run.json` records the hierarchy, refinement and direct-rule files with their hashes, and resolution counts.
-- Express cache version `joint-v9.4.3-classification-resolution`, so runs made with the earlier rules are not reused.
+- Express cache version `joint-v9.4.3-classification-resolution`, so runs made with the earlier rules are not reused (now `joint-v9.4.5-classification-completion-hardening`, see above).
 
 ## PSA 2018 I-O industry mapping
 

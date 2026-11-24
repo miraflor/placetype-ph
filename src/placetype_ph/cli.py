@@ -1670,6 +1670,13 @@ def classify(
         str,
         typer.Option(help="I-O resolution: strict, evidence-weighted, or extended"),
     ] = "strict",
+    psic_title_search: Annotated[
+        bool,
+        typer.Option(
+            "--psic-title-search/--no-psic-title-search",
+            help="Add psic_search_* review columns for places without a PSIC code",
+        ),
+    ] = True,
 ):
     if io_resolution_policy not in RESOLUTION_POLICIES:
         raise typer.BadParameter(
@@ -1725,6 +1732,7 @@ def classify(
             workers=workers,
             role_crosswalk=role_cw,
             io_resolution_policy=io_resolution_policy,
+            psic_title_search=psic_title_search,
         )
         console.print(f"Wrote [bold]{classifications}[/bold]")
         console.print(f"Wrote [bold]{pois}[/bold]")
