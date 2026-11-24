@@ -878,3 +878,13 @@ be proposed as `NOT_ACTIVITY`; strong, well-separated matches may be proposed as
 constraints are review evidence, not accepted mappings. The command never changes
 `mapping_kind` or `codes`, and it does not automatically infer `UNION` or `UNCODEABLE`
 from TF-IDF similarity alone.
+
+## Author and Citation
+
+**James Matthew Miraflor**  
+[Scientific Computing Laboratory](https://scl.dcs.upd.edu.ph/)  
+[Department of Computer Science](https://dcs.upd.edu.ph/)  
+College of Engineering  
+University of the Philippines Diliman
+
+**placetype-ph** is authored and maintained by James Matthew Miraflor, with AI assistance in software development, debugging, testing, and documentation. Responsibility for the project's methodological decisions, scientific validity, and published outputs rests with the author.
