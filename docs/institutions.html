@@ -98,9 +98,31 @@
 </tr>
 </tbody>
 </table>
-<p>The gate additionally requires a <code>SINGLE</code> PSIC result, eligible mapped division/group status, valid bridge basis, exact two-element public/private ambiguity, complete official reference provenance, and checked bundled numeric/name correspondence. Otherwise the refinement abstains. These are not default assignments for every school or clinic.</p>
+<p>The gate additionally requires a <code>SINGLE</code>, <code>INTERSECT</code>, <code>NESTED</code> or <code>MANUAL</code> PSIC result, eligible mapped division/group status, valid bridge basis, exact two-element public/private ambiguity, complete official reference provenance, and checked bundled numeric/name correspondence. Otherwise the refinement abstains. These are not default assignments for every school or clinic.</p>
 <p><strong>Implementation:</strong> <a href="https://github.com/miraflor/placetype-ph/blob/main/src/placetype_ph/specialized/institutional_pipeline.py"><code>institutional_pipeline.py</code></a> · <a href="https://github.com/miraflor/placetype-ph/blob/main/src/placetype_ph/specialized/ownership_io.py"><code>ownership_io.py</code></a> · <a href="https://github.com/miraflor/placetype-ph/blob/main/docs/PRIORITY3_INSTITUTIONAL_IDENTITY.md">institutional data guide</a>.</p>
+<h2 id="national-registry-site-linkage">National registry site linkage</h2>
+<p>National registry linkage is enabled with the four bundled datasets. A unique
+PhilHealth hospital may resolve ownership from exact canonical name, independently
+supplied matching municipality, and exact sufficiently specific street/building
+address; its publication row is still not a facility ID. A HEIDA record additionally
+requires the observed official HEI code and municipality within the listed address.
+Both routes require compatible accepted hospital (861...) or higher-education
+(854...) activity, nonconflicting identifying evidence and explicit registry sector.
+They produce <code>REGISTRY_SITE_MATCH</code>, not <code>VERIFIED_LINK</code> or <code>EXACT_EXTERNAL_ID</code>.
+This is deterministic source-backed linkage, not independent verification or a
+calibrated probability of identity. Strict retains the candidate for audit but does not promote it. Only evidence-weighted
+and extended accept the match, through the existing exact-pair and hierarchy checks, with
+separate <code>REGISTRY_SITE_MATCH</code> status and <code>psic+registry_site</code> source. Name-only,
+city-only, fuzzy, publication-ID-only, and bare HEI-code matches remain insufficient.
+UniFAST can corroborate an anchored HEIDA match only on agreeing name, region and
+ownership; conflicting or duplicate plausible sites remain review cases. A matching
+DepEd prefix remains advisory; only a compatible official site record with explicit
+sector can resolve school ownership. Agreement on the same DepEd ID, exact name
+and municipality PSGC allows the provisional BEIS row to corroborate that official
+record, not create ownership authority. Separate canonical POIs sharing a promoted
+registry reference remain blocked. No fifth registry, fuzzy matching, or new source
+data is introduced. Coverage depends on actual independent POI attributes.</p>
 </article>
 <nav class="page-pagination" aria-label="Document pages"><a class="page-step previous" href="retrieval-llm.html"><span>← Previous</span><strong>Retrieval &amp; optional LLM</strong></a><a class="page-step next" href="io-projection.html"><span>Next →</span><strong>PSIC to I–O</strong></a></nav><footer class="article-footer"><span>PlaceType PH · MIT-licensed package</span><span>Documentation describes the v0.1.2 implementation; classification is not validation of truth.</span></footer></main>
-<aside class="toc" aria-label="On this page"><div class="toc-title">On this page</div><a class="toc-level-2" href="#why-separate-the-questions">Why separate the questions?</a><a class="toc-level-2" href="#operational-administrative-function">Operational administrative function</a><a class="toc-level-2" href="#specialized-advisory-evidence">Specialized advisory evidence</a><a class="toc-level-2" href="#explicit-local-registry-references">Explicit local registry references</a><a class="toc-level-2" href="#evidence-ladder-and-identity-safeguards">Evidence ladder and identity safeguards</a><a class="toc-level-2" href="#exact-gated-i-o-candidate-refinement">Exact gated I–O candidate refinement</a><a class="toc-repo" href="https://github.com/miraflor/placetype-ph/tree/main/docs">Edit on GitHub ↗</a></aside></div></div>
+<aside class="toc" aria-label="On this page"><div class="toc-title">On this page</div><a class="toc-level-2" href="#why-separate-the-questions">Why separate the questions?</a><a class="toc-level-2" href="#operational-administrative-function">Operational administrative function</a><a class="toc-level-2" href="#specialized-advisory-evidence">Specialized advisory evidence</a><a class="toc-level-2" href="#explicit-local-registry-references">Explicit local registry references</a><a class="toc-level-2" href="#evidence-ladder-and-identity-safeguards">Evidence ladder and identity safeguards</a><a class="toc-level-2" href="#exact-gated-i-o-candidate-refinement">Exact gated I–O candidate refinement</a><a class="toc-level-2" href="#national-registry-site-linkage">National registry site linkage</a><a class="toc-repo" href="https://github.com/miraflor/placetype-ph/tree/main/docs">Edit on GitHub ↗</a></aside></div></div>
 </body></html>

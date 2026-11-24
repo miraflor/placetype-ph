@@ -44,9 +44,10 @@ import pandas as pd
 
 from .io_mapping import RESOLUTIONS, IOCrosswalk, IOHierarchy
 from .specialized.institutional_shadow import _explicit_sides, operator_evidence
+from .specialized.institutional_site import SITE_MATCH
 from .specialized.source_evidence import osm_pairs
 
-POLICY = "io-resolution-v4"
+POLICY = "io-resolution-v5-national-site"
 RESOLUTION_POLICIES = frozenset({"strict", "evidence-weighted", "extended"})
 DIRECT_RULES_FILE = "direct_io_rules.csv"
 EXPLICIT_IO_COLUMNS = {
@@ -89,6 +90,7 @@ OWNERSHIP_PAIRS = {
 _RANK = {
     "explicit": 4,
     "psic+institution": 3,
+    "psic+registry_site": 3,
     "psic": 2,
     "psic+direct": 1,
     "direct": 1,
@@ -489,6 +491,8 @@ def resolve_io(
         draft = {res: res in listed for res in RESOLUTIONS}
         inference = _ownership_inference(record, place)
         refined = has_refined and _text(record.get("io_ownership_refinement_status")) == "REFINED"
+        if policy == "strict" and _text(record.get("institution_evidence_status")) == SITE_MATCH:
+            refined = False
         given = explicit.get(cid, {})
         candidates = {res: _codes(record.get(f"{res}_codes")) for res in RESOLUTIONS}
         levels = {}
@@ -517,6 +521,11 @@ def resolve_io(
                 direct_allowed=allowed,
                 explicit=given.get(res, ""),
             )
+            if (
+                levels[res][1] == "VERIFIED_OWNERSHIP"
+                and _text(record.get("institution_evidence_status")) == SITE_MATCH
+            ):
+                levels[res] = (levels[res][0], SITE_MATCH, "psic+registry_site")
             if withheld and not levels[res][0] and levels[res][1] == "PSIC_AMBIGUOUS":
                 # A single candidate exists but rests on a draft bridge row; it is not an
                 # ambiguous set, and the strict and evidence-weighted policies do not adopt it.

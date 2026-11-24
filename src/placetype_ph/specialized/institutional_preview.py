@@ -19,7 +19,7 @@ from .institutional_registry import (
     load_unifast,
     sha256,
 )
-from .institutional_shadow import InstitutionResolver, load_verified_links
+from .institutional_shadow import POLICY, InstitutionResolver, load_verified_links
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -73,7 +73,7 @@ def main(argv: list[str] | None = None) -> int:
             }
         )
     stats = {
-        "policy": "institution-identity-shadow-v1",
+        "policy": POLICY,
         "mode": "advisory_only",
         "authoritative_tag_changes": 0,
         "rows": len(frame),

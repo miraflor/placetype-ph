@@ -21,8 +21,9 @@ from .institutional_registry import (
     key,
     region_code,
 )
+from .institutional_site import SITE_MATCH, national_site_match, reconcile_school_records
 
-POLICY = "institution-identity-shadow-v1"
+POLICY = "institution-identity-shadow-v2-national-site"
 BLOCKED_PSIC = frozenset(
     {"NOT_PSIC_ACTIVITY", "UNCODEABLE", "REVIEW_ENTITY_MATCH", "CANDIDATES_ONLY", "CONFLICT"}
 )
@@ -354,15 +355,33 @@ class InstitutionResolver:
             sides = {r.ownership for r in matches if r.ownership}
             if len(sides) > 1:
                 return InstitutionDecision("REVIEW", domain, reason="registry_ownership_conflict")
-            if len(matches) > 1:
+            site, review = national_site_match(self.index, row, matches, ids, names)
+            if review:
                 return InstitutionDecision(
-                    "REVIEW",
-                    domain,
-                    source_references=tuple(r.reference for r in matches),
-                    reason="multiple_registered_sites_or_sources",
+                    "REVIEW", domain, source_references=tuple(sorted({
+                        r.reference for r in (*matches, *self.index.by_names(names, domain))
+                    })), reason=review,
                 )
+            if site is not None:
+                if explicit and site.record.ownership not in explicit:
+                    return InstitutionDecision(
+                        "REVIEW", domain, source_references=site.references,
+                        reason="source_registry_ownership_conflict",
+                    )
+                return InstitutionDecision(
+                    SITE_MATCH, domain, site.record.ownership, site.basis,
+                    site.references, "exact_registry_site_evidence_agrees", True,
+                )
+            refs = tuple(r.reference for r in matches)
             match = matches[0]
-            refs = (match.reference,)
+            if len(matches) > 1:
+                official = reconcile_school_records(matches, ids, row, names)
+                if official is None:
+                    return InstitutionDecision(
+                        "REVIEW", domain, source_references=refs,
+                        reason="multiple_registered_sites_or_sources",
+                    )
+                match = official
             registered = {key(n) for n in (match.name, *match.aliases)}
             if canonical not in registered:
                 return InstitutionDecision(

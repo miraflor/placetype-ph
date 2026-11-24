@@ -1,8 +1,8 @@
-"""Additive I/O candidate narrowing from verified institutional ownership.
+"""Additive I/O candidate narrowing from eligible institutional ownership.
 
 Existing IOCrosswalk is the only primary I/O projection authority. This module
 neither modifies candidate sets nor infers economic activity; refined columns
-are produced only after the Priority 3c institutional stage was explicitly run.
+are produced only when the institutional stage has run (enabled by default).
 """
 
 from __future__ import annotations
@@ -15,8 +15,9 @@ import pandas as pd
 
 from ..io_mapping import IOCrosswalk
 from .institutional_promotion import NEW_FIELDS, PROMOTABLE
+from .institutional_site import SITE_MATCH
 
-POLICY = "institutional-io-candidate-narrowing-v2"
+POLICY = "institutional-io-candidate-narrowing-v3-national-site"
 # Agreement between rules or sources (INTERSECT, NESTED) is stronger activity evidence than a
 # single rule, not weaker; a user-supplied PSIC code (MANUAL) is accepted as given.
 ACCEPTED_PSIC_STATUSES = frozenset({"SINGLE", "INTERSECT", "NESTED", "MANUAL"})
@@ -124,8 +125,8 @@ def _verified_pairs() -> dict[str, dict[str, Any]]:
 def refine_verified_institutional_io(summary: pd.DataFrame) -> pd.DataFrame:
     """Append optional I/O refinement while preserving every existing field.
 
-    If Priority 3c was not enabled, return the original object unchanged.
-    On opt-in input, malformed schema fails closed. Non-eligible rows preserve
+    If institutional enrichment is off, return the original object unchanged.
+    When it runs, malformed schema fails closed. Non-eligible rows preserve
     their original sets in new refinement columns and record abstention reasons.
     """
     institutional = set(NEW_FIELDS) & set(summary.columns)
@@ -222,7 +223,11 @@ def refine_verified_institutional_io(summary: pd.DataFrame) -> pd.DataFrame:
                     decision.update(
                         {
                             "io_ownership_refinement_status": "REFINED",
-                            "io_ownership_refinement_reason": EXACT_PAIR_REASON,
+                            "io_ownership_refinement_reason": (
+                                "registry_site_match_exact_reference_pair"
+                                if _text(record["institution_evidence_status"]) == SITE_MATCH
+                                else EXACT_PAIR_REASON
+                            ),
                             "io_ownership_refinement_basis": _text(
                                 record["institution_resolution_basis"]
                             ),

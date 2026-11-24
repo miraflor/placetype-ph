@@ -1,4 +1,4 @@
-"""Bundled institutional ownership enrichment; existing promotion policy is unchanged."""
+"""Bundled institutional ownership enrichment with source-specific site linkage."""
 
 from __future__ import annotations
 
@@ -114,8 +114,9 @@ def resolve_from_references(
     places: pd.DataFrame,
     *,
     references: Mapping[str, Path],
+    allow_registry_site_match: bool = False,
 ) -> pd.DataFrame:
-    """Invoke the unchanged Priority 3b promotion contract on in-memory frames."""
+    """Invoke guarded institutional ownership resolution on in-memory frames."""
     if not references or not set(references) <= REFERENCE_KEYS:
         raise ValueError("unsupported or missing institutional reference configuration")
     records = (
@@ -135,15 +136,24 @@ def resolve_from_references(
     )
     links = load_verified_links(references.get("verified_links"))
     resolver = InstitutionResolver(InstitutionIndex(records), links)
-    return resolve_institutional_ownership(classified, places, resolver=resolver)
+    return resolve_institutional_ownership(
+        classified, places, resolver=resolver,
+        allow_registry_site_match=allow_registry_site_match,
+    )
 
 
 def maybe_resolve_institutions(
     classified: pd.DataFrame,
     places: pd.DataFrame,
+    *,
+    allow_registry_site_match: bool = False,
 ) -> pd.DataFrame:
     """Run bundled enrichment unless explicitly disabled; invalid inputs fail closed."""
     _, references = selected_reference_config()
     if not references:
         return classified
+    if allow_registry_site_match:
+        return resolve_from_references(
+            classified, places, references=references, allow_registry_site_match=True
+        )
     return resolve_from_references(classified, places, references=references)

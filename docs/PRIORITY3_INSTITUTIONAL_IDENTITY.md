@@ -1,12 +1,12 @@
 # Priority 3 — Institution identity and ownership evidence
 
-This adds **opt-in, read-only** school, university, and hospital evidence to the existing specialized classification architecture. It does not replace the current PSIC/PCPC/PSCC classifier or make registry names automatically authoritative.
+This adds **read-only evidence, enabled by default in classification** school, university, and hospital evidence to the existing specialized classification architecture. It does not replace the current PSIC/PCPC/PSCC classifier or make registry names automatically authoritative.
 
 ## Scope
 
 - A compact, **user-provided** BEIS-format school extract (`school_id,school_name,town_psgc`) is accepted only as provisional evidence. Its school-ID prefix is a **hint**, never verified legal ownership, because snapshot provenance has not been independently established.
 - An attributed UniFAST RA 10931 participating-HEI capture uses its exact seven-field schema. A `record_key` is a deterministic local digest, **not** an official HEI or campus ID. Name+region is provisional and does not establish branch identity.
-- A Level 3 hospital reference uses the 14-field `institution_national_v1` schema. A DOH NHFR `official_code` may qualify as strong site evidence only with matching official ID, canonical name and city, and nonconflicting addresses. A PhilHealth publication `publication_row` **never** qualifies as an official external facility ID.
+- A Level 1–3 hospital reference uses the 14-field `institution_national_v1` schema. A DOH NHFR `official_code` may qualify as strong site evidence only with matching official ID, canonical name and city, and nonconflicting addresses. A PhilHealth publication `publication_row` **never** qualifies as an official external facility ID.
 - Optional independent, explicitly verified canonical links require a separate reviewed JSON record with provenance and verification date. A reference row, benchmark roster, or fuzzy name match is not such a link.
 - Explicit OSM/Overture ownership and institutional category **claims** remain distinct from registry verification. An operator, accreditation, religious name, or school-ID prefix is not ownership proof.
 - A government body named as operator (DepEd, DOH, DOST, a schools division, a city, municipal or provincial government, an LGU) is reported as `OPERATOR_PROXY` with basis `government_operator_proxy` when there is no other evidence. It is never promotable. An unverified private claim with a government operator yields `REVIEW` with reason `government_operator_vs_private_conflict`. Private ownership from a verified link or exact external ID is kept, and the government operator is recorded in the audit, because operation is not ownership.
@@ -21,7 +21,7 @@ This adds **opt-in, read-only** school, university, and hospital evidence to the
 | `specialized/institutional_shadow.py` | PSIC-domain gate, explicit source claims, identity and locality constraints, verified canonical links, evidence status |
 | `specialized/institutional_preview.py` | Offline read-only report CLI, input fingerprints, atomic report publication |
 
-No registry datasets are embedded in this package. Supply only licensed, attributed, independently reviewed local references. Registry snapshots can be absent: the rest of PlaceType PH still runs normally. No external network requests are made.
+Four national registry snapshots are bundled and enabled by default. Custom local references may replace them; set `PLACETYPE_PH_INSTITUTION_REFERENCES=off` to disable enrichment. No external network requests are made.
 
 ## Running the preview
 
@@ -68,7 +68,7 @@ The example is a **schema illustration only**. Do not copy it as a real verified
 
 - `EXACT_EXTERNAL_ID`: matching true official facility ID, canonical name, locality and nonconflicting site details; a strong identity assertion, **not a changed PSIC tag**.
 - `VERIFIED_LINK`: separately reviewed canonical reference, with unresolved source conflicts checked.
-- `PROVISIONAL`: source record found but no independently promotable identity; BEIS/UniFAST and name/city matches are **always** provisional.
+- `PROVISIONAL`: source record found but no independently promotable identity; BEIS prefixes, UniFAST alone and name/city-only matches remain provisional.
 - `EXPLICIT_SOURCE_CLAIM`: typed source ownership claim, **not** verified legal ownership.
 - `REVIEW`: contradictory, multiple, wrong-site or otherwise unresolved evidence.
 - `ABSTAIN`: record is ineligible for institutional inference.
@@ -85,8 +85,10 @@ The `institution_promotion_eligible` output identifies **strong identity evidenc
 
 ## Remaining integration decision
 
-This patch implements the **source-specific reference parsing, identity gates and shadow evidence** of Priority 3. It intentionally does **not** import possibly restricted school/hospital rosters, or connect evidence to an automatic tagging/promotion path without verifying the actual target pipeline. That integration is a separate scoped step, not silently assumed complete.
+The reference parsers and identity gates are integrated into the main classification pipeline. The preview remains read-only and never changes classification.
 
 ## Installation verification
 
 The guarded installer checks the repository, feature branch, existing source policy, full Ruff and pytest, exact new-file list, and rollback. It cannot attest to the semantics of a reference file not supplied to the preview command. The test suite includes explicit negative cases and injected failed report publication.
+
+See [national registry site linkage](source/institutions.md) for the policy-scoped matching rules. Strict retains site matches as candidates; evidence-weighted and extended may resolve them.
