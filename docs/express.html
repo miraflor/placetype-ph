@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#102630"><meta name="description" content="PlaceType PH — an evidence-first guide to hierarchical Philippine economic classification, source triangulation, conservative decisions, and reproducible outputs.">
+<title>Express workflow | PlaceType PH documentation</title>
+<link rel="icon" href="assets/diagrams/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="assets/css/site.css">
+<script defer src="assets/js/search-index.js"></script>
+<script defer src="assets/js/site.js"></script>
+</head>
+<body data-page="express">
+<button class="menu-toggle" type="button" aria-label="Open documentation navigation" aria-controls="site-sidebar" aria-expanded="false">☰</button>
+<div class="nav-scrim" aria-hidden="true"></div>
+<aside class="sidebar" id="site-sidebar" aria-label="Documentation sidebar">
+<a href="index.html" class="brand"><span class="brand-icon">P<span>H</span></span><span><strong>PlaceType <em>PH</em></strong><small>Economic classification · v0.1.2</small></span></a>
+<div class="search-area"><label class="sr-only" for="doc-search">Search documentation</label><input type="search" id="doc-search" placeholder="Search the documentation…" autocomplete="off"><kbd>/</kbd><div id="search-results" hidden></div></div>
+<nav class="sidebar-nav" aria-label="Chapters"><div class="nav-heading">Start here</div><a href="index.html">Overview</a><a href="getting-started.html">Quickstart</a><a href="architecture.html">Architecture</a><a href="worked-example.html">Worked example</a><div class="nav-heading">Methods</div><a href="taxonomies.html">Official taxonomies</a><a href="sources.html">Source evidence</a><a href="crosswalks.html">Reviewed crosswalks</a><a href="triangulation.html">Evidence triangulation</a><a href="fusion.html">Tree fusion &amp; backoff</a><a href="joint-recheck.html">Cross-taxonomy recheck</a><a href="classification.html">Classification decisions</a><a href="retrieval-llm.html">Retrieval &amp; optional LLM</a><div class="nav-heading">Enrichment &amp; delivery</div><a href="institutions.html">Institutions &amp; ownership</a><a href="io-projection.html">PSIC to I–O</a><a href="express.html" aria-current="page" class="active">Express workflow</a><a href="outputs.html">Outputs &amp; GIS</a><div class="nav-heading">Reference &amp; assurance</div><a href="evaluation.html">Validation &amp; evaluation</a><a href="reproducibility.html">Reproducibility</a><a href="api-cli.html">CLI &amp; Python API</a><a href="decision-register.html">Design decisions</a><a href="limitations.html">Limits &amp; interpretation</a><a href="glossary.html">Glossary &amp; references</a></nav>
+<div class="sidebar-foot"><a href="https://github.com/miraflor/placetype-ph">GitHub repository ↗</a><a href="https://github.com/miraflor/placetype-ph/blob/main/DATA_SOURCES.md">Data sources ↗</a><div class="theme-switch"><button type="button" id="theme-toggle" aria-label="Toggle color theme">◐ Theme</button></div></div>
+</aside>
+<div class="content-frame"><div class="topbar"><span>Documentation <b>/</b> Express workflow</span><a href="https://github.com/miraflor/placetype-ph">View source ↗</a></div>
+<div class="reading-layout"><main id="main" class="prose" tabindex="-1"><article><h1 id="express-the-automatic-end-to-end-workflow">Express: the automatic end-to-end workflow</h1>
+<p class="lede">`placetype express` is an orchestration layer over the existing taxonomy importer, joint worklist, suggestion/recheck, deterministic classifier, and GIS exporter. Its defaults are convenient; they are not equivalent to a fully adjudicated mapping inventory.</p>
+<h2 id="the-execution-plan">The execution plan</h2>
+<figure><img src="assets/diagrams/express.svg" alt="Express workflow from input and taxonomy to joint worklist, suggestions, bounded recheck, promotions, classification, QGIS export and cache fingerprint."><figcaption>Figure 1 — Resumable execution. The package reuses completed work only when its cache identity says the dependencies have not changed.</figcaption></figure>
+<p>The pipeline generally performs these phases: verify input; acquire or reuse taxonomies; seed a joint category worklist; generate lexical suggestions; recheck with bounded cross-taxonomy context; report what was reviewed, promoted, held, or unresolved; classify using the resulting joint crosswalk; append I–O candidate sets; write a compact QGIS-ready GeoParquet.</p>
+<h2 id="the-four-promotion-states-you-must-distinguish">The four promotion states you must distinguish</h2>
+<table>
+<thead>
+<tr>
+<th>State in <code>express_status</code></th>
+<th>Semantics</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>REVIEWED</code></td>
+<td>Existing reviewed mapping preserved.</td>
+</tr>
+<tr>
+<td><code>AUTO_ACCEPTED</code></td>
+<td>Machine proposal cleared by an available peer recheck.</td>
+</tr>
+<tr>
+<td><code>AUTO_ACCEPTED_INCONCLUSIVE</code></td>
+<td>Peer recheck was weak/inconclusive but policy allowed promotion.</td>
+</tr>
+<tr>
+<td><code>AUTO_ACCEPTED_UNCHECKED</code></td>
+<td>No usable recheck verdict; <strong>default</strong> policy still promoted the suggestion.</td>
+</tr>
+</tbody>
+</table>
+<p>Held states include <code>HELD_RECHECK</code>, <code>HELD_INCONCLUSIVE</code>, and <code>HELD_NO_VERDICT</code>. <code>UNRESOLVED</code> remains without an adopted code. <code>COARSENED</code> can produce a narrowly checked PCPC sibling-parent backoff for automatic suggestions; it does not override reviewed human mappings.</p>
+<h2 id="the-default-promotion-policy">The default promotion policy</h2>
+<p>Express defaults to <code>--promote-unchecked</code> and does not hold weak inconclusive rechecks unless requested. This maximizes useful initial coverage while explicitly labeling unverified promotions. It is <strong>not</strong> the conservative setting for a scientific accuracy benchmark.</p>
+<p>Use <code>--no-promote-unchecked</code> to hold no-verdict suggestions and <code>--hold-inconclusive</code> to hold weak shifts separately. A one-scheme run has no peer taxonomy to compare with and so may produce a large number of unchecked suggestions; the CLI warns about this.</p>
+<pre><code class="language-powershell">$places = &quot;..\openplaces-ph\data\output\areas_metro_manila\canonical_pois.parquet&quot;
+placetype express $places --workers 1 --hold-inconclusive
+if ($LASTEXITCODE -ne 0) { throw &quot;Express failed&quot; }
+</code></pre>
+<h2 id="cache-identity-and-reproducibility">Cache identity and reproducibility</h2>
+<p>Express computes its run key from the OpenPlaces input state, selected schemes, package version, taxonomy fingerprints, reviewed worklist states, product-column selection, promotion policies, retrieval/classifier tuning, I–O resolver policy and <strong>a content fingerprint of the bundled reviewed PSIC CSV</strong>. The semantic cache version is <code>joint-v9.3-reviewed-psic-rev5</code> in v0.1.2. This change prevents pre-integration runs from masquerading as current classifications.</p>
+<p>Inputs under 8 MiB use a content hash; larger inputs use file size and modification time as a cheaper identity. This is a performance trade-off: timestamp/size identity is less robust to adversarial or unusual in-place changes. Completed runs are checked against manifest and required output files/schema before reuse; this does not independently revalidate empirical accuracy.</p>
+<h2 id="where-express-writes-data">Where Express writes data</h2>
+<p>Temporary worklist state lives in <code>data/work/express/&lt;cache-key&gt;/</code>; reusable classification runs live in <code>output/express/&lt;cache-key&gt;/</code>. The default final GIS output is <code>output/&lt;input-scope&gt;_placetype.parquet</code>. Express does not modify the upstream OpenPlaces Parquet.</p>
+<h2 id="when-not-to-use-express">When <em>not</em> to use Express</h2>
+<p>For controlled comparison of the reviewed deterministic PSIC policy, use <code>placetype classify --schemes psic --llm none</code> directly. That isolates the reviewed rule inventory and avoids accidental promotion of machine guesses. For model-based classification on unresolved cases, the lower-level <code>classify</code> command offers explicit LLM settings.</p>
+<p><strong>Implementation:</strong> <a href="https://github.com/miraflor/placetype-ph/blob/main/src/placetype_ph/express.py"><code>express.py</code></a> · <a href="https://github.com/miraflor/placetype-ph/blob/main/src/placetype_ph/cli.py"><code>cli.py</code></a>.</p>
+</article>
+<nav class="page-pagination" aria-label="Document pages"><a class="page-step previous" href="io-projection.html"><span>← Previous</span><strong>PSIC to I–O</strong></a><a class="page-step next" href="outputs.html"><span>Next →</span><strong>Outputs &amp; GIS</strong></a></nav><footer class="article-footer"><span>PlaceType PH · MIT-licensed package</span><span>Documentation describes the v0.1.2 implementation; classification is not validation of truth.</span></footer></main>
+<aside class="toc" aria-label="On this page"><div class="toc-title">On this page</div><a class="toc-level-2" href="#the-execution-plan">The execution plan</a><a class="toc-level-2" href="#the-four-promotion-states-you-must-distinguish">The four promotion states you must distinguish</a><a class="toc-level-2" href="#the-default-promotion-policy">The default promotion policy</a><a class="toc-level-2" href="#cache-identity-and-reproducibility">Cache identity and reproducibility</a><a class="toc-level-2" href="#where-express-writes-data">Where Express writes data</a><a class="toc-level-2" href="#when-not-to-use-express">When not to use Express</a><a class="toc-repo" href="https://github.com/miraflor/placetype-ph/tree/main/docs">Edit on GitHub ↗</a></aside></div></div>
+</body></html>

@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#102630"><meta name="description" content="PlaceType PH — an evidence-first guide to hierarchical Philippine economic classification, source triangulation, conservative decisions, and reproducible outputs.">
+<title>PSIC to I–O | PlaceType PH documentation</title>
+<link rel="icon" href="assets/diagrams/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="assets/css/site.css">
+<script defer src="assets/js/search-index.js"></script>
+<script defer src="assets/js/site.js"></script>
+</head>
+<body data-page="io-projection">
+<button class="menu-toggle" type="button" aria-label="Open documentation navigation" aria-controls="site-sidebar" aria-expanded="false">☰</button>
+<div class="nav-scrim" aria-hidden="true"></div>
+<aside class="sidebar" id="site-sidebar" aria-label="Documentation sidebar">
+<a href="index.html" class="brand"><span class="brand-icon">P<span>H</span></span><span><strong>PlaceType <em>PH</em></strong><small>Economic classification · v0.1.2</small></span></a>
+<div class="search-area"><label class="sr-only" for="doc-search">Search documentation</label><input type="search" id="doc-search" placeholder="Search the documentation…" autocomplete="off"><kbd>/</kbd><div id="search-results" hidden></div></div>
+<nav class="sidebar-nav" aria-label="Chapters"><div class="nav-heading">Start here</div><a href="index.html">Overview</a><a href="getting-started.html">Quickstart</a><a href="architecture.html">Architecture</a><a href="worked-example.html">Worked example</a><div class="nav-heading">Methods</div><a href="taxonomies.html">Official taxonomies</a><a href="sources.html">Source evidence</a><a href="crosswalks.html">Reviewed crosswalks</a><a href="triangulation.html">Evidence triangulation</a><a href="fusion.html">Tree fusion &amp; backoff</a><a href="joint-recheck.html">Cross-taxonomy recheck</a><a href="classification.html">Classification decisions</a><a href="retrieval-llm.html">Retrieval &amp; optional LLM</a><div class="nav-heading">Enrichment &amp; delivery</div><a href="institutions.html">Institutions &amp; ownership</a><a href="io-projection.html" aria-current="page" class="active">PSIC to I–O</a><a href="express.html">Express workflow</a><a href="outputs.html">Outputs &amp; GIS</a><div class="nav-heading">Reference &amp; assurance</div><a href="evaluation.html">Validation &amp; evaluation</a><a href="reproducibility.html">Reproducibility</a><a href="api-cli.html">CLI &amp; Python API</a><a href="decision-register.html">Design decisions</a><a href="limitations.html">Limits &amp; interpretation</a><a href="glossary.html">Glossary &amp; references</a></nav>
+<div class="sidebar-foot"><a href="https://github.com/miraflor/placetype-ph">GitHub repository ↗</a><a href="https://github.com/miraflor/placetype-ph/blob/main/DATA_SOURCES.md">Data sources ↗</a><div class="theme-switch"><button type="button" id="theme-toggle" aria-label="Toggle color theme">◐ Theme</button></div></div>
+</aside>
+<div class="content-frame"><div class="topbar"><span>Documentation <b>/</b> PSIC to I–O</span><a href="https://github.com/miraflor/placetype-ph">View source ↗</a></div>
+<div class="reading-layout"><main id="main" class="prose" tabindex="-1"><article><h1 id="from-psic-activity-to-psa-i-o-industries">From PSIC activity to PSA I–O industries</h1>
+<p class="lede">A classified activity is not automatically an observed supplier, transaction, or uniquely identified industry. PlaceType PH projects PSIC codes into **candidate sets** for the PSA 2018 input–output industry system, preserving revision and correspondence uncertainty.</p>
+<h2 id="why-there-are-two-bridges">Why there are two bridges</h2>
+<p>The package classifies establishments against <strong>PSIC Revision 5</strong>, while the PSA <strong>2018 input–output</strong> industries use the <strong>2019 update to the 2009 PSIC</strong>. Therefore the correspondence is not a simple lookup of identical codes:</p>
+<figure><img src="assets/diagrams/io-bridge.svg" alt="PSIC Revision 5 class or subclass maps to a supported Rev.5 group, then through a version bridge to PSIC 2019, and finally to sets of IO16, IO80 and IO240 industries."><figcaption>Figure 1 — Two separately versioned reference assets produce candidate I–O sets. An ambiguous candidate set is preserved, not coerced to one industry.</figcaption></figure>
+<ol>
+<li>Choose the deepest <strong>section, division or group ancestor</strong> in Rev. 5 with a usable, title-compatible version-bridge row.</li>
+<li>Follow <code>psic_rev5_to_psic_2019.csv</code> to the corresponding PSIC 2019 code(s). Relation may be <code>same</code>, <code>recoded</code>, <code>renamed</code>, <code>changed_scope</code>, <code>new</code>, or <code>no_counterpart</code>.</li>
+<li>Combine the derived <code>psic_2019_to_io_2018.csv</code> rows into <strong>sets</strong> of IO16, IO80 and IO240 candidates. A revision bridge <code>basis</code> is <code>code_title_match</code>, <code>draft</code>, or <code>reviewed</code>.</li>
+<li>Preserve the candidate codes, names, confidence, map status, bridge basis, relation, and correspondence level in the classified summary.</li>
+</ol>
+<p>The concordance is a <strong>derived analytical reference</strong>, not an official PSA PSIC-to-I–O codebook; the bridge contains both reviewed and draft rows. See <a href="https://github.com/miraflor/placetype-ph/blob/main/DATA_SOURCES.md">DATA_SOURCES.md</a>.</p>
+<h2 id="exact-candidate-set-versus-map-ready-code">Exact candidate set versus map-ready code</h2>
+<p>For each resolution, <code>io16_codes</code>, <code>io80_codes</code> and <code>io240_codes</code> hold a potentially multi-valued set. <code>io*_map_code</code> is nonempty only if that candidate set currently has <strong>one</strong> item. <code>SINGLETON_CANDIDATE</code> describes cardinality, not empirical truth; <code>AMBIGUOUS_SET</code> means there is no defensible single choice under that mapping.</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>io16_codes</code>, <code>io80_codes</code>, <code>io240_codes</code></td>
+<td>Entire candidate sets, <code>; </code> separated.</td>
+</tr>
+<tr>
+<td><code>io16_map_code</code>, <code>io80_map_code</code>, <code>io240_map_code</code></td>
+<td>One code only for a singleton candidate set; blank otherwise.</td>
+</tr>
+<tr>
+<td><code>io*_map_status</code></td>
+<td><code>SINGLETON_CANDIDATE</code>, <code>AMBIGUOUS_SET</code>, or <code>UNMAPPED</code>.</td>
+</tr>
+<tr>
+<td><code>io_mapping_status</code></td>
+<td><code>MAPPED_*</code>, <code>PROVISIONAL_*</code>, or detailed unmapped/no-counterpart status.</td>
+</tr>
+<tr>
+<td><code>io_mapping_bridge_relation</code>, <code>io_mapping_bridge_basis</code></td>
+<td>How and on what basis the revisions were related.</td>
+</tr>
+<tr>
+<td><code>io_mapping_psic_level</code>, <code>io_mapping_psic_code</code></td>
+<td>The actual ancestor level used for the bridge.</td>
+</tr>
+<tr>
+<td><code>io*_confidence</code></td>
+<td>Metadata about the concordance evidence; not a calibrated prediction probability.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="the-difference-between-draft-and-accepted-correspondence">The difference between draft and accepted correspondence</h2>
+<p>A hand-written <code>draft</code> bridge yields <code>PROVISIONAL_*</code> when it changes the candidate sets. If an already accepted non-draft ancestor yields <em>exactly the same</em> candidate set, the output may instead cite that ancestor. A <code>no_counterpart</code> does not mean the activity was impossible in 2019; it means the reference cannot establish a defensible mapping for that category.</p>
+<p>A same-code/same-title <code>code_title_match</code> is generated evidence, not independently reviewed semantic equivalence. Rev. 5 scope changes must be handled explicitly (including the accommodation intermediation change identified in the bundled bridge documentation).</p>
+<h2 id="ownership-narrowing-is-separate">Ownership narrowing is separate</h2>
+<p>For narrowly eligible public/private education or human-health pairs, strongly verified institutional ownership can produce <code>io80_refined_*</code> and <code>io240_refined_*</code> columns. The <strong>original</strong> candidate sets and basic I–O mapping statuses remain unchanged; see <a href="institutions.html">Institutions</a>.</p>
+<h2 id="interpretation-boundary">Interpretation boundary</h2>
+<p>Mapping a restaurant into a candidate I–O industry does not identify its local suppliers, its input–output coefficients, its sales, or its geographic economic influence. It is a <strong>classification and correspondence layer</strong>; downstream economic modeling must supply separate assumptions and data.</p>
+<p><strong>Implementation:</strong> <a href="https://github.com/miraflor/placetype-ph/blob/main/src/placetype_ph/io_mapping.py"><code>io_mapping.py</code></a> · <a href="https://github.com/miraflor/placetype-ph/blob/main/src/placetype_ph/io80_resolver.py"><code>io80_resolver.py</code></a> · <a href="https://github.com/miraflor/placetype-ph/blob/main/DATA_SOURCES.md">reference documentation</a>.</p>
+</article>
+<nav class="page-pagination" aria-label="Document pages"><a class="page-step previous" href="institutions.html"><span>← Previous</span><strong>Institutions &amp; ownership</strong></a><a class="page-step next" href="express.html"><span>Next →</span><strong>Express workflow</strong></a></nav><footer class="article-footer"><span>PlaceType PH · MIT-licensed package</span><span>Documentation describes the v0.1.2 implementation; classification is not validation of truth.</span></footer></main>
+<aside class="toc" aria-label="On this page"><div class="toc-title">On this page</div><a class="toc-level-2" href="#why-there-are-two-bridges">Why there are two bridges</a><a class="toc-level-2" href="#exact-candidate-set-versus-map-ready-code">Exact candidate set versus map-ready code</a><a class="toc-level-2" href="#the-difference-between-draft-and-accepted-correspondence">The difference between draft and accepted correspondence</a><a class="toc-level-2" href="#ownership-narrowing-is-separate">Ownership narrowing is separate</a><a class="toc-level-2" href="#interpretation-boundary">Interpretation boundary</a><a class="toc-repo" href="https://github.com/miraflor/placetype-ph/tree/main/docs">Edit on GitHub ↗</a></aside></div></div>
+</body></html>

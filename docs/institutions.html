@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#102630"><meta name="description" content="PlaceType PH — an evidence-first guide to hierarchical Philippine economic classification, source triangulation, conservative decisions, and reproducible outputs.">
+<title>Institutions &amp; ownership | PlaceType PH documentation</title>
+<link rel="icon" href="assets/diagrams/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="assets/css/site.css">
+<script defer src="assets/js/search-index.js"></script>
+<script defer src="assets/js/site.js"></script>
+</head>
+<body data-page="institutions">
+<button class="menu-toggle" type="button" aria-label="Open documentation navigation" aria-controls="site-sidebar" aria-expanded="false">☰</button>
+<div class="nav-scrim" aria-hidden="true"></div>
+<aside class="sidebar" id="site-sidebar" aria-label="Documentation sidebar">
+<a href="index.html" class="brand"><span class="brand-icon">P<span>H</span></span><span><strong>PlaceType <em>PH</em></strong><small>Economic classification · v0.1.2</small></span></a>
+<div class="search-area"><label class="sr-only" for="doc-search">Search documentation</label><input type="search" id="doc-search" placeholder="Search the documentation…" autocomplete="off"><kbd>/</kbd><div id="search-results" hidden></div></div>
+<nav class="sidebar-nav" aria-label="Chapters"><div class="nav-heading">Start here</div><a href="index.html">Overview</a><a href="getting-started.html">Quickstart</a><a href="architecture.html">Architecture</a><a href="worked-example.html">Worked example</a><div class="nav-heading">Methods</div><a href="taxonomies.html">Official taxonomies</a><a href="sources.html">Source evidence</a><a href="crosswalks.html">Reviewed crosswalks</a><a href="triangulation.html">Evidence triangulation</a><a href="fusion.html">Tree fusion &amp; backoff</a><a href="joint-recheck.html">Cross-taxonomy recheck</a><a href="classification.html">Classification decisions</a><a href="retrieval-llm.html">Retrieval &amp; optional LLM</a><div class="nav-heading">Enrichment &amp; delivery</div><a href="institutions.html" aria-current="page" class="active">Institutions &amp; ownership</a><a href="io-projection.html">PSIC to I–O</a><a href="express.html">Express workflow</a><a href="outputs.html">Outputs &amp; GIS</a><div class="nav-heading">Reference &amp; assurance</div><a href="evaluation.html">Validation &amp; evaluation</a><a href="reproducibility.html">Reproducibility</a><a href="api-cli.html">CLI &amp; Python API</a><a href="decision-register.html">Design decisions</a><a href="limitations.html">Limits &amp; interpretation</a><a href="glossary.html">Glossary &amp; references</a></nav>
+<div class="sidebar-foot"><a href="https://github.com/miraflor/placetype-ph">GitHub repository ↗</a><a href="https://github.com/miraflor/placetype-ph/blob/main/DATA_SOURCES.md">Data sources ↗</a><div class="theme-switch"><button type="button" id="theme-toggle" aria-label="Toggle color theme">◐ Theme</button></div></div>
+</aside>
+<div class="content-frame"><div class="topbar"><span>Documentation <b>/</b> Institutions &amp; ownership</span><a href="https://github.com/miraflor/placetype-ph">View source ↗</a></div>
+<div class="reading-layout"><main id="main" class="prose" tabindex="-1"><article><h1 id="institutions-activity-and-ownership">Institutions, activity and ownership</h1>
+<p class="lede">“What does this establishment do?” and “Who owns this institution?” are separate questions. The first is a PSIC activity problem; the second requires independent, attributable evidence and only affects narrowly eligible economic-industry candidate sets.</p>
+<h2 id="why-separate-the-questions">Why separate the questions?</h2>
+<p>A government education office does not deliver teaching in the same sense as a school; a public hospital and a private hospital can both carry the same PSIC health-service activity while falling into different public/private I–O industries. An institutional name, accreditation, participation list or source category alone does not establish legal ownership.</p>
+<figure><img src="assets/diagrams/institutions.svg" alt="PSIC principal activity and verified institutional identity/ownership enter separate branches; only a gated downstream I–O candidate refinement uses both."><figcaption>Figure 1 — Activity is classified first. Ownership evidence may refine separate I–O candidate sets only after strong identity and mapping gates pass.</figcaption></figure>
+<h2 id="operational-administrative-function">Operational administrative function</h2>
+<p>The Rev. 5 PSIC policy can recognize narrow administrative names such as a DepEd Schools Division Office and assign <strong>84120</strong>, provided incompatible reviewed activity evidence does not veto it. It does not infer public/private school ownership. Generic “Department of Health” or a frontline hospital/school must not be force-reassigned merely because a government department is mentioned.</p>
+<h2 id="specialized-advisory-evidence">Specialized advisory evidence</h2>
+<p>The separate <strong>178-rule</strong> specialized catalog handles activity patterns, institution types, source-specific signals, and review candidates. It emits audit fields such as <code>specialized_status</code>, <code>specialized_candidate_codes</code>, <code>administrative_candidate_code</code>, <code>ownership_candidate</code>, registry evidence fields and <code>specialized_audit</code>. These advisory candidates do <strong>not</strong> silently overwrite accepted PSIC, PCPC or PSCC decisions. A source label suggesting “public” is not equal to registry verification.</p>
+<h2 id="explicit-local-registry-references">Explicit local registry references</h2>
+<p>Institutional enrichment is <strong>opt-in</strong> via <code>PLACETYPE_PH_INSTITUTION_REFERENCES</code>, pointing to a validated local JSON config with existing absolute reference file paths. Supported reference keys are <code>beis</code>, <code>unifast</code>, <code>hospitals</code>, and <code>verified_links</code>. Absence of the environment variable is a no-op. An explicitly configured, invalid reference fails the run.</p>
+<pre><code class="language-json">{
+  &quot;schema&quot;: &quot;placetype-ph-institution-reference-config-v1&quot;,
+  &quot;references&quot;: {
+    &quot;verified_links&quot;: &quot;C:\\data\\reviewed_institution_links.json&quot;
+  }
+}
+</code></pre>
+<p>This is only a configuration illustration: it does not assert that any particular record has been verified. Source/licensing checks and separate review of institution records are operator responsibilities.</p>
+<h2 id="evidence-ladder-and-identity-safeguards">Evidence ladder and identity safeguards</h2>
+<table>
+<thead>
+<tr>
+<th>Evidence</th>
+<th>Identity/ownership interpretation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Independently reviewed canonical-to-registry link</td>
+<td>Strong identity with auditable source and verification date; still subject to conflicts and activity compatibility.</td>
+</tr>
+<tr>
+<td>True official facility ID plus canonical name and locality</td>
+<td>Can support a strong exact site match under the resolver's constraints.</td>
+</tr>
+<tr>
+<td>Official directory row with name/city similarity</td>
+<td>Provisional, not a verified physical site.</td>
+</tr>
+<tr>
+<td>BEIS school-ID prefix, UniFAST capture row, publication-row identifier</td>
+<td>Hints/reference evidence; do not automatically prove branch identity or legal ownership.</td>
+</tr>
+<tr>
+<td>OSM/Overture owner/operator claim</td>
+<td>Explicit source claim, not independently verified ownership.</td>
+</tr>
+<tr>
+<td>Religious prefix / “National” in name</td>
+<td>Never sufficient alone to establish legal ownership.</td>
+</tr>
+</tbody>
+</table>
+<p>Wrong-site branches, incompatible PSIC domains, duplicate identities, or contradictory evidence force review or abstention. No external registry dataset is bundled by this package's institutional component, and no network download is required to run the default classification.</p>
+<h2 id="exact-gated-i-o-candidate-refinement">Exact gated I–O candidate refinement</h2>
+<p>When strong institutional identity actually resolves ownership, <code>ownership_io.py</code> can append <em>separate refined candidate columns</em> for eligible <strong>education</strong> (PSIC division 85) or <strong>human health</strong> (division 86). The original I–O candidate sets are never overwritten.</p>
+<table>
+<thead>
+<tr>
+<th>Activity division</th>
+<th>Public IO80 / IO240</th>
+<th>Private IO80 / IO240</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>PSIC 85 education</td>
+<td>74 / 229</td>
+<td>75 / 230</td>
+</tr>
+<tr>
+<td>PSIC 86 human health</td>
+<td>76 / 231</td>
+<td>77 / 232</td>
+</tr>
+</tbody>
+</table>
+<p>The gate additionally requires a <code>SINGLE</code> PSIC result, eligible mapped division/group status, valid bridge basis, exact two-element public/private ambiguity, complete official reference provenance, and checked bundled numeric/name correspondence. Otherwise the refinement abstains. These are not default assignments for every school or clinic.</p>
+<p><strong>Implementation:</strong> <a href="https://github.com/miraflor/placetype-ph/blob/main/src/placetype_ph/specialized/institutional_pipeline.py"><code>institutional_pipeline.py</code></a> · <a href="https://github.com/miraflor/placetype-ph/blob/main/src/placetype_ph/specialized/ownership_io.py"><code>ownership_io.py</code></a> · <a href="https://github.com/miraflor/placetype-ph/blob/main/docs/PRIORITY3_INSTITUTIONAL_IDENTITY.md">institutional data guide</a>.</p>
+</article>
+<nav class="page-pagination" aria-label="Document pages"><a class="page-step previous" href="retrieval-llm.html"><span>← Previous</span><strong>Retrieval &amp; optional LLM</strong></a><a class="page-step next" href="io-projection.html"><span>Next →</span><strong>PSIC to I–O</strong></a></nav><footer class="article-footer"><span>PlaceType PH · MIT-licensed package</span><span>Documentation describes the v0.1.2 implementation; classification is not validation of truth.</span></footer></main>
+<aside class="toc" aria-label="On this page"><div class="toc-title">On this page</div><a class="toc-level-2" href="#why-separate-the-questions">Why separate the questions?</a><a class="toc-level-2" href="#operational-administrative-function">Operational administrative function</a><a class="toc-level-2" href="#specialized-advisory-evidence">Specialized advisory evidence</a><a class="toc-level-2" href="#explicit-local-registry-references">Explicit local registry references</a><a class="toc-level-2" href="#evidence-ladder-and-identity-safeguards">Evidence ladder and identity safeguards</a><a class="toc-level-2" href="#exact-gated-i-o-candidate-refinement">Exact gated I–O candidate refinement</a><a class="toc-repo" href="https://github.com/miraflor/placetype-ph/tree/main/docs">Edit on GitHub ↗</a></aside></div></div>
+</body></html>

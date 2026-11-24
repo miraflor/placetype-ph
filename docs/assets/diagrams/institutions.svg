@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 1020 353" role="img" aria-label="Separate principal PSIC activity from opt-in verified identity/ownership then narrow candidate I O set">
+<rect width="1020" height="353" rx="14" fill="#fbfdfc"/>
+<defs><marker id="arr" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><path d="M0 0 L9 4.5 L0 9 Z" fill="#78949c"/></marker><filter id="shadow" x="-20%" y="-20%" width="140%" height="160%"><feDropShadow dx="0" dy="3" stdDeviation="4" flood-opacity=".075"/></filter></defs>
+<rect x="26" y="68" width="281" height="103" rx="11" fill="#ffffff" stroke="#dbe7e7" stroke-width="1.5" filter="url(#shadow)"/>
+<rect x="26" y="68" width="281" height="5" rx="2" fill="#37648f"/>
+<text x="166.5" y="97" text-anchor="middle" fill="#16323b" font-family="system-ui, sans-serif" font-size="15" font-weight="750">Principal PSIC</text>
+<text x="166.5" y="116" text-anchor="middle" fill="#16323b" font-family="system-ui, sans-serif" font-size="15" font-weight="750">activity</text>
+<text x="166.5" y="152" text-anchor="middle" fill="#61737e" font-family="system-ui, sans-serif" font-size="12">scheme-specific code</text>
+<rect x="378" y="68" width="270" height="103" rx="11" fill="#ffffff" stroke="#dbe7e7" stroke-width="1.5" filter="url(#shadow)"/>
+<rect x="378" y="68" width="270" height="5" rx="2" fill="#b67431"/>
+<text x="513.0" y="97" text-anchor="middle" fill="#16323b" font-family="system-ui, sans-serif" font-size="15" font-weight="750">Opt-in identity</text>
+<text x="513.0" y="116" text-anchor="middle" fill="#16323b" font-family="system-ui, sans-serif" font-size="15" font-weight="750">and ownership</text>
+<text x="513.0" y="152" text-anchor="middle" fill="#61737e" font-family="system-ui, sans-serif" font-size="12">registry + site gates</text>
+<rect x="719" y="87" width="270" height="96" rx="11" fill="#ffffff" stroke="#dbe7e7" stroke-width="1.5" filter="url(#shadow)"/>
+<rect x="719" y="87" width="270" height="5" rx="2" fill="#37648f"/>
+<text x="854.0" y="116" text-anchor="middle" fill="#16323b" font-family="system-ui, sans-serif" font-size="15" font-weight="750">Original I–O</text>
+<text x="854.0" y="135" text-anchor="middle" fill="#16323b" font-family="system-ui, sans-serif" font-size="15" font-weight="750">candidate set</text>
+<text x="854.0" y="164" text-anchor="middle" fill="#61737e" font-family="system-ui, sans-serif" font-size="12">IO16 / IO80 / IO240</text>
+<path d="M 307 122 L 714 122" fill="none" stroke="#78949c" stroke-width="2" stroke-dasharray="6 5" marker-end="url(#arr)"/>
+<rect x="325" y="242" width="402" height="79" rx="11" fill="#eaf8f4" stroke="#dbe7e7" stroke-width="1.5" filter="url(#shadow)"/>
+<rect x="325" y="242" width="402" height="5" rx="2" fill="#0a8178"/>
+<text x="526.0" y="279" text-anchor="middle" fill="#16323b" font-family="system-ui, sans-serif" font-size="16" font-weight="750">Guarded I–O refinement</text>
+<text x="526.0" y="302" text-anchor="middle" fill="#61737e" font-family="system-ui, sans-serif" font-size="12">additive refined columns; original sets retained</text>
+<path d="M 509 173 L 509 241" fill="none" stroke="#78949c" stroke-width="2" marker-end="url(#arr)"/>
+<path d="M 853 184 L 726 274" fill="none" stroke="#78949c" stroke-width="2" stroke-dasharray="6 5" marker-end="url(#arr)"/>
+<text x="506" y="31" text-anchor="middle" fill="#16323b" font-family="system-ui, sans-serif" font-size="17" font-weight="700">Institution type, principal activity and legal ownership are different predicates</text>
+</svg>

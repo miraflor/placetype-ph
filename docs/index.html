@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#102630"><meta name="description" content="PlaceType PH — an evidence-first guide to hierarchical Philippine economic classification, source triangulation, conservative decisions, and reproducible outputs.">
+<title>Overview | PlaceType PH documentation</title>
+<link rel="icon" href="assets/diagrams/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="assets/css/site.css">
+<script defer src="assets/js/search-index.js"></script>
+<script defer src="assets/js/site.js"></script>
+</head>
+<body data-page="index">
+<button class="menu-toggle" type="button" aria-label="Open documentation navigation" aria-controls="site-sidebar" aria-expanded="false">☰</button>
+<div class="nav-scrim" aria-hidden="true"></div>
+<aside class="sidebar" id="site-sidebar" aria-label="Documentation sidebar">
+<a href="index.html" class="brand"><span class="brand-icon">P<span>H</span></span><span><strong>PlaceType <em>PH</em></strong><small>Economic classification · v0.1.2</small></span></a>
+<div class="search-area"><label class="sr-only" for="doc-search">Search documentation</label><input type="search" id="doc-search" placeholder="Search the documentation…" autocomplete="off"><kbd>/</kbd><div id="search-results" hidden></div></div>
+<nav class="sidebar-nav" aria-label="Chapters"><div class="nav-heading">Start here</div><a href="index.html" aria-current="page" class="active">Overview</a><a href="getting-started.html">Quickstart</a><a href="architecture.html">Architecture</a><a href="worked-example.html">Worked example</a><div class="nav-heading">Methods</div><a href="taxonomies.html">Official taxonomies</a><a href="sources.html">Source evidence</a><a href="crosswalks.html">Reviewed crosswalks</a><a href="triangulation.html">Evidence triangulation</a><a href="fusion.html">Tree fusion &amp; backoff</a><a href="joint-recheck.html">Cross-taxonomy recheck</a><a href="classification.html">Classification decisions</a><a href="retrieval-llm.html">Retrieval &amp; optional LLM</a><div class="nav-heading">Enrichment &amp; delivery</div><a href="institutions.html">Institutions &amp; ownership</a><a href="io-projection.html">PSIC to I–O</a><a href="express.html">Express workflow</a><a href="outputs.html">Outputs &amp; GIS</a><div class="nav-heading">Reference &amp; assurance</div><a href="evaluation.html">Validation &amp; evaluation</a><a href="reproducibility.html">Reproducibility</a><a href="api-cli.html">CLI &amp; Python API</a><a href="decision-register.html">Design decisions</a><a href="limitations.html">Limits &amp; interpretation</a><a href="glossary.html">Glossary &amp; references</a></nav>
+<div class="sidebar-foot"><a href="https://github.com/miraflor/placetype-ph">GitHub repository ↗</a><a href="https://github.com/miraflor/placetype-ph/blob/main/DATA_SOURCES.md">Data sources ↗</a><div class="theme-switch"><button type="button" id="theme-toggle" aria-label="Toggle color theme">◐ Theme</button></div></div>
+</aside>
+<div class="content-frame"><div class="topbar"><span>Documentation <b>/</b> Overview</span><a href="https://github.com/miraflor/placetype-ph">View source ↗</a></div>
+<div class="reading-layout"><main id="main" class="prose" tabindex="-1"><article><section class="hero">
+<p class="eyebrow">A visual algorithm guide · version 0.1.2</p>
+<h1 id="from-place-observations-to-defensible-economic-categories">From place observations to defensible economic categories.</h1>
+<p>PlaceType PH classifies canonical establishments using Philippine statistical taxonomies. This guide shows exactly how source labels, reviewed rules, hierarchy constraints, uncertainty, institution evidence, and input–output correspondence become auditable results.</p>
+<div class="hero-actions"><a class="hero-button" href="worked-example.html">Follow a worked example →</a><a class="hero-button ghost" href="getting-started.html">Run the package</a></div>
+</section>
+<div class="metric-grid">
+<div class="metric"><b>3</b><span>distinct statistical classification systems</span></div>
+<div class="metric"><b>328</b><span>bundled reviewed PSIC Rev. 5 rules</span></div>
+<div class="metric"><b>178</b><span>specialized advisory activity rules</span></div>
+</div>
+<h2 id="what-the-package-does">What the package does</h2>
+<p>PlaceType PH sits <strong>after</strong> <a href="https://github.com/miraflor/openplaces-ph">OpenPlaces PH</a>, which supplies one canonical record per reconciled place. PlaceType PH does not repeat the geometric or name-based record linkage upstream. It interprets the source evidence attached to those records and maps it to the official hierarchy, stopping at a defensible level rather than inventing a more specific category.</p>
+<figure><img src="assets/diagrams/pipeline.svg" alt="OpenPlaces entities pass through source evidence, reviewed mappings, dependency-aware fusion, optional traversal, and classification and GIS output."><figcaption>Figure 1 — Conceptual pipeline. Source and institutional evidence inform decisions, but candidate-only information does not silently become an accepted classification.</figcaption></figure>
+<p>The three taxonomies answer <strong>different questions</strong>:</p>
+<table>
+<thead>
+<tr>
+<th>Scheme</th>
+<th>What is classified</th>
+<th>Boundary</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>PSIC Rev. 5</strong></td>
+<td>The establishment's principal economic activity</td>
+<td>A parent code may be the best supported answer.</td>
+</tr>
+<tr>
+<td><strong>PCPC 2002</strong></td>
+<td>Product and service categories</td>
+<td>A place-only label is a <em>potential product/service family</em>, not its complete output basket.</td>
+</tr>
+<tr>
+<td><strong>PSCC 2022</strong></td>
+<td>Traded commodities</td>
+<td>A shop name is not proof of a particular traded commodity. Explicit commodity evidence or a confirmed mapping is required.</td>
+</tr>
+</tbody>
+</table>
+<p>The source is not a probability model. A match to a reviewed category is a rule assertion; two matching labels may derive from one provider; a code set is not proof of a specific production technology. These distinctions are preserved in outputs and audit fields.</p>
+<h2 id="read-this-like-an-implementation-specification">Read this like an implementation specification</h2>
+<p>The documentation follows the two complementary styles of a visual worked derivation and a system-design manual: start with a small example, then inspect every transformation, input contract, fallback, status, implementation file, and limiting assumption. It is organized into chapters rather than one unsearchable README.</p>
+<div class="chapter-grid">
+<a class="chapter-card" href="worked-example.html"><span class="chapter-symbol">01</span><strong>Worked example</strong><small>Trace a pharmacy, a disputed place, and an administrative office through actual decision rules.</small></a>
+<a class="chapter-card" href="triangulation.html"><span class="chapter-symbol">02</span><strong>Evidence triangulation</strong><small>Why source dependence, corroboration, and contradictory annotations matter.</small></a>
+<a class="chapter-card" href="fusion.html"><span class="chapter-symbol">03</span><strong>Hierarchy & fusion</strong><small>Exact subtree intersections, sibling backoff, unions and conflicts without forced leaves.</small></a>
+<a class="chapter-card" href="joint-recheck.html"><span class="chapter-symbol">04</span><strong>Cross-taxonomy review</strong><small>Learn what the bounded peer-context recheck can and cannot legitimately infer.</small></a>
+<a class="chapter-card" href="institutions.html"><span class="chapter-symbol">05</span><strong>Institutional evidence</strong><small>Separate an institution's activity from ownership and from derived I–O industries.</small></a>
+<a class="chapter-card" href="reproducibility.html"><span class="chapter-symbol">06</span><strong>Reproducibility</strong><small>Taxonomy versions, packaged rules, fingerprints, caches, and selective invalidation.</small></a>
+</div>
+<h2 id="what-triangulation-means-here">What “triangulation” means here</h2>
+<p>PlaceType PH does <strong>not</strong> use geometric triangulation (Delaunay or otherwise). Its triangulation is <strong>semantic</strong>: comparing source annotations with dependency-aware fusion and separately checking proposals against other taxonomies in a bounded diagnostic pass. The latter is advisory, not an official statistical concordance. See <a href="triangulation.html">source triangulation</a> and <a href="joint-recheck.html">cross-taxonomy rechecking</a>.</p>
+<div class="note warning"><strong>Not an accuracy certificate</strong>All tests passing, a complete reference hierarchy, a reviewed rule inventory, or a singleton I–O candidate set do not establish ground-truth classification accuracy. The [evaluation](evaluation.html) chapter explains the necessary adjudicated benchmark and what the current package reports.</div>
+<h2 id="how-to-navigate">How to navigate</h2>
+<p>Start with <a href="getting-started.html">Quickstart</a> for an executable example; then read <a href="architecture.html">Architecture</a>, <a href="sources.html">Source evidence</a>, and <a href="fusion.html">Tree fusion</a> to understand the decision engine. The <a href="decision-register.html">Design decision register</a> distinguishes standard statistical ideas from package-specific choices and known fallbacks. The <a href="api-cli.html">API and CLI</a> and <a href="outputs.html">Outputs</a> chapters are references for implementation and downstream work.</p>
+<p><strong>Source:</strong> <a href="https://github.com/miraflor/placetype-ph">Repository</a> · <a href="https://github.com/miraflor/placetype-ph/blob/main/README.md">README</a> · <a href="https://github.com/miraflor/placetype-ph/blob/main/docs/ARCHITECTURE.md">architecture note</a>.</p>
+</article>
+<nav class="page-pagination" aria-label="Document pages"><a class="page-step next" href="getting-started.html"><span>Next →</span><strong>Quickstart</strong></a></nav><footer class="article-footer"><span>PlaceType PH · MIT-licensed package</span><span>Documentation describes the v0.1.2 implementation; classification is not validation of truth.</span></footer></main>
+<aside class="toc" aria-label="On this page"><div class="toc-title">On this page</div><a class="toc-level-2" href="#what-the-package-does">What the package does</a><a class="toc-level-2" href="#read-this-like-an-implementation-specification">Read this like an implementation specification</a><a class="toc-level-2" href="#what-triangulation-means-here">What “triangulation” means here</a><a class="toc-level-2" href="#how-to-navigate">How to navigate</a><a class="toc-repo" href="https://github.com/miraflor/placetype-ph/tree/main/docs">Edit on GitHub ↗</a></aside></div></div>
+</body></html>

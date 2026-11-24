@@ -1,0 +1,2 @@
+# Optional documentation-authoring dependency, not a package runtime requirement.
+markdown-it-py>=3,<5

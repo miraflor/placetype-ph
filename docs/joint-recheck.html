@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#102630"><meta name="description" content="PlaceType PH — an evidence-first guide to hierarchical Philippine economic classification, source triangulation, conservative decisions, and reproducible outputs.">
+<title>Cross-taxonomy recheck | PlaceType PH documentation</title>
+<link rel="icon" href="assets/diagrams/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="assets/css/site.css">
+<script defer src="assets/js/search-index.js"></script>
+<script defer src="assets/js/site.js"></script>
+</head>
+<body data-page="joint-recheck">
+<button class="menu-toggle" type="button" aria-label="Open documentation navigation" aria-controls="site-sidebar" aria-expanded="false">☰</button>
+<div class="nav-scrim" aria-hidden="true"></div>
+<aside class="sidebar" id="site-sidebar" aria-label="Documentation sidebar">
+<a href="index.html" class="brand"><span class="brand-icon">P<span>H</span></span><span><strong>PlaceType <em>PH</em></strong><small>Economic classification · v0.1.2</small></span></a>
+<div class="search-area"><label class="sr-only" for="doc-search">Search documentation</label><input type="search" id="doc-search" placeholder="Search the documentation…" autocomplete="off"><kbd>/</kbd><div id="search-results" hidden></div></div>
+<nav class="sidebar-nav" aria-label="Chapters"><div class="nav-heading">Start here</div><a href="index.html">Overview</a><a href="getting-started.html">Quickstart</a><a href="architecture.html">Architecture</a><a href="worked-example.html">Worked example</a><div class="nav-heading">Methods</div><a href="taxonomies.html">Official taxonomies</a><a href="sources.html">Source evidence</a><a href="crosswalks.html">Reviewed crosswalks</a><a href="triangulation.html">Evidence triangulation</a><a href="fusion.html">Tree fusion &amp; backoff</a><a href="joint-recheck.html" aria-current="page" class="active">Cross-taxonomy recheck</a><a href="classification.html">Classification decisions</a><a href="retrieval-llm.html">Retrieval &amp; optional LLM</a><div class="nav-heading">Enrichment &amp; delivery</div><a href="institutions.html">Institutions &amp; ownership</a><a href="io-projection.html">PSIC to I–O</a><a href="express.html">Express workflow</a><a href="outputs.html">Outputs &amp; GIS</a><div class="nav-heading">Reference &amp; assurance</div><a href="evaluation.html">Validation &amp; evaluation</a><a href="reproducibility.html">Reproducibility</a><a href="api-cli.html">CLI &amp; Python API</a><a href="decision-register.html">Design decisions</a><a href="limitations.html">Limits &amp; interpretation</a><a href="glossary.html">Glossary &amp; references</a></nav>
+<div class="sidebar-foot"><a href="https://github.com/miraflor/placetype-ph">GitHub repository ↗</a><a href="https://github.com/miraflor/placetype-ph/blob/main/DATA_SOURCES.md">Data sources ↗</a><div class="theme-switch"><button type="button" id="theme-toggle" aria-label="Toggle color theme">◐ Theme</button></div></div>
+</aside>
+<div class="content-frame"><div class="topbar"><span>Documentation <b>/</b> Cross-taxonomy recheck</span><a href="https://github.com/miraflor/placetype-ph">View source ↗</a></div>
+<div class="reading-layout"><main id="main" class="prose" tabindex="-1"><article><h1 id="cross-taxonomy-triangulation-and-bounded-recheck">Cross-taxonomy triangulation and bounded recheck</h1>
+<p class="lede">The joint worklist aligns PSIC, PCPC, and PSCC proposals under the same source/category key—but the three schemes are not interchangeable votes. The peer recheck only tests how a *fixed candidate set* responds to admissible peer labels.</p>
+<h2 id="three-classification-questions-one-observed-source-value">Three classification questions, one observed source value</h2>
+<p><code>joint_key</code> is a stable digest of source, source field and source value, excluding taxonomy/version. Thus an observed Overture category can have separate PSIC, PCPC, and PSCC worklist rows with a shared key, retaining the distinct code meanings and review states.</p>
+<figure><img src="assets/diagrams/joint-recheck.svg" alt="Three independent taxonomy first passes from one source label, followed by a bounded rerank with peer labels that cannot introduce new candidates."><figcaption>Figure 1 — The first-pass set is a control. Peer context may rerank candidates, never add codes not in the controlled shortlist.</figcaption></figure>
+<h2 id="pass-1-independent-source-only-retrieval">Pass 1 — Independent source-only retrieval</h2>
+<p>Each taxonomy independently retrieves candidates using <strong>original source evidence</strong>. The local retriever uses a 0.6-weight word TF–IDF component and a 0.4-weight character n-gram TF–IDF component; its hierarchical pass first selects plausible coarse branches and then ranks within them. Codes from another taxonomy are not added as if they were source evidence.</p>
+<p>Accepted reviewed <code>codes</code> and eligible <code>suggested_codes</code> may later provide peer context. Raw unaccepted <code>candidate_codes</code> do not cross scheme boundaries. At most one version of each peer scheme contributes; reviewed rows take precedence over suggestions.</p>
+<h2 id="pass-2-bounded-peer-context-recheck">Pass 2 — Bounded peer-context recheck</h2>
+<p>For a target row, the recheck adds other schemes' <strong>titles</strong>, not bare numerical code tokens, to the same base query. The retriever is constrained to the <strong>first-pass candidate set</strong>. Therefore a peer code can change the ordering of existing possibilities but cannot manufacture a new PSIC category absent from the original retrieval.</p>
+<p>This is a consistency/sensitivity diagnostic, not an official correspondence between activity, product and commodity taxonomies. A bakery's principal activity and the products it sells can both be correctly classified while their code strings and taxonomy titles are unrelated.</p>
+<h2 id="recheck-outcomes">Recheck outcomes</h2>
+<table>
+<thead>
+<tr>
+<th>Recheck condition</th>
+<th>Reported status</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Top accepted candidate remains stable</td>
+<td><code>STABLE</code></td>
+<td>Peer context did not change its top code.</td>
+</tr>
+<tr>
+<td>Strongly different top candidate</td>
+<td><code>SHIFT</code></td>
+<td>Accepted mapping needs review.</td>
+</tr>
+<tr>
+<td>Change below configured margin</td>
+<td><code>SHIFT_WEAK</code></td>
+<td>Inconclusive; not a decisive contradiction.</td>
+</tr>
+<tr>
+<td>No comparable peers</td>
+<td><code>NO_PEERS</code></td>
+<td>No recheck was possible; not success.</td>
+</tr>
+<tr>
+<td>Missing control/recheck retrieval</td>
+<td><code>NO_CONTROL_HIT</code> / <code>NO_RECHECK_HIT</code></td>
+<td>No valid comparison.</td>
+</tr>
+<tr>
+<td>Candidate-only changes</td>
+<td><code>CANDIDATE_STABLE</code> / <code>CANDIDATE_SHIFT</code></td>
+<td>Diagnostics only; cannot authorize an accepted mapping.</td>
+</tr>
+<tr>
+<td>Missing peer taxonomy</td>
+<td><code>MISSING_TAXONOMY</code></td>
+<td>Diagnostic unavailable.</td>
+</tr>
+<tr>
+<td>PCPC sibling discrepancy</td>
+<td><code>COARSENED</code> (when applicable)</td>
+<td>An automatic PCPC proposal can back off to a verified common parent; reviewed rules remain unchanged.</td>
+</tr>
+</tbody>
+</table>
+<p>A group-level <code>RECHECK</code> state is reserved for material shifts involving accepted evidence; candidate-only movement cannot escalate the worklist by itself.</p>
+<h2 id="why-this-is-not-ordinary-triangulation-by-voting">Why this is not ordinary triangulation by voting</h2>
+<p>A stable peer-context result is <strong>not</strong> independent evidence that the selected code is true. The recheck sees labels derived from related classifications of one source value; they may be semantically related, correlated, or inappropriate for a different scheme. Stability is conditional on the first-pass candidate set and retrieval scoring.</p>
+<h2 id="worklist-pipeline">Worklist pipeline</h2>
+<p><code>crosswalk-init</code> → <code>crosswalk-suggest</code> → bounded recheck → reviewed/adopted mapping → <code>classify</code>. Suggestions and recheck outputs carry audit columns such as <code>control_query</code>, <code>recheck_query</code>, <code>recheck_candidate_codes</code>, <code>recheck_top_code</code>, <code>recheck_margin</code>, <code>peer_context</code>, and <code>joint_status</code>.</p>
+<p>The default batch size for first-pass retrieval is <strong>256 unique queries</strong>; repeated identical text is vectorized once per taxonomy, and source-specific branch restrictions still apply independently. These performance choices do not alter candidate semantics.</p>
+<h2 id="crucial-limit-automatic-promotion">Crucial limit: automatic promotion</h2>
+<p>Express can promote a suggestion with no valid peer verdict by default; it labels it <code>AUTO_ACCEPTED_UNCHECKED</code>, not <code>REVIEWED</code>. <code>--no-promote-unchecked</code> holds these suggestions; <code>--hold-inconclusive</code> separately holds weak shifts. Never report default Express coverage as exclusively human-reviewed coverage.</p>
+<p><strong>Implementation:</strong> <a href="https://github.com/miraflor/placetype-ph/blob/main/src/placetype_ph/joint_crosswalk.py"><code>joint_crosswalk.py</code></a> · <a href="https://github.com/miraflor/placetype-ph/blob/main/src/placetype_ph/suggest.py"><code>suggest.py</code></a> · <a href="https://github.com/miraflor/placetype-ph/blob/main/docs/ARCHITECTURE.md">architecture note</a>.</p>
+</article>
+<nav class="page-pagination" aria-label="Document pages"><a class="page-step previous" href="fusion.html"><span>← Previous</span><strong>Tree fusion &amp; backoff</strong></a><a class="page-step next" href="classification.html"><span>Next →</span><strong>Classification decisions</strong></a></nav><footer class="article-footer"><span>PlaceType PH · MIT-licensed package</span><span>Documentation describes the v0.1.2 implementation; classification is not validation of truth.</span></footer></main>
+<aside class="toc" aria-label="On this page"><div class="toc-title">On this page</div><a class="toc-level-2" href="#three-classification-questions-one-observed-source-value">Three classification questions, one observed source value</a><a class="toc-level-2" href="#pass-1-independent-source-only-retrieval">Pass 1 — Independent source-only retrieval</a><a class="toc-level-2" href="#pass-2-bounded-peer-context-recheck">Pass 2 — Bounded peer-context recheck</a><a class="toc-level-2" href="#recheck-outcomes">Recheck outcomes</a><a class="toc-level-2" href="#why-this-is-not-ordinary-triangulation-by-voting">Why this is not ordinary triangulation by voting</a><a class="toc-level-2" href="#worklist-pipeline">Worklist pipeline</a><a class="toc-level-2" href="#crucial-limit-automatic-promotion">Crucial limit: automatic promotion</a><a class="toc-repo" href="https://github.com/miraflor/placetype-ph/tree/main/docs">Edit on GitHub ↗</a></aside></div></div>
+</body></html>

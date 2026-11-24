@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#102630"><meta name="description" content="PlaceType PH — an evidence-first guide to hierarchical Philippine economic classification, source triangulation, conservative decisions, and reproducible outputs.">
+<title>Validation &amp; evaluation | PlaceType PH documentation</title>
+<link rel="icon" href="assets/diagrams/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="assets/css/site.css">
+<script defer src="assets/js/search-index.js"></script>
+<script defer src="assets/js/site.js"></script>
+</head>
+<body data-page="evaluation">
+<button class="menu-toggle" type="button" aria-label="Open documentation navigation" aria-controls="site-sidebar" aria-expanded="false">☰</button>
+<div class="nav-scrim" aria-hidden="true"></div>
+<aside class="sidebar" id="site-sidebar" aria-label="Documentation sidebar">
+<a href="index.html" class="brand"><span class="brand-icon">P<span>H</span></span><span><strong>PlaceType <em>PH</em></strong><small>Economic classification · v0.1.2</small></span></a>
+<div class="search-area"><label class="sr-only" for="doc-search">Search documentation</label><input type="search" id="doc-search" placeholder="Search the documentation…" autocomplete="off"><kbd>/</kbd><div id="search-results" hidden></div></div>
+<nav class="sidebar-nav" aria-label="Chapters"><div class="nav-heading">Start here</div><a href="index.html">Overview</a><a href="getting-started.html">Quickstart</a><a href="architecture.html">Architecture</a><a href="worked-example.html">Worked example</a><div class="nav-heading">Methods</div><a href="taxonomies.html">Official taxonomies</a><a href="sources.html">Source evidence</a><a href="crosswalks.html">Reviewed crosswalks</a><a href="triangulation.html">Evidence triangulation</a><a href="fusion.html">Tree fusion &amp; backoff</a><a href="joint-recheck.html">Cross-taxonomy recheck</a><a href="classification.html">Classification decisions</a><a href="retrieval-llm.html">Retrieval &amp; optional LLM</a><div class="nav-heading">Enrichment &amp; delivery</div><a href="institutions.html">Institutions &amp; ownership</a><a href="io-projection.html">PSIC to I–O</a><a href="express.html">Express workflow</a><a href="outputs.html">Outputs &amp; GIS</a><div class="nav-heading">Reference &amp; assurance</div><a href="evaluation.html" aria-current="page" class="active">Validation &amp; evaluation</a><a href="reproducibility.html">Reproducibility</a><a href="api-cli.html">CLI &amp; Python API</a><a href="decision-register.html">Design decisions</a><a href="limitations.html">Limits &amp; interpretation</a><a href="glossary.html">Glossary &amp; references</a></nav>
+<div class="sidebar-foot"><a href="https://github.com/miraflor/placetype-ph">GitHub repository ↗</a><a href="https://github.com/miraflor/placetype-ph/blob/main/DATA_SOURCES.md">Data sources ↗</a><div class="theme-switch"><button type="button" id="theme-toggle" aria-label="Toggle color theme">◐ Theme</button></div></div>
+</aside>
+<div class="content-frame"><div class="topbar"><span>Documentation <b>/</b> Validation &amp; evaluation</span><a href="https://github.com/miraflor/placetype-ph">View source ↗</a></div>
+<div class="reading-layout"><main id="main" class="prose" tabindex="-1"><article><h1 id="validation-gold-labels-and-accuracy">Validation, gold labels and accuracy</h1>
+<p class="lede">Passing software tests confirms invariants and expected decisions on fixtures. It does not establish that a source-category rule is correct for the general Philippine establishment population.</p>
+<h2 id="four-different-validation-questions">Four different validation questions</h2>
+<table>
+<thead>
+<tr>
+<th>Question</th>
+<th>Evidence required</th>
+<th>Already covered?</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Does the code execute consistently?</td>
+<td>CI and deterministic regression tests.</td>
+<td>Yes, for tested paths and Python versions.</td>
+</tr>
+<tr>
+<td>Does the taxonomy preserve its published hierarchy?</td>
+<td>Official-source counts and import validation.</td>
+<td>PSIC Rev. 5 has specific structural gates; PCPC/PSCC require source-specific checks.</td>
+</tr>
+<tr>
+<td>Does the rule assign the correct category for a real place?</td>
+<td>Independent adjudicated establishment labels and identity verification.</td>
+<td><strong>Not established by CI alone.</strong></td>
+</tr>
+<tr>
+<td>Does a PSIC or I–O singleton correspond to actual economic output?</td>
+<td>Verified concordance and relevant external economic evidence.</td>
+<td><strong>Not established by a mapping alone.</strong></td>
+</tr>
+</tbody>
+</table>
+<h2 id="construct-an-independent-gold-set">Construct an independent gold set</h2>
+<p>Sample canonical entities across source combinations, rule types, classification depths, statuses (<code>SINGLE</code>, <code>INTERSECT</code>, <code>UNION</code>, <code>CONFLICT</code>, <code>UNCODEABLE</code>, <code>NOT_PSIC_ACTIVITY</code>), location, establishment size/category, and higher-risk entity-match indicators. Preserve a random component for population-rate estimation; oversampling difficult cases without weights is useful for diagnostics but cannot directly estimate overall population accuracy.</p>
+<p>Adjudicators should verify the actual site identity and principal economic activity against the relevant <strong>official taxonomy revision</strong>, independently of the classifier's proposed code. Label negative cases explicitly instead of silently dropping them from evaluation.</p>
+<h2 id="gold-file-schema">Gold file schema</h2>
+<p>At minimum supply <code>canonical_id</code>, <code>scheme</code>, and <code>gold_code</code>, with optional <code>gold_status</code>:</p>
+<table>
+<thead>
+<tr>
+<th><code>gold_status</code></th>
+<th><code>gold_code</code></th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>CODED</code></td>
+<td>Valid code</td>
+<td>Activity/product/commodity reference established.</td>
+</tr>
+<tr>
+<td><code>NOT_CODEABLE</code></td>
+<td>Blank</td>
+<td>Evidence insufficient for an admissible taxonomy code.</td>
+</tr>
+<tr>
+<td><code>NOT_PSIC_ACTIVITY</code></td>
+<td>Blank</td>
+<td>Physical feature is not a PSIC economic activity.</td>
+</tr>
+<tr>
+<td><code>NON_ECONOMIC_POI</code></td>
+<td>Blank</td>
+<td>Legacy alias accepted by evaluator.</td>
+</tr>
+</tbody>
+</table>
+<p>Invalid codes, missing required labels and contradictory negative statuses are fatal rather than being removed from the denominator.</p>
+<h2 id="run-the-evaluator">Run the evaluator</h2>
+<pre><code class="language-powershell">placetype evaluate output\iloilo-reviewed\entity_classifications.parquet `
+  gold.csv --scheme psic --output-dir output\evaluation\reviewed
+if ($LASTEXITCODE -ne 0) { throw &quot;Evaluation failed&quot; }
+</code></pre>
+<p>The evaluator reports per-depth <strong>production rate</strong> and <strong>accuracy</strong>, Cohen's kappa, exact-code accuracy, hierarchy-compatible accuracy (including honest ancestor backoff), over-specificity, wrong-branch outcomes, mean tree distance, unknown prediction codes, and code-avoidance on negative gold cases. One division-level classification counts as produced at its supported depth, not as an invented subclass.</p>
+<h2 id="compare-reviewed-and-legacy-policies">Compare reviewed and legacy policies</h2>
+<p>Use the <em>same</em> OpenPlaces input and verified taxonomy. Run reviewed deterministic classification and legacy <code>--no-reviewed-psic</code> to separate the reviewed rule-policy change. Compare exact/compatible accuracy, abstention, false-positive code rate, coverage, source-specific error patterns and status distribution. A coverage gain that lowers precision is not automatically a scientific improvement.</p>
+<p>For Express, <strong>stratify by review source</strong>: <code>REVIEWED</code>, <code>AUTO_ACCEPTED</code>, <code>AUTO_ACCEPTED_INCONCLUSIVE</code>, and <code>AUTO_ACCEPTED_UNCHECKED</code> must be reported separately. Default Express promotion does not create independently validated labels.</p>
+<h2 id="evaluation-limitations">Evaluation limitations</h2>
+<p>A convenience 50- or 100-row CLI slice is a smoke test, not a representative evaluation. Human label agreement, ambiguous PSIC scope, entity-linkage failures, selected cities versus national coverage and temporal changes in source categories are all material uncertainties. Record sampling scheme, adjudication source/date, disagreements, and negative labels so the benchmark is reproducible without redistributing restricted raw registry data.</p>
+<p><strong>Implementation:</strong> <a href="https://github.com/miraflor/placetype-ph/blob/main/src/placetype_ph/evaluate.py"><code>evaluate.py</code></a> · <a href="https://github.com/miraflor/placetype-ph/blob/main/tests/test_evaluate.py"><code>tests/test_evaluate.py</code></a>.</p>
+</article>
+<nav class="page-pagination" aria-label="Document pages"><a class="page-step previous" href="outputs.html"><span>← Previous</span><strong>Outputs &amp; GIS</strong></a><a class="page-step next" href="reproducibility.html"><span>Next →</span><strong>Reproducibility</strong></a></nav><footer class="article-footer"><span>PlaceType PH · MIT-licensed package</span><span>Documentation describes the v0.1.2 implementation; classification is not validation of truth.</span></footer></main>
+<aside class="toc" aria-label="On this page"><div class="toc-title">On this page</div><a class="toc-level-2" href="#four-different-validation-questions">Four different validation questions</a><a class="toc-level-2" href="#construct-an-independent-gold-set">Construct an independent gold set</a><a class="toc-level-2" href="#gold-file-schema">Gold file schema</a><a class="toc-level-2" href="#run-the-evaluator">Run the evaluator</a><a class="toc-level-2" href="#compare-reviewed-and-legacy-policies">Compare reviewed and legacy policies</a><a class="toc-level-2" href="#evaluation-limitations">Evaluation limitations</a><a class="toc-repo" href="https://github.com/miraflor/placetype-ph/tree/main/docs">Edit on GitHub ↗</a></aside></div></div>
+</body></html>

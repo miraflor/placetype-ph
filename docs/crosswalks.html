@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#102630"><meta name="description" content="PlaceType PH — an evidence-first guide to hierarchical Philippine economic classification, source triangulation, conservative decisions, and reproducible outputs.">
+<title>Reviewed crosswalks | PlaceType PH documentation</title>
+<link rel="icon" href="assets/diagrams/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="assets/css/site.css">
+<script defer src="assets/js/search-index.js"></script>
+<script defer src="assets/js/site.js"></script>
+</head>
+<body data-page="crosswalks">
+<button class="menu-toggle" type="button" aria-label="Open documentation navigation" aria-controls="site-sidebar" aria-expanded="false">☰</button>
+<div class="nav-scrim" aria-hidden="true"></div>
+<aside class="sidebar" id="site-sidebar" aria-label="Documentation sidebar">
+<a href="index.html" class="brand"><span class="brand-icon">P<span>H</span></span><span><strong>PlaceType <em>PH</em></strong><small>Economic classification · v0.1.2</small></span></a>
+<div class="search-area"><label class="sr-only" for="doc-search">Search documentation</label><input type="search" id="doc-search" placeholder="Search the documentation…" autocomplete="off"><kbd>/</kbd><div id="search-results" hidden></div></div>
+<nav class="sidebar-nav" aria-label="Chapters"><div class="nav-heading">Start here</div><a href="index.html">Overview</a><a href="getting-started.html">Quickstart</a><a href="architecture.html">Architecture</a><a href="worked-example.html">Worked example</a><div class="nav-heading">Methods</div><a href="taxonomies.html">Official taxonomies</a><a href="sources.html">Source evidence</a><a href="crosswalks.html" aria-current="page" class="active">Reviewed crosswalks</a><a href="triangulation.html">Evidence triangulation</a><a href="fusion.html">Tree fusion &amp; backoff</a><a href="joint-recheck.html">Cross-taxonomy recheck</a><a href="classification.html">Classification decisions</a><a href="retrieval-llm.html">Retrieval &amp; optional LLM</a><div class="nav-heading">Enrichment &amp; delivery</div><a href="institutions.html">Institutions &amp; ownership</a><a href="io-projection.html">PSIC to I–O</a><a href="express.html">Express workflow</a><a href="outputs.html">Outputs &amp; GIS</a><div class="nav-heading">Reference &amp; assurance</div><a href="evaluation.html">Validation &amp; evaluation</a><a href="reproducibility.html">Reproducibility</a><a href="api-cli.html">CLI &amp; Python API</a><a href="decision-register.html">Design decisions</a><a href="limitations.html">Limits &amp; interpretation</a><a href="glossary.html">Glossary &amp; references</a></nav>
+<div class="sidebar-foot"><a href="https://github.com/miraflor/placetype-ph">GitHub repository ↗</a><a href="https://github.com/miraflor/placetype-ph/blob/main/DATA_SOURCES.md">Data sources ↗</a><div class="theme-switch"><button type="button" id="theme-toggle" aria-label="Toggle color theme">◐ Theme</button></div></div>
+</aside>
+<div class="content-frame"><div class="topbar"><span>Documentation <b>/</b> Reviewed crosswalks</span><a href="https://github.com/miraflor/placetype-ph">View source ↗</a></div>
+<div class="reading-layout"><main id="main" class="prose" tabindex="-1"><article><h1 id="reviewed-mappings-and-review-worklists">Reviewed mappings and review worklists</h1>
+<p class="lede">A crosswalk row is a versioned, source-specific assertion about admissible taxonomy codes—not an opaque classification prediction.</p>
+<h2 id="five-mutually-distinct-mapping-kinds">Five mutually distinct mapping kinds</h2>
+<table>
+<thead>
+<tr>
+<th>Mapping</th>
+<th>Meaning</th>
+<th>Codes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>EXACT</code></td>
+<td>The reviewed label supports this exact code.</td>
+<td>Exactly one.</td>
+</tr>
+<tr>
+<td><code>SUBTREE</code></td>
+<td>The label supports this code or an unspecified descendant.</td>
+<td>Exactly one root.</td>
+</tr>
+<tr>
+<td><code>UNION</code></td>
+<td>Admissible alternatives lie in multiple distinct subtrees.</td>
+<td>At least two nonredundant roots.</td>
+</tr>
+<tr>
+<td><code>NOT_ACTIVITY</code></td>
+<td>Source denotes a feature that is not a PSIC economic activity.</td>
+<td>None.</td>
+</tr>
+<tr>
+<td><code>UNCODEABLE</code></td>
+<td>Source category is too broad/semantically weak to code.</td>
+<td>None.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Important:</strong> <code>NOT_ACTIVITY</code> means something different from an unknown or ambiguous business. <code>UNCODEABLE</code> is not an assertion that an economic activity does not exist. Neither may be converted to a code by a blind LCA.</p>
+<h2 id="bundled-reviewed-inventory">Bundled reviewed inventory</h2>
+<p>PlaceType PH 0.1.2 carries <strong>328 reviewed PSIC Rev. 5 entries</strong>, consisting of 246 <code>SUBTREE</code>, 34 <code>EXACT</code>, two <code>UNION</code>, 17 <code>NOT_ACTIVITY</code>, and 29 <code>UNCODEABLE</code> rows: 193 Overture and 135 OSM. The 178-rule specialized advisory catalog is a <strong>different</strong> resource with a different authority level. The older 1,993-row worklist is not 1,993 accepted decisions.</p>
+<p>These counts describe reviewed <em>rules</em>, not the number of establishments correctly classified in a benchmark.</p>
+<h2 id="a-rule-has-scope">A rule has scope</h2>
+<p>A crosswalk identity includes <code>source</code>, <code>source_value</code>, <code>source_field</code>, <code>scheme</code>, and <code>version</code>. Matching uses <code>match_type = exact | contains | regex</code>. Normalization is performed consistently for literal rules; regex is compiled and validated separately. Conflicting duplicate exact rules fail validation. If overlapping contains/regex rules imply different decisions, the observed field is flagged as ambiguous and excluded from that field's accepted evidence (or made fatal with <code>--fail-on-ambiguous-crosswalk</code>).</p>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Example</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>source</code></td>
+<td><code>osm</code></td>
+<td>Source namespace.</td>
+</tr>
+<tr>
+<td><code>source_value</code></td>
+<td><code>shop=pharmacy</code></td>
+<td>Observed category label.</td>
+</tr>
+<tr>
+<td><code>source_field</code></td>
+<td><code>category</code></td>
+<td>Category or name matching.</td>
+</tr>
+<tr>
+<td><code>scheme</code> / <code>version</code></td>
+<td><code>psic</code> / <code>rev5</code></td>
+<td>Statistical scope.</td>
+</tr>
+<tr>
+<td><code>mapping_kind</code></td>
+<td><code>SUBTREE</code></td>
+<td>Meaning of the assertion.</td>
+</tr>
+<tr>
+<td><code>codes</code></td>
+<td><code>4772</code></td>
+<td>The asserted root(s); `</td>
+</tr>
+<tr>
+<td><code>match_type</code></td>
+<td><code>exact</code></td>
+<td>Literal/substring/regex semantics.</td>
+</tr>
+</tbody>
+</table>
+<p>The illustrative row above is not a recommendation to add a duplicate to the bundled rules: the package already loads reviewed PSIC Rev. 5 mappings by default.</p>
+<h2 id="worklist-suggestion-human-review-accepted-rule">Worklist → suggestion → human review → accepted rule</h2>
+<p>The <code>crosswalk-init</code> command enumerates observed vocabulary and frequency. <code>crosswalk-suggest</code> uses local lexical retrieval and review-status policies to produce candidate categories with reasons and scores. A suggestion is not a reviewed mapping; it must be promoted under the appropriate Express policy or explicitly adjudicated. The read-only reconciliation tool compares outside rule candidates to local reviewed states, reportable hierarchy relations, and specialized advisory evidence but never silently imports unreviewed authority.</p>
+<pre><code class="language-powershell">placetype crosswalk-init path\to\canonical_pois.parquet --scheme psic
+if ($LASTEXITCODE -ne 0) { throw &quot;Worklist creation failed&quot; }
+</code></pre>
+<p>The worklist normally orders category values by coverage so a reviewer can address frequently occurring observed labels first. Repeated runs preserve reviewed rows and refresh frequencies; absent reviewed categories are retained as zero-observation rows.</p>
+<h2 id="why-review-remains-essential">Why review remains essential</h2>
+<p>One OSM or Overture category can mean an activity, a physical structure, a product line, a facility name, or a broad venue. High lexical similarity between a source label and an official taxonomy title does <strong>not</strong> prove equivalence. The review process must choose the defensible subtree or abstain.</p>
+<p><strong>Implementation:</strong> <a href="https://github.com/miraflor/placetype-ph/blob/main/src/placetype_ph/crosswalk.py"><code>crosswalk.py</code></a> · <a href="https://github.com/miraflor/placetype-ph/blob/main/docs/REVIEWED_PSIC_INTEGRATION.md">reviewed integration</a> · <a href="https://github.com/miraflor/placetype-ph/blob/main/docs/PRIORITY2_CROSSWALK_RECONCILIATION.md">reconciliation note</a>.</p>
+</article>
+<nav class="page-pagination" aria-label="Document pages"><a class="page-step previous" href="sources.html"><span>← Previous</span><strong>Source evidence</strong></a><a class="page-step next" href="triangulation.html"><span>Next →</span><strong>Evidence triangulation</strong></a></nav><footer class="article-footer"><span>PlaceType PH · MIT-licensed package</span><span>Documentation describes the v0.1.2 implementation; classification is not validation of truth.</span></footer></main>
+<aside class="toc" aria-label="On this page"><div class="toc-title">On this page</div><a class="toc-level-2" href="#five-mutually-distinct-mapping-kinds">Five mutually distinct mapping kinds</a><a class="toc-level-2" href="#bundled-reviewed-inventory">Bundled reviewed inventory</a><a class="toc-level-2" href="#a-rule-has-scope">A rule has scope</a><a class="toc-level-2" href="#worklist-suggestion-human-review-accepted-rule">Worklist → suggestion → human review → accepted rule</a><a class="toc-level-2" href="#why-review-remains-essential">Why review remains essential</a><a class="toc-repo" href="https://github.com/miraflor/placetype-ph/tree/main/docs">Edit on GitHub ↗</a></aside></div></div>
+</body></html>

@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#102630"><meta name="description" content="PlaceType PH — an evidence-first guide to hierarchical Philippine economic classification, source triangulation, conservative decisions, and reproducible outputs.">
+<title>Worked example | PlaceType PH documentation</title>
+<link rel="icon" href="assets/diagrams/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="assets/css/site.css">
+<script defer src="assets/js/search-index.js"></script>
+<script defer src="assets/js/site.js"></script>
+</head>
+<body data-page="worked-example">
+<button class="menu-toggle" type="button" aria-label="Open documentation navigation" aria-controls="site-sidebar" aria-expanded="false">☰</button>
+<div class="nav-scrim" aria-hidden="true"></div>
+<aside class="sidebar" id="site-sidebar" aria-label="Documentation sidebar">
+<a href="index.html" class="brand"><span class="brand-icon">P<span>H</span></span><span><strong>PlaceType <em>PH</em></strong><small>Economic classification · v0.1.2</small></span></a>
+<div class="search-area"><label class="sr-only" for="doc-search">Search documentation</label><input type="search" id="doc-search" placeholder="Search the documentation…" autocomplete="off"><kbd>/</kbd><div id="search-results" hidden></div></div>
+<nav class="sidebar-nav" aria-label="Chapters"><div class="nav-heading">Start here</div><a href="index.html">Overview</a><a href="getting-started.html">Quickstart</a><a href="architecture.html">Architecture</a><a href="worked-example.html" aria-current="page" class="active">Worked example</a><div class="nav-heading">Methods</div><a href="taxonomies.html">Official taxonomies</a><a href="sources.html">Source evidence</a><a href="crosswalks.html">Reviewed crosswalks</a><a href="triangulation.html">Evidence triangulation</a><a href="fusion.html">Tree fusion &amp; backoff</a><a href="joint-recheck.html">Cross-taxonomy recheck</a><a href="classification.html">Classification decisions</a><a href="retrieval-llm.html">Retrieval &amp; optional LLM</a><div class="nav-heading">Enrichment &amp; delivery</div><a href="institutions.html">Institutions &amp; ownership</a><a href="io-projection.html">PSIC to I–O</a><a href="express.html">Express workflow</a><a href="outputs.html">Outputs &amp; GIS</a><div class="nav-heading">Reference &amp; assurance</div><a href="evaluation.html">Validation &amp; evaluation</a><a href="reproducibility.html">Reproducibility</a><a href="api-cli.html">CLI &amp; Python API</a><a href="decision-register.html">Design decisions</a><a href="limitations.html">Limits &amp; interpretation</a><a href="glossary.html">Glossary &amp; references</a></nav>
+<div class="sidebar-foot"><a href="https://github.com/miraflor/placetype-ph">GitHub repository ↗</a><a href="https://github.com/miraflor/placetype-ph/blob/main/DATA_SOURCES.md">Data sources ↗</a><div class="theme-switch"><button type="button" id="theme-toggle" aria-label="Toggle color theme">◐ Theme</button></div></div>
+</aside>
+<div class="content-frame"><div class="topbar"><span>Documentation <b>/</b> Worked example</span><a href="https://github.com/miraflor/placetype-ph">View source ↗</a></div>
+<div class="reading-layout"><main id="main" class="prose" tabindex="-1"><article><h1 id="one-example-three-outcomes">One example, three outcomes</h1>
+<p class="lede">The easiest way to understand the system is to run a few small, explicitly illustrative records through its decision semantics. We will keep the same PSIC Rev. 5 hierarchy and vary only the evidence.</p>
+<div class="note"><strong>About these examples</strong>The cases reflect rules and regression tests in the package (including pharmacy, banking, OSM compounds, and administrative offices). They are instructional traces, not measurements of actual Philippine places or model-inferred probabilities. To reproduce them, load the matching official taxonomy and reviewed crosswalk.</div>
+<h2 id="case-a-two-compatible-source-categories">Case A — Two compatible source categories</h2>
+<p>An OpenPlaces entity contains <code>overture_category = pharmacy</code> and <code>osm_category = shop=pharmacy</code>. Suppose the corresponding accepted category assertions refer to <strong>PSIC 4772</strong> in the loaded hierarchy.</p>
+<figure><img src="assets/diagrams/evidence-agree.svg" alt="OSM shop pharmacy and Overture pharmacy independently support the same PSIC group 4772."><figcaption>Figure 1 — Two independent providers can assert compatible taxonomic subtrees without needing a confidence-vote formula.</figcaption></figure>
+<ol>
+<li>The source adapter keeps OSM <code>key=value</code> and Overture label distinct; their dependency groups are independent unless provenance says otherwise.</li>
+<li>The crosswalk looks up each source's category, match type, and PSIC version.</li>
+<li>Fusion intersects the rooted subtrees. The surviving supported code is 4772; this is not an inferred deeper subclass.</li>
+<li>The output records the code, level, source list, status, and accepted-rule flags.</li>
+</ol>
+<p>When a single category supports only a division, the output must remain at that division unless another accepted assertion narrows it.</p>
+<h2 id="case-b-two-sources-one-lineage">Case B — Two sources, one lineage</h2>
+<p>Suppose the record has Foursquare evidence and an Overture label explicitly recorded as derived from Foursquare (<code>overture_has_foursquare_provenance = true</code>). Both may describe banking. They are not two independent confirmations.</p>
+<figure><img src="assets/diagrams/lineage.svg" alt="Foursquare and Overture share one upstream lineage and therefore one dependency group."><figcaption>Figure 2 — Dependence-aware corroboration. Two field values can constrain a subtree but are not two independent observations.</figcaption></figure>
+<p>If compatible, the records may narrow one another. If disjoint, the same-lineage conflict is flagged rather than converted into a fraudulent consensus. The worklist and run outputs preserve the provider identities.</p>
+<h2 id="case-c-disjoint-economic-activities">Case C — Disjoint economic activities</h2>
+<p>A canonical entity combines <code>osm_category = amenity=bank</code> and <code>overture_category = pharmacy</code>. When accepted PSIC mappings point into unrelated branches, there is no defensible single principal activity.</p>
+<ul>
+<li>A forced subclass would silently discard a source contradiction.</li>
+<li>A common high-level ancestor may be too broad to explain either activity.</li>
+<li>The production result conservatively reports <code>CONFLICT</code> with candidate codes, or <code>REVIEW_ENTITY_MATCH</code> if the input carries entity-match warning indicators.</li>
+</ul>
+<p>This does <strong>not</strong> change OpenPlaces identity automatically; it asks the upstream matching process to be reviewed.</p>
+<h2 id="case-d-administrative-function-is-not-the-service-administered">Case D — Administrative function is not the service administered</h2>
+<p><code>DepEd Schools Division Office</code> may be annotated with <code>amenity=school</code>. A narrow administrative name can support <strong>84120</strong>, rather than treating the office as a school delivering education. But this correction is guarded: a reviewed exact category, unrelated activity evidence, or disjoint named rules can block it into review.</p>
+<p>A hospital office, a school itself, and a government agency may be related institutionally while carrying <strong>different principal economic activities</strong>. Public ownership is a <em>separate question</em>, and does not follow from PSIC 84120 alone.</p>
+<h2 id="a-practical-comparison-you-can-reproduce">A practical comparison you can reproduce</h2>
+<pre><code class="language-powershell">$places = &quot;..\openplaces-ph\data\output\areas_iloilo\canonical_pois.parquet&quot;
+placetype classify $places --schemes psic --llm none --output-dir output\reviewed
+if ($LASTEXITCODE -ne 0) { throw &quot;Reviewed run failed&quot; }
+placetype classify $places --schemes psic --llm none --no-reviewed-psic --output-dir output\legacy
+if ($LASTEXITCODE -ne 0) { throw &quot;Legacy run failed&quot; }
+</code></pre>
+<p>Compare <code>code</code>, <code>status</code>, <code>flags</code> and <code>candidate_codes</code> by <code>canonical_id</code>. More coded rows are not necessarily more correct; the adjudicated comparison in <a href="evaluation.html">evaluation</a> is required to assess correctness.</p>
+<p><strong>Implementation &amp; tests:</strong> <a href="https://github.com/miraflor/placetype-ph/blob/main/tests/test_reviewed_psic_transfer.py"><code>test_reviewed_psic_transfer.py</code></a> · <a href="https://github.com/miraflor/placetype-ph/blob/main/src/placetype_ph/classifier.py"><code>classifier.py</code></a>.</p>
+</article>
+<nav class="page-pagination" aria-label="Document pages"><a class="page-step previous" href="architecture.html"><span>← Previous</span><strong>Architecture</strong></a><a class="page-step next" href="taxonomies.html"><span>Next →</span><strong>Official taxonomies</strong></a></nav><footer class="article-footer"><span>PlaceType PH · MIT-licensed package</span><span>Documentation describes the v0.1.2 implementation; classification is not validation of truth.</span></footer></main>
+<aside class="toc" aria-label="On this page"><div class="toc-title">On this page</div><a class="toc-level-2" href="#case-a-two-compatible-source-categories">Case A — Two compatible source categories</a><a class="toc-level-2" href="#case-b-two-sources-one-lineage">Case B — Two sources, one lineage</a><a class="toc-level-2" href="#case-c-disjoint-economic-activities">Case C — Disjoint economic activities</a><a class="toc-level-2" href="#case-d-administrative-function-is-not-the-service-administered">Case D — Administrative function is not the service administered</a><a class="toc-level-2" href="#a-practical-comparison-you-can-reproduce">A practical comparison you can reproduce</a><a class="toc-repo" href="https://github.com/miraflor/placetype-ph/tree/main/docs">Edit on GitHub ↗</a></aside></div></div>
+</body></html>

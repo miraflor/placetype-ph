@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#102630"><meta name="description" content="PlaceType PH — an evidence-first guide to hierarchical Philippine economic classification, source triangulation, conservative decisions, and reproducible outputs.">
+<title>Architecture | PlaceType PH documentation</title>
+<link rel="icon" href="assets/diagrams/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="assets/css/site.css">
+<script defer src="assets/js/search-index.js"></script>
+<script defer src="assets/js/site.js"></script>
+</head>
+<body data-page="architecture">
+<button class="menu-toggle" type="button" aria-label="Open documentation navigation" aria-controls="site-sidebar" aria-expanded="false">☰</button>
+<div class="nav-scrim" aria-hidden="true"></div>
+<aside class="sidebar" id="site-sidebar" aria-label="Documentation sidebar">
+<a href="index.html" class="brand"><span class="brand-icon">P<span>H</span></span><span><strong>PlaceType <em>PH</em></strong><small>Economic classification · v0.1.2</small></span></a>
+<div class="search-area"><label class="sr-only" for="doc-search">Search documentation</label><input type="search" id="doc-search" placeholder="Search the documentation…" autocomplete="off"><kbd>/</kbd><div id="search-results" hidden></div></div>
+<nav class="sidebar-nav" aria-label="Chapters"><div class="nav-heading">Start here</div><a href="index.html">Overview</a><a href="getting-started.html">Quickstart</a><a href="architecture.html" aria-current="page" class="active">Architecture</a><a href="worked-example.html">Worked example</a><div class="nav-heading">Methods</div><a href="taxonomies.html">Official taxonomies</a><a href="sources.html">Source evidence</a><a href="crosswalks.html">Reviewed crosswalks</a><a href="triangulation.html">Evidence triangulation</a><a href="fusion.html">Tree fusion &amp; backoff</a><a href="joint-recheck.html">Cross-taxonomy recheck</a><a href="classification.html">Classification decisions</a><a href="retrieval-llm.html">Retrieval &amp; optional LLM</a><div class="nav-heading">Enrichment &amp; delivery</div><a href="institutions.html">Institutions &amp; ownership</a><a href="io-projection.html">PSIC to I–O</a><a href="express.html">Express workflow</a><a href="outputs.html">Outputs &amp; GIS</a><div class="nav-heading">Reference &amp; assurance</div><a href="evaluation.html">Validation &amp; evaluation</a><a href="reproducibility.html">Reproducibility</a><a href="api-cli.html">CLI &amp; Python API</a><a href="decision-register.html">Design decisions</a><a href="limitations.html">Limits &amp; interpretation</a><a href="glossary.html">Glossary &amp; references</a></nav>
+<div class="sidebar-foot"><a href="https://github.com/miraflor/placetype-ph">GitHub repository ↗</a><a href="https://github.com/miraflor/placetype-ph/blob/main/DATA_SOURCES.md">Data sources ↗</a><div class="theme-switch"><button type="button" id="theme-toggle" aria-label="Toggle color theme">◐ Theme</button></div></div>
+</aside>
+<div class="content-frame"><div class="topbar"><span>Documentation <b>/</b> Architecture</span><a href="https://github.com/miraflor/placetype-ph">View source ↗</a></div>
+<div class="reading-layout"><main id="main" class="prose" tabindex="-1"><article><h1 id="system-architecture">System architecture</h1>
+<p class="lede">The core architecture is a separation of responsibilities: canonical place identity, statistical classification, auxiliary institutional evidence, and economic concordance are different layers with different proof obligations.</p>
+<h2 id="system-boundary">System boundary</h2>
+<figure><img src="assets/diagrams/pipeline.svg" alt="PlaceType PH pipeline from an already reconciled OpenPlaces entity to classification and GIS outputs."><figcaption>Figure 1 — Classification begins with canonical entities. Upstream matching and downstream economic interpretation are not part of the primary PSIC code decision.</figcaption></figure>
+<p><strong>Upstream:</strong> OpenPlaces PH supplies canonical IDs, linked provider names/categories, provenance, coordinates, and matching diagnostics. PlaceType PH neither merges nor splits those upstream entities. It may flag suspicious records (<code>REVIEW_ENTITY_MATCH</code>) when independent semantic evidence disagrees and matching-quality indicators are present.</p>
+<p><strong>Classification core:</strong> <code>openplaces.py</code> produces typed evidence, <code>crosswalk.py</code> matches reviewed rules, <code>fusion.py</code> reasons over actual taxonomy parent edges, <code>classifier.py</code> applies eligibility and policy guards, and <code>retrieval.py</code>/<code>traversal.py</code> supply an optional model fallback. <code>taxonomy.py</code> holds the normalized official hierarchy.</p>
+<p><strong>Joint review workflow:</strong> <code>joint_crosswalk.py</code> and <code>suggest.py</code> create worklists, preserve first-pass independence, and perform a bounded peer-context rerank. A peer recheck proposes no new code outside the first-pass candidate set. It is not a vote in the production <code>fuse()</code> algorithm.</p>
+<p><strong>Additive enrichment:</strong> specialized activity, administrative, institutional and ownership modules attach review candidates and provenance. Opt-in institutional identity may refine a <em>separate</em> I–O candidate projection where stringent gates are satisfied. It does not silently replace primary PSIC.</p>
+<p><strong>Publication:</strong> <code>pipeline.py</code> produces audit-level and map-level Parquet, <code>io_mapping.py</code> attaches I–O sets, <code>gis.py</code> exports compact GeoParquet, and <code>run.json</code> records versions, fingerprints, and status counts.</p>
+<h2 id="modules-and-responsibilities">Modules and responsibilities</h2>
+<table>
+<thead>
+<tr>
+<th>Component</th>
+<th>Main modules</th>
+<th>Contract</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Official taxonomy</td>
+<td><code>taxonomy.py</code>, <code>taxonomy_import.py</code></td>
+<td>Nodes have explicit parents, levels, and versioned fingerprints.</td>
+</tr>
+<tr>
+<td>Canonical input</td>
+<td><code>openplaces.py</code></td>
+<td>Read canonical IDs and typed source fields; no new entity linkage.</td>
+</tr>
+<tr>
+<td>Reviewed decisions</td>
+<td><code>crosswalk.py</code>, <code>reviewed_psic.py</code></td>
+<td>Version-scoped exact/contains/regex rules; bundled 328 PSIC Rev. 5 rows.</td>
+</tr>
+<tr>
+<td>Evidence fusion</td>
+<td><code>fusion.py</code>, <code>eligibility.py</code></td>
+<td>Hierarchy intersection, dependency grouping, conflict or abstention.</td>
+</tr>
+<tr>
+<td>Optional decision fallback</td>
+<td><code>retrieval.py</code>, <code>traversal.py</code>, <code>cache.py</code></td>
+<td>Local TF-IDF, bounded taxonomy traversal, deterministic cache identity.</td>
+</tr>
+<tr>
+<td>Joint review</td>
+<td><code>joint_crosswalk.py</code>, <code>suggest.py</code></td>
+<td>Candidate worklist, first-pass control, diagnostic rerank.</td>
+</tr>
+<tr>
+<td>Institutional audit</td>
+<td><code>specialized/*</code></td>
+<td>Activity candidates, verified identity, conditional ownership enrichment.</td>
+</tr>
+<tr>
+<td>Economic candidate sets</td>
+<td><code>io_mapping.py</code>, <code>io80_resolver.py</code></td>
+<td>Rev. 5 → 2019 PSIC → 2018 I–O; never silently choose among candidates.</td>
+</tr>
+<tr>
+<td>Data products</td>
+<td><code>pipeline.py</code>, <code>gis.py</code>, <code>express.py</code></td>
+<td>Parquet, GeoParquet, manifest, cache-aware workflow.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="three-separate-kinds-of-uncertainty">Three separate kinds of uncertainty</h2>
+<ol>
+<li><strong>Source uncertainty:</strong> two observed labels can be independent, correlated, broad, or contradictory. The source adapter and dependency groups make these distinctions explicit.</li>
+<li><strong>Taxonomy uncertainty:</strong> one source label may support a subtree, a union of subtrees, or no category. The classifier stops at an ancestor or abstains where no unique defensible code exists.</li>
+<li><strong>Economic correspondence uncertainty:</strong> even a valid PSIC code may map to more than one I–O industry, and bridging across statistical revisions may be provisional. Candidate sets and provenance are retained.</li>
+</ol>
+<p>These uncertainties cannot be collapsed into one confidence score without additional evidence and calibration.</p>
+<h2 id="decisions-are-typed-audits-are-additive">Decisions are typed; audits are additive</h2>
+<p><code>ClassificationResult</code> contains <code>code</code>, <code>level</code>, <code>status</code>, <code>deciding_component</code>, <code>candidate_codes</code>, <code>evidence_sources</code>, <code>flags</code>, <code>audit</code>, and depth metadata. Specialized enrichment attaches separate columns rather than silently modifying those fields. A <code>SourceEvidence</code> record stores <code>source</code>, <code>category</code>, <code>name</code>, <code>dependency_group</code>, and an optional reviewed <code>mapping</code>.</p>
+<p>The core distinction is <strong>accepted rule vs candidate</strong>. A high lexical score, registry name similarity, or recheck stability is not equivalent to human review or verified identity.</p>
+<h2 id="method-lineage-and-traceability">Method lineage and traceability</h2>
+<p>The taxonomy, hierarchical classifiers, TF-IDF retrieval, and constrained traversal use established structures/algorithms. <em>Source-specific precision floors, independent sibling backoff, status vocabulary, promotion defaults, institutional matching gates, and I–O candidate narrowing</em> are <strong>project policy</strong>. Their existence is documented in the <a href="decision-register.html">design register</a>, not presented as canonical statistical algorithms.</p>
+<p><strong>Implementation:</strong> <a href="https://github.com/miraflor/placetype-ph/tree/main/src/placetype_ph">source tree</a> · <a href="https://github.com/miraflor/placetype-ph/blob/main/docs/ARCHITECTURE.md">architecture specification</a>.</p>
+</article>
+<nav class="page-pagination" aria-label="Document pages"><a class="page-step previous" href="getting-started.html"><span>← Previous</span><strong>Quickstart</strong></a><a class="page-step next" href="worked-example.html"><span>Next →</span><strong>Worked example</strong></a></nav><footer class="article-footer"><span>PlaceType PH · MIT-licensed package</span><span>Documentation describes the v0.1.2 implementation; classification is not validation of truth.</span></footer></main>
+<aside class="toc" aria-label="On this page"><div class="toc-title">On this page</div><a class="toc-level-2" href="#system-boundary">System boundary</a><a class="toc-level-2" href="#modules-and-responsibilities">Modules and responsibilities</a><a class="toc-level-2" href="#three-separate-kinds-of-uncertainty">Three separate kinds of uncertainty</a><a class="toc-level-2" href="#decisions-are-typed-audits-are-additive">Decisions are typed; audits are additive</a><a class="toc-level-2" href="#method-lineage-and-traceability">Method lineage and traceability</a><a class="toc-repo" href="https://github.com/miraflor/placetype-ph/tree/main/docs">Edit on GitHub ↗</a></aside></div></div>
+</body></html>

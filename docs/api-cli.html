@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#102630"><meta name="description" content="PlaceType PH — an evidence-first guide to hierarchical Philippine economic classification, source triangulation, conservative decisions, and reproducible outputs.">
+<title>CLI &amp; Python API | PlaceType PH documentation</title>
+<link rel="icon" href="assets/diagrams/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="assets/css/site.css">
+<script defer src="assets/js/search-index.js"></script>
+<script defer src="assets/js/site.js"></script>
+</head>
+<body data-page="api-cli">
+<button class="menu-toggle" type="button" aria-label="Open documentation navigation" aria-controls="site-sidebar" aria-expanded="false">☰</button>
+<div class="nav-scrim" aria-hidden="true"></div>
+<aside class="sidebar" id="site-sidebar" aria-label="Documentation sidebar">
+<a href="index.html" class="brand"><span class="brand-icon">P<span>H</span></span><span><strong>PlaceType <em>PH</em></strong><small>Economic classification · v0.1.2</small></span></a>
+<div class="search-area"><label class="sr-only" for="doc-search">Search documentation</label><input type="search" id="doc-search" placeholder="Search the documentation…" autocomplete="off"><kbd>/</kbd><div id="search-results" hidden></div></div>
+<nav class="sidebar-nav" aria-label="Chapters"><div class="nav-heading">Start here</div><a href="index.html">Overview</a><a href="getting-started.html">Quickstart</a><a href="architecture.html">Architecture</a><a href="worked-example.html">Worked example</a><div class="nav-heading">Methods</div><a href="taxonomies.html">Official taxonomies</a><a href="sources.html">Source evidence</a><a href="crosswalks.html">Reviewed crosswalks</a><a href="triangulation.html">Evidence triangulation</a><a href="fusion.html">Tree fusion &amp; backoff</a><a href="joint-recheck.html">Cross-taxonomy recheck</a><a href="classification.html">Classification decisions</a><a href="retrieval-llm.html">Retrieval &amp; optional LLM</a><div class="nav-heading">Enrichment &amp; delivery</div><a href="institutions.html">Institutions &amp; ownership</a><a href="io-projection.html">PSIC to I–O</a><a href="express.html">Express workflow</a><a href="outputs.html">Outputs &amp; GIS</a><div class="nav-heading">Reference &amp; assurance</div><a href="evaluation.html">Validation &amp; evaluation</a><a href="reproducibility.html">Reproducibility</a><a href="api-cli.html" aria-current="page" class="active">CLI &amp; Python API</a><a href="decision-register.html">Design decisions</a><a href="limitations.html">Limits &amp; interpretation</a><a href="glossary.html">Glossary &amp; references</a></nav>
+<div class="sidebar-foot"><a href="https://github.com/miraflor/placetype-ph">GitHub repository ↗</a><a href="https://github.com/miraflor/placetype-ph/blob/main/DATA_SOURCES.md">Data sources ↗</a><div class="theme-switch"><button type="button" id="theme-toggle" aria-label="Toggle color theme">◐ Theme</button></div></div>
+</aside>
+<div class="content-frame"><div class="topbar"><span>Documentation <b>/</b> CLI &amp; Python API</span><a href="https://github.com/miraflor/placetype-ph">View source ↗</a></div>
+<div class="reading-layout"><main id="main" class="prose" tabindex="-1"><article><h1 id="cli-and-python-api-reference">CLI and Python API reference</h1>
+<p class="lede">The public interface has a few stable entry points and a larger set of specialized review commands. Use the CLI for reproducible runs and import the core classes for controlled programmatic classification.</p>
+<h2 id="primary-cli-commands">Primary CLI commands</h2>
+<table>
+<thead>
+<tr>
+<th>Command</th>
+<th>Responsibility</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>placetype version</code></td>
+<td>Print installed package version.</td>
+</tr>
+<tr>
+<td><code>placetype inspect PATH --top 30</code></td>
+<td>Inspect observed source vocabulary and frequency.</td>
+</tr>
+<tr>
+<td><code>placetype taxonomy diagnose psic</code></td>
+<td>Diagnose official source before accepting a normalized reference.</td>
+</tr>
+<tr>
+<td><code>placetype taxonomy fetch psic</code></td>
+<td>Obtain/reuse official reference and write normalized taxonomy.</td>
+</tr>
+<tr>
+<td><code>placetype taxonomy validate PATH</code></td>
+<td>Check structure and hierarchy integrity.</td>
+</tr>
+<tr>
+<td><code>placetype crosswalk-init PATH --scheme psic</code></td>
+<td>Enumerate category worklist.</td>
+</tr>
+<tr>
+<td><code>placetype crosswalk-suggest PATH</code></td>
+<td>Suggest taxonomy candidates and run joint recheck where configured.</td>
+</tr>
+<tr>
+<td><code>placetype classify PATH --schemes psic --llm none</code></td>
+<td>Apply accepted crosswalks and deterministic policies.</td>
+</tr>
+<tr>
+<td><code>placetype express PATH</code></td>
+<td>Orchestrate joint classification and GIS export.</td>
+</tr>
+<tr>
+<td><code>placetype gis-export RUN_DIR</code></td>
+<td>Export compact QGIS GeoParquet.</td>
+</tr>
+<tr>
+<td><code>placetype evaluate PREDICTIONS GOLD --scheme psic</code></td>
+<td>Compare to independently adjudicated codes.</td>
+</tr>
+</tbody>
+</table>
+<p>Use <code>placetype &lt;command&gt; --help</code> to inspect the precise options for your installed version. Flag names and defaults here describe the verified <strong>v0.1.2</strong> source tree.</p>
+<h2 id="important-classification-switches">Important classification switches</h2>
+<table>
+<thead>
+<tr>
+<th>Option</th>
+<th>Default</th>
+<th>Effect</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>--schemes</code></td>
+<td><code>psic,pcpc,pscc</code></td>
+<td>Comma-separated independent taxonomies.</td>
+</tr>
+<tr>
+<td><code>--reviewed-psic / --no-reviewed-psic</code></td>
+<td>Enabled</td>
+<td>Bundled accepted Rev. 5 policy or controlled legacy mode.</td>
+</tr>
+<tr>
+<td><code>--crosswalk PATH</code></td>
+<td>None</td>
+<td>Repeat to add explicit user mappings.</td>
+</tr>
+<tr>
+<td><code>--llm</code></td>
+<td><code>none</code></td>
+<td><code>none</code>, <code>hf</code>, or <code>ollama</code> traversal backend.</td>
+</tr>
+<tr>
+<td><code>--passes</code></td>
+<td>3</td>
+<td>Traversal consensus passes (when LLM enabled).</td>
+</tr>
+<tr>
+<td><code>--product-column FIELD</code></td>
+<td>None</td>
+<td>Optional explicit product/commodity text for PCPC/PSCC.</td>
+</tr>
+<tr>
+<td><code>--workers</code></td>
+<td>1</td>
+<td>Deterministic spawn-based parallelism (no live LLM).</td>
+</tr>
+<tr>
+<td><code>--fail-on-ambiguous-crosswalk</code></td>
+<td>Disabled</td>
+<td>Treat observed scanned-rule conflicts as fatal.</td>
+</tr>
+<tr>
+<td><code>--limit</code></td>
+<td>None</td>
+<td>Pilot on first N rows; not a random evaluation sample.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="python-api-reviewed-psic">Python API: reviewed PSIC</h2>
+<pre><code class="language-python">from placetype_ph.classifier import EntityClassifier
+from placetype_ph.crosswalk import Crosswalk
+from placetype_ph.reviewed_psic import bundled_psic_crosswalk_path
+from placetype_ph.taxonomy import Taxonomy
+
+psic_taxonomy = Taxonomy.load(&quot;reference/psic_rev5/nodes.parquet&quot;)
+if psic_taxonomy.scheme != &quot;psic&quot; or psic_taxonomy.version != &quot;rev5&quot;:
+    raise ValueError(&quot;Expected a validated PSIC Rev. 5 taxonomy&quot;)
+crosswalk = Crosswalk.load([bundled_psic_crosswalk_path()])
+classifier = EntityClassifier(psic_taxonomy, crosswalk)
+result = classifier.classify_row({
+    &quot;canonical_id&quot;: &quot;illustrative-id&quot;,
+    &quot;overture_category&quot;: &quot;pharmacy&quot;,
+})
+print(result.code, result.status, result.flags)
+</code></pre>
+<p>The snippet loads the normalized taxonomy file from the repository reference directory; verify it independently with <code>placetype taxonomy validate</code> before using it. For a legacy test, use <code>EntityClassifier(psic_taxonomy, crosswalk, reviewed_psic_policy=False)</code> and pass only the explicit crosswalks you wish to retain.</p>
+<h2 id="python-api-data-pipeline">Python API: data pipeline</h2>
+<p><code>classify_openplaces(input_path, classifiers, output_dir, *, product_column=None, limit=None, workers=1, role_crosswalk=None)</code> processes canonical Parquet input and returns the two produced paths. For a multi-scheme run, supply a dictionary of <code>scheme → EntityClassifier</code> objects built from their own matching taxonomies; never reuse a PSIC taxonomy for PCPC or PSCC.</p>
+<h2 id="specialized-inspection-and-review">Specialized inspection and review</h2>
+<p>The modules under <code>placetype_ph.specialized</code> provide validation, evidence extraction, candidate-only rule reconciliation, institutional preview and optional enrichment. See the repository's <a href="https://github.com/miraflor/placetype-ph/blob/main/docs/SPECIALIZED_EVIDENCE.md">specialized evidence guide</a> and <a href="https://github.com/miraflor/placetype-ph/blob/main/docs/PRIORITY2_CROSSWALK_RECONCILIATION.md">Priority 2 reconciliation instructions</a> before running those commands with external references.</p>
+<h2 id="input-and-output-contracts">Input and output contracts</h2>
+<p>For exact columns, see <a href="sources.html">Source evidence</a> and <a href="outputs.html">Outputs</a>. A missing <code>canonical_id</code>, invalid gold codes, conflicting exact crosswalk keys, an incomplete taxonomy, or an invalid opt-in institutional configuration should fail rather than yielding a plausible-looking partial classification.</p>
+<p><strong>Source:</strong> <a href="https://github.com/miraflor/placetype-ph/blob/main/src/placetype_ph/cli.py"><code>cli.py</code></a> · <a href="https://github.com/miraflor/placetype-ph/blob/main/src/placetype_ph/pipeline.py"><code>pipeline.py</code></a>.</p>
+</article>
+<nav class="page-pagination" aria-label="Document pages"><a class="page-step previous" href="reproducibility.html"><span>← Previous</span><strong>Reproducibility</strong></a><a class="page-step next" href="decision-register.html"><span>Next →</span><strong>Design decisions</strong></a></nav><footer class="article-footer"><span>PlaceType PH · MIT-licensed package</span><span>Documentation describes the v0.1.2 implementation; classification is not validation of truth.</span></footer></main>
+<aside class="toc" aria-label="On this page"><div class="toc-title">On this page</div><a class="toc-level-2" href="#primary-cli-commands">Primary CLI commands</a><a class="toc-level-2" href="#important-classification-switches">Important classification switches</a><a class="toc-level-2" href="#python-api-reviewed-psic">Python API: reviewed PSIC</a><a class="toc-level-2" href="#python-api-data-pipeline">Python API: data pipeline</a><a class="toc-level-2" href="#specialized-inspection-and-review">Specialized inspection and review</a><a class="toc-level-2" href="#input-and-output-contracts">Input and output contracts</a><a class="toc-repo" href="https://github.com/miraflor/placetype-ph/tree/main/docs">Edit on GitHub ↗</a></aside></div></div>
+</body></html>

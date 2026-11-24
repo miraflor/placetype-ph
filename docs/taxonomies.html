@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#102630"><meta name="description" content="PlaceType PH — an evidence-first guide to hierarchical Philippine economic classification, source triangulation, conservative decisions, and reproducible outputs.">
+<title>Official taxonomies | PlaceType PH documentation</title>
+<link rel="icon" href="assets/diagrams/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="assets/css/site.css">
+<script defer src="assets/js/search-index.js"></script>
+<script defer src="assets/js/site.js"></script>
+</head>
+<body data-page="taxonomies">
+<button class="menu-toggle" type="button" aria-label="Open documentation navigation" aria-controls="site-sidebar" aria-expanded="false">☰</button>
+<div class="nav-scrim" aria-hidden="true"></div>
+<aside class="sidebar" id="site-sidebar" aria-label="Documentation sidebar">
+<a href="index.html" class="brand"><span class="brand-icon">P<span>H</span></span><span><strong>PlaceType <em>PH</em></strong><small>Economic classification · v0.1.2</small></span></a>
+<div class="search-area"><label class="sr-only" for="doc-search">Search documentation</label><input type="search" id="doc-search" placeholder="Search the documentation…" autocomplete="off"><kbd>/</kbd><div id="search-results" hidden></div></div>
+<nav class="sidebar-nav" aria-label="Chapters"><div class="nav-heading">Start here</div><a href="index.html">Overview</a><a href="getting-started.html">Quickstart</a><a href="architecture.html">Architecture</a><a href="worked-example.html">Worked example</a><div class="nav-heading">Methods</div><a href="taxonomies.html" aria-current="page" class="active">Official taxonomies</a><a href="sources.html">Source evidence</a><a href="crosswalks.html">Reviewed crosswalks</a><a href="triangulation.html">Evidence triangulation</a><a href="fusion.html">Tree fusion &amp; backoff</a><a href="joint-recheck.html">Cross-taxonomy recheck</a><a href="classification.html">Classification decisions</a><a href="retrieval-llm.html">Retrieval &amp; optional LLM</a><div class="nav-heading">Enrichment &amp; delivery</div><a href="institutions.html">Institutions &amp; ownership</a><a href="io-projection.html">PSIC to I–O</a><a href="express.html">Express workflow</a><a href="outputs.html">Outputs &amp; GIS</a><div class="nav-heading">Reference &amp; assurance</div><a href="evaluation.html">Validation &amp; evaluation</a><a href="reproducibility.html">Reproducibility</a><a href="api-cli.html">CLI &amp; Python API</a><a href="decision-register.html">Design decisions</a><a href="limitations.html">Limits &amp; interpretation</a><a href="glossary.html">Glossary &amp; references</a></nav>
+<div class="sidebar-foot"><a href="https://github.com/miraflor/placetype-ph">GitHub repository ↗</a><a href="https://github.com/miraflor/placetype-ph/blob/main/DATA_SOURCES.md">Data sources ↗</a><div class="theme-switch"><button type="button" id="theme-toggle" aria-label="Toggle color theme">◐ Theme</button></div></div>
+</aside>
+<div class="content-frame"><div class="topbar"><span>Documentation <b>/</b> Official taxonomies</span><a href="https://github.com/miraflor/placetype-ph">View source ↗</a></div>
+<div class="reading-layout"><main id="main" class="prose" tabindex="-1"><article><h1 id="official-taxonomies-hierarchy-integrity">Official taxonomies &amp; hierarchy integrity</h1>
+<p class="lede">A taxonomy is not a bag of codes. PlaceType PH represents it as a verified rooted forest whose parent relationships, statistical revision, source metadata, and level ordering define every allowed classification and backoff.</p>
+<h2 id="the-three-separate-hierarchies">The three separate hierarchies</h2>
+<table>
+<thead>
+<tr>
+<th>Taxonomy</th>
+<th>Official hierarchy</th>
+<th>Interpretation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>PSIC Rev. 5</td>
+<td>Section → division → group → class → subclass</td>
+<td>Principal economic activity of an establishment.</td>
+</tr>
+<tr>
+<td>PCPC 2002</td>
+<td>Section → division → group → class → subclass → item</td>
+<td>A candidate product/service family based on place evidence.</td>
+</tr>
+<tr>
+<td>PSCC 2022</td>
+<td>Chapter → heading → HS subheading → AHTN subheading → commodity</td>
+<td>Traded good; requires commodity evidence or confirmed crosswalk.</td>
+</tr>
+</tbody>
+</table>
+<p>The official PSIC Rev. 5 published structure is <strong>22 sections, 88 divisions, 260 groups, 493 classes and 1,338 subclasses</strong>. PCPC and PSCC count baselines are deliberately not hard-coded without validating the actual official source.</p>
+<h2 id="a-tree-not-numeric-string-truncation">A tree, not numeric string truncation</h2>
+<figure><img src="assets/diagrams/taxonomy.svg" alt="Explicit PSIC parent edges from section G through division 47 to group 4772 and more specific descendants."><figcaption>Figure 1 — Parent relationships govern ancestry. Section letters and cross-version recodings make numerical prefix slicing unsafe as a general algorithm.</figcaption></figure>
+<p>The functions <code>taxonomy.ancestors(code)</code>, <code>taxonomy.children(code)</code>, <code>taxonomy.lca(codes)</code> and <code>taxonomy.path_from_root(code)</code> use stored parent edges. A coarse classification <code>SUBTREE(47)</code> does not become a subclass just because one descendant is present in a partial extract; the evidence asserts the original root.</p>
+<h2 id="official-sources-and-acquisition">Official sources and acquisition</h2>
+<p><code>placetype taxonomy diagnose &lt;scheme&gt;</code> inspects the statistical source before normalization; <code>placetype taxonomy fetch &lt;scheme&gt;</code> obtains or reuses the source and saves normalized <code>nodes.parquet</code>. PSIC Rev. 5 and PSCC 2022 use PSA spreadsheets. PCPC supports a PSA API requiring a token in relevant configurations. Refer to <a href="https://github.com/miraflor/placetype-ph/blob/main/DATA_SOURCES.md">DATA_SOURCES.md</a> for exact cited source URLs, licensing and recoding boundaries.</p>
+<p>The importer preserves <code>code</code>, <code>level</code>, <code>title</code>, <code>parent_code</code>, description/inclusions/exclusions and source identifiers. It rejects conflicting explicit parents and duplicate code definitions with incompatible identity. Source text for an official node titled “Other” is retained literally, even when “other” in a noisy POI label may be treated as missing evidence.</p>
+<h2 id="structural-and-completeness-gates">Structural and completeness gates</h2>
+<ul>
+<li><strong>Missing top-level and parent nodes:</strong> strict normalization rejects a hierarchy that has the wrong branch attachment.</li>
+<li><strong>Leading zero / invalid code morphology:</strong> report missing or malformed identifiers; do not silently coerce them into a plausible code.</li>
+<li><strong>Explicit workbook schema:</strong> if a named column does not exist, fail rather than switch to a different parser interpretation.</li>
+<li><strong>Duplicates:</strong> merge only consistent code identities; retain diagnostic counts for discarded or invalid rows.</li>
+<li><strong>Hierarchy levels:</strong> <code>--strict-levels</code> checks completeness by level. <code>--strict-structure</code> checks known official structure when supported; <code>--allow-orphan-nodes</code> is a separate relaxation, not an override of everything.</li>
+<li><strong>Version:</strong> a code under Rev. 5 cannot be silently interpreted as equivalent to the same string under PSIC 2019.</li>
+</ul>
+<p>A taxonomy fingerprint is recorded so an export can verify it is using the same classification tree as the original run.</p>
+<h2 id="reproducible-commands">Reproducible commands</h2>
+<pre><code class="language-powershell">placetype taxonomy diagnose psic
+if ($LASTEXITCODE -ne 0) { throw &quot;Diagnosis failed&quot; }
+placetype taxonomy fetch psic
+if ($LASTEXITCODE -ne 0) { throw &quot;Taxonomy fetch failed&quot; }
+placetype taxonomy validate reference\psic_rev5\nodes.parquet --strict-levels --strict-structure
+if ($LASTEXITCODE -ne 0) { throw &quot;Taxonomy validation failed&quot; }
+</code></pre>
+<p><strong>Implementation:</strong> <a href="https://github.com/miraflor/placetype-ph/blob/main/src/placetype_ph/taxonomy.py"><code>taxonomy.py</code></a> · <a href="https://github.com/miraflor/placetype-ph/blob/main/src/placetype_ph/taxonomy_import.py"><code>taxonomy_import.py</code></a>.</p>
+</article>
+<nav class="page-pagination" aria-label="Document pages"><a class="page-step previous" href="worked-example.html"><span>← Previous</span><strong>Worked example</strong></a><a class="page-step next" href="sources.html"><span>Next →</span><strong>Source evidence</strong></a></nav><footer class="article-footer"><span>PlaceType PH · MIT-licensed package</span><span>Documentation describes the v0.1.2 implementation; classification is not validation of truth.</span></footer></main>
+<aside class="toc" aria-label="On this page"><div class="toc-title">On this page</div><a class="toc-level-2" href="#the-three-separate-hierarchies">The three separate hierarchies</a><a class="toc-level-2" href="#a-tree-not-numeric-string-truncation">A tree, not numeric string truncation</a><a class="toc-level-2" href="#official-sources-and-acquisition">Official sources and acquisition</a><a class="toc-level-2" href="#structural-and-completeness-gates">Structural and completeness gates</a><a class="toc-level-2" href="#reproducible-commands">Reproducible commands</a><a class="toc-repo" href="https://github.com/miraflor/placetype-ph/tree/main/docs">Edit on GitHub ↗</a></aside></div></div>
+</body></html>

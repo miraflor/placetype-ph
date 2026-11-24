@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#102630"><meta name="description" content="PlaceType PH — an evidence-first guide to hierarchical Philippine economic classification, source triangulation, conservative decisions, and reproducible outputs.">
+<title>Evidence triangulation | PlaceType PH documentation</title>
+<link rel="icon" href="assets/diagrams/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="assets/css/site.css">
+<script defer src="assets/js/search-index.js"></script>
+<script defer src="assets/js/site.js"></script>
+</head>
+<body data-page="triangulation">
+<button class="menu-toggle" type="button" aria-label="Open documentation navigation" aria-controls="site-sidebar" aria-expanded="false">☰</button>
+<div class="nav-scrim" aria-hidden="true"></div>
+<aside class="sidebar" id="site-sidebar" aria-label="Documentation sidebar">
+<a href="index.html" class="brand"><span class="brand-icon">P<span>H</span></span><span><strong>PlaceType <em>PH</em></strong><small>Economic classification · v0.1.2</small></span></a>
+<div class="search-area"><label class="sr-only" for="doc-search">Search documentation</label><input type="search" id="doc-search" placeholder="Search the documentation…" autocomplete="off"><kbd>/</kbd><div id="search-results" hidden></div></div>
+<nav class="sidebar-nav" aria-label="Chapters"><div class="nav-heading">Start here</div><a href="index.html">Overview</a><a href="getting-started.html">Quickstart</a><a href="architecture.html">Architecture</a><a href="worked-example.html">Worked example</a><div class="nav-heading">Methods</div><a href="taxonomies.html">Official taxonomies</a><a href="sources.html">Source evidence</a><a href="crosswalks.html">Reviewed crosswalks</a><a href="triangulation.html" aria-current="page" class="active">Evidence triangulation</a><a href="fusion.html">Tree fusion &amp; backoff</a><a href="joint-recheck.html">Cross-taxonomy recheck</a><a href="classification.html">Classification decisions</a><a href="retrieval-llm.html">Retrieval &amp; optional LLM</a><div class="nav-heading">Enrichment &amp; delivery</div><a href="institutions.html">Institutions &amp; ownership</a><a href="io-projection.html">PSIC to I–O</a><a href="express.html">Express workflow</a><a href="outputs.html">Outputs &amp; GIS</a><div class="nav-heading">Reference &amp; assurance</div><a href="evaluation.html">Validation &amp; evaluation</a><a href="reproducibility.html">Reproducibility</a><a href="api-cli.html">CLI &amp; Python API</a><a href="decision-register.html">Design decisions</a><a href="limitations.html">Limits &amp; interpretation</a><a href="glossary.html">Glossary &amp; references</a></nav>
+<div class="sidebar-foot"><a href="https://github.com/miraflor/placetype-ph">GitHub repository ↗</a><a href="https://github.com/miraflor/placetype-ph/blob/main/DATA_SOURCES.md">Data sources ↗</a><div class="theme-switch"><button type="button" id="theme-toggle" aria-label="Toggle color theme">◐ Theme</button></div></div>
+</aside>
+<div class="content-frame"><div class="topbar"><span>Documentation <b>/</b> Evidence triangulation</span><a href="https://github.com/miraflor/placetype-ph">View source ↗</a></div>
+<div class="reading-layout"><main id="main" class="prose" tabindex="-1"><article><h1 id="evidence-triangulation">Evidence triangulation</h1>
+<p class="lede">Triangulation here means comparing typed observations while respecting source dependence. More labels do not automatically mean more independent evidence.</p>
+<h2 id="start-with-the-provenance-graph">Start with the provenance graph</h2>
+<figure><img src="assets/diagrams/lineage.svg" alt="Independent OSM annotation and an Overture annotation that may share Foursquare provenance."><figcaption>Figure 1 — A provider record is not necessarily an independent observation. Overture can reuse Foursquare-origin information.</figcaption></figure>
+<p>A naive rule would count every provider field as another supporting vote. PlaceType PH instead assigns a <strong>dependency group</strong> to each <code>SourceEvidence</code> item and reasons over the admissible <em>taxonomic subtrees</em>. Foursquare and FSQ-derived Overture are one lineage; two categories from one Overture record are also dependent. Independent OSM and Overture statements can corroborate or contradict each other.</p>
+<h2 id="explore-three-controlled-scenarios">Explore three controlled scenarios</h2>
+<div class="scenario" data-scenario-panel>
+<div><strong>Worked source-evidence outcomes</strong><p class="scenario-caption">Select a case. This is an explanatory illustration of documented policy, not a live classifier or an accuracy estimate.</p></div>
+<div class="scenario-tabs"><button type="button" class="scenario-tab selected" data-scenario="agree" aria-pressed="true">Compatible</button><button type="button" class="scenario-tab" data-scenario="dependent" aria-pressed="false">Same lineage</button><button type="button" class="scenario-tab" data-scenario="conflict" aria-pressed="false">Conflict</button></div>
+<div class="scenario-evidence"><div data-evidence-a><small data-field>OSM</small><strong data-field>shop=pharmacy</strong><em data-field>Independent OSM lineage</em></div><div data-evidence-b><small data-field>Overture</small><strong data-field>pharmacy</strong><em data-field>Independent Overture lineage</em></div></div>
+<div class="scenario-result"><strong data-result-title>Compatible — one supported PSIC branch</strong><p data-result-detail>Compatible reviewed mappings to the same subtree can support one code without a numerical confidence vote.</p></div>
+</div>
+<h2 id="the-order-of-operations">The order of operations</h2>
+<ol>
+<li><strong>Parse</strong> source semantics without losing source identity (<code>osm</code> key/value vs Overture primary/alternate/basic vs complete Foursquare hierarchy).</li>
+<li><strong>Attach</strong> reviewed mapping objects or narrower trusted policy floors where permitted for PSIC Rev. 5.</li>
+<li><strong>Group</strong> mapped evidence by provider lineage; dependent assertions may intersect or be flagged if disjoint.</li>
+<li><strong>Intersect</strong> the admissible subtrees across independent groups. Compatible evidence supports the deepest <em>asserted</em> surviving root, not an inferred leaf.</li>
+<li><strong>Report</strong> sibling-only backoff, unresolved union, semantic conflict, or eligibility conflict explicitly. Optional record-linkage warning fields turn some conflicts into <code>REVIEW_ENTITY_MATCH</code>.</li>
+</ol>
+<h2 id="triangulation-does-not-mean-majority-voting">Triangulation does not mean majority voting</h2>
+<p>Suppose FSQ and FSQ-derived Overture both suggest one activity while independent OSM asserts a disjoint activity. It is <em>not</em> two votes against one: FSQ and Overture are one dependency group. Counting them separately would manufacture false confidence. The classification engine can return <code>CONFLICT</code> rather than choosing the most popular label.</p>
+<p>The dependency grouping also explains why an Overture primary category and alternate category cannot be treated as two establishments. Their disagreement is potential <strong>within-source ambiguity</strong>, not independent evidence for the LCA.</p>
+<h2 id="name-rules-versus-category-rules">Name rules versus category rules</h2>
+<p>A source's reviewed name rule and its reviewed category rule are dependent. A specific name rule can override a coarse incompatible source category, with a visible audit flag, but not by silently adding an extra independent vote. A reviewed exact category or an unrelated activity can block an administrative name-based correction into review. The <a href="classification.html">classification chapter</a> details these precedence policies.</p>
+<h2 id="distinguish-a-second-kind-of-triangulation">Distinguish a second kind of triangulation</h2>
+<p>The joint PSIC/PCPC/PSCC <strong>peer-context recheck</strong> is a separate workflow from source fusion. It compares candidate rankings across independently prepared taxonomy proposals, but does <strong>not</strong> allow those other taxonomies to vote a PSIC code into existence. See <a href="joint-recheck.html">cross-taxonomy recheck</a>.</p>
+<p><strong>Implementation:</strong> <a href="https://github.com/miraflor/placetype-ph/blob/main/src/placetype_ph/fusion.py"><code>fusion.py</code></a> · <a href="https://github.com/miraflor/placetype-ph/blob/main/src/placetype_ph/specialized/fusion.py"><code>specialized/fusion.py</code></a> · <a href="https://github.com/miraflor/placetype-ph/blob/main/docs/PRIORITY1_EVIDENCE_FUSION.md">source-aware evidence note</a>.</p>
+</article>
+<nav class="page-pagination" aria-label="Document pages"><a class="page-step previous" href="crosswalks.html"><span>← Previous</span><strong>Reviewed crosswalks</strong></a><a class="page-step next" href="fusion.html"><span>Next →</span><strong>Tree fusion &amp; backoff</strong></a></nav><footer class="article-footer"><span>PlaceType PH · MIT-licensed package</span><span>Documentation describes the v0.1.2 implementation; classification is not validation of truth.</span></footer></main>
+<aside class="toc" aria-label="On this page"><div class="toc-title">On this page</div><a class="toc-level-2" href="#start-with-the-provenance-graph">Start with the provenance graph</a><a class="toc-level-2" href="#explore-three-controlled-scenarios">Explore three controlled scenarios</a><a class="toc-level-2" href="#the-order-of-operations">The order of operations</a><a class="toc-level-2" href="#triangulation-does-not-mean-majority-voting">Triangulation does not mean majority voting</a><a class="toc-level-2" href="#name-rules-versus-category-rules">Name rules versus category rules</a><a class="toc-level-2" href="#distinguish-a-second-kind-of-triangulation">Distinguish a second kind of triangulation</a><a class="toc-repo" href="https://github.com/miraflor/placetype-ph/tree/main/docs">Edit on GitHub ↗</a></aside></div></div>
+</body></html>

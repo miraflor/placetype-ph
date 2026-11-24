@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#102630"><meta name="description" content="PlaceType PH — an evidence-first guide to hierarchical Philippine economic classification, source triangulation, conservative decisions, and reproducible outputs.">
+<title>Reproducibility | PlaceType PH documentation</title>
+<link rel="icon" href="assets/diagrams/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="assets/css/site.css">
+<script defer src="assets/js/search-index.js"></script>
+<script defer src="assets/js/site.js"></script>
+</head>
+<body data-page="reproducibility">
+<button class="menu-toggle" type="button" aria-label="Open documentation navigation" aria-controls="site-sidebar" aria-expanded="false">☰</button>
+<div class="nav-scrim" aria-hidden="true"></div>
+<aside class="sidebar" id="site-sidebar" aria-label="Documentation sidebar">
+<a href="index.html" class="brand"><span class="brand-icon">P<span>H</span></span><span><strong>PlaceType <em>PH</em></strong><small>Economic classification · v0.1.2</small></span></a>
+<div class="search-area"><label class="sr-only" for="doc-search">Search documentation</label><input type="search" id="doc-search" placeholder="Search the documentation…" autocomplete="off"><kbd>/</kbd><div id="search-results" hidden></div></div>
+<nav class="sidebar-nav" aria-label="Chapters"><div class="nav-heading">Start here</div><a href="index.html">Overview</a><a href="getting-started.html">Quickstart</a><a href="architecture.html">Architecture</a><a href="worked-example.html">Worked example</a><div class="nav-heading">Methods</div><a href="taxonomies.html">Official taxonomies</a><a href="sources.html">Source evidence</a><a href="crosswalks.html">Reviewed crosswalks</a><a href="triangulation.html">Evidence triangulation</a><a href="fusion.html">Tree fusion &amp; backoff</a><a href="joint-recheck.html">Cross-taxonomy recheck</a><a href="classification.html">Classification decisions</a><a href="retrieval-llm.html">Retrieval &amp; optional LLM</a><div class="nav-heading">Enrichment &amp; delivery</div><a href="institutions.html">Institutions &amp; ownership</a><a href="io-projection.html">PSIC to I–O</a><a href="express.html">Express workflow</a><a href="outputs.html">Outputs &amp; GIS</a><div class="nav-heading">Reference &amp; assurance</div><a href="evaluation.html">Validation &amp; evaluation</a><a href="reproducibility.html" aria-current="page" class="active">Reproducibility</a><a href="api-cli.html">CLI &amp; Python API</a><a href="decision-register.html">Design decisions</a><a href="limitations.html">Limits &amp; interpretation</a><a href="glossary.html">Glossary &amp; references</a></nav>
+<div class="sidebar-foot"><a href="https://github.com/miraflor/placetype-ph">GitHub repository ↗</a><a href="https://github.com/miraflor/placetype-ph/blob/main/DATA_SOURCES.md">Data sources ↗</a><div class="theme-switch"><button type="button" id="theme-toggle" aria-label="Toggle color theme">◐ Theme</button></div></div>
+</aside>
+<div class="content-frame"><div class="topbar"><span>Documentation <b>/</b> Reproducibility</span><a href="https://github.com/miraflor/placetype-ph">View source ↗</a></div>
+<div class="reading-layout"><main id="main" class="prose" tabindex="-1"><article><h1 id="reproducibility-caching-and-safe-publication">Reproducibility, caching and safe publication</h1>
+<p class="lede">A reproducible classification is one whose code revision, taxonomy revision, reviewed mappings, source evidence, decision policy, and output can be identified. Reproducing the computation is distinct from showing that its assumptions are true.</p>
+<h2 id="inputs-that-define-a-run">Inputs that define a run</h2>
+<ul>
+<li><code>canonical_pois.parquet</code>: canonical IDs and observed provider evidence; geometry and upstream matching uncertainty remain part of the source contract.</li>
+<li>Official taxonomy: scheme, version, normalized node content, explicit ancestry and fingerprint.</li>
+<li>Crosswalk: version-scoped reviewed rules and any explicit user paths, recorded with a stable content-based fingerprint.</li>
+<li>Policy: reviewed PSIC operational mode, deterministic/traversal settings, accepted source-floor behavior, administrative gates, and eligible specialized enrichment.</li>
+<li>I–O references: packaged concordance/bridge hashes, provisional versus reviewed relation and mapping statuses.</li>
+<li>Optional model: provider/base URL, model name, prompt fingerprint, pass count, input/restriction identity.</li>
+</ul>
+<h2 id="runjson-versus-cache-identity"><code>run.json</code> versus cache identity</h2>
+<p>The classifier's run manifest records source/input path, package version, taxonomy fingerprints, active crosswalk fingerprint, LLM metadata, classification counts and I–O provenance. Express has a <strong>separate work-cache identity</strong> with the key semantic parameters; a cache hit means the requested computation's recorded dependencies match the cache recipe, not that the resulting economic interpretation has been independently validated.</p>
+<p>The current Express cache version is <code>joint-v9.3-reviewed-psic-rev5</code>. Its pipeline state includes the SHA-256-derived <em>file state</em> of the packaged reviewed CSV. Earlier pre-integration cache keys are invalidated without deleting historical outputs.</p>
+<p>For small files, <code>file_state</code> hashes contents; large input files above 8 MiB use size/mtime. The latter is not a tamper-proof content identity: a same-size/same-timestamp replacement can escape detection. A scientific archive should retain independent source hashes for any input that must be authenticated byte-for-byte.</p>
+<h2 id="reviewed-rules-versus-suggestions">Reviewed rules versus suggestions</h2>
+<p><code>REVIEWED</code> and accepted bundled mappings have stronger authority than <code>AUTO_ACCEPTED_UNCHECKED</code>. A crosswalk fingerprint proves <strong>which rules were loaded</strong>, not that the rules' empirical precision is high. The specialized rule catalog has its own fingerprint: v0.1.2 currently reports 178 advisory rules, separate from the 328 accepted PSIC inventory.</p>
+<h2 id="publication-is-not-fully-transactional">Publication is not fully transactional</h2>
+<p>The current classification pipeline writes <code>entity_classifications.parquet</code> before every optional enrichment and validation step has completed. If later institutional reference processing fails, the output directory can contain intermediate files that are <strong>not a complete successful run</strong>. Avoid treating the presence of Parquet files alone as an acceptance certificate. Check command success, a complete <code>run.json</code> with the declared outputs, and any required schema/provenance values.</p>
+<p><code>express</code> checks key output names and schema before reuse, but publication-directory atomicity remains an explicit limitation. The docs website itself is just static content; deploying it does not publish any establishment dataset or optional institution register.</p>
+<h2 id="deterministic-parallelism">Deterministic parallelism</h2>
+<p>With <code>--llm none</code>, the pipeline supports spawn-based worker processes, merges worker diagnostics, and preserves result order. Chunked dictionary conversion reduces per-row Python overhead, but the full DataFrame and results are still materialized. Backend-driven traversal is not guaranteed deterministic across model deployments, even if code and prompts are identical.</p>
+<h2 id="deployment-and-branch-safety">Deployment and branch safety</h2>
+<p>The project's <code>main</code> is protected by required Python 3.11/3.12/3.13 checks, no force-push and a PR requirement. Documentation contributions should also pass link/build checks before merge. GitHub Pages deployment is a separate publication step: enable <strong>Deploy from a branch → main → /docs</strong> in Settings → Pages after the reviewed PR merges. A private institution dataset is never an input to this static build.</p>
+<h2 id="evidence-lineage-and-references">Evidence lineage and references</h2>
+<p>The <a href="decision-register.html">decision register</a> lists exactly which parts derive from a known statistical hierarchy or algorithm and which are package policy. Read the <a href="https://github.com/miraflor/placetype-ph/blob/main/DATA_SOURCES.md">reference data source guide</a> before republishing PSA source material or institutional extracts; the website intentionally ships no third-party raw registry data.</p>
+<p><strong>Implementation:</strong> <a href="https://github.com/miraflor/placetype-ph/blob/main/src/placetype_ph/express.py"><code>express.py</code></a> · <a href="https://github.com/miraflor/placetype-ph/blob/main/src/placetype_ph/pipeline.py"><code>pipeline.py</code></a>.</p>
+</article>
+<nav class="page-pagination" aria-label="Document pages"><a class="page-step previous" href="evaluation.html"><span>← Previous</span><strong>Validation &amp; evaluation</strong></a><a class="page-step next" href="api-cli.html"><span>Next →</span><strong>CLI &amp; Python API</strong></a></nav><footer class="article-footer"><span>PlaceType PH · MIT-licensed package</span><span>Documentation describes the v0.1.2 implementation; classification is not validation of truth.</span></footer></main>
+<aside class="toc" aria-label="On this page"><div class="toc-title">On this page</div><a class="toc-level-2" href="#inputs-that-define-a-run">Inputs that define a run</a><a class="toc-level-2" href="#runjson-versus-cache-identity">run.json versus cache identity</a><a class="toc-level-2" href="#reviewed-rules-versus-suggestions">Reviewed rules versus suggestions</a><a class="toc-level-2" href="#publication-is-not-fully-transactional">Publication is not fully transactional</a><a class="toc-level-2" href="#deterministic-parallelism">Deterministic parallelism</a><a class="toc-level-2" href="#deployment-and-branch-safety">Deployment and branch safety</a><a class="toc-level-2" href="#evidence-lineage-and-references">Evidence lineage and references</a><a class="toc-repo" href="https://github.com/miraflor/placetype-ph/tree/main/docs">Edit on GitHub ↗</a></aside></div></div>
+</body></html>
