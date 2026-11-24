@@ -12,9 +12,13 @@ This is the primary dataset for studying a classifier's *decisions*. A missing c
 
 One row per canonical place, preserving available geometry/location and convenience fields (`psic_code`, `psic_level`, `psic_status`, and equivalents for other requested schemes). It additionally holds derived I–O industry candidate sets, role evidence, and optional specialized/institutional fields. When GeoParquet metadata exists, the pipeline attempts to preserve it; the manifest reports preservation or failure explicitly.
 
-Important: `io80_codes = "74; 75"` means **one of two** candidate industries, not two simultaneously observed industries. `io80_map_code` stays blank in such a case. See [PSIC to I–O](io-projection.html).
+Important: `io80_codes = "74; 75"` means **one of two** candidate industries, not two simultaneously observed industries. A singleton map code or a labelled resolver decision is distinct from a policy-resolved code. See [PSIC to I–O](io-projection.html).
+
+The detailed classification table includes JSON `admissible_roots`; the place summary includes `psic_admissible_roots`, `io_mapping_draft_levels`, draft subgroup sets, direct I–O evidence, ownership inferences and `io*_resolved_code`, `io*_resolved_status`, `io*_resolved_source`. These resolved columns are also available in GIS export. Candidate, refined, inferred and resolved values are not interchangeable.
 
 ## `run.json` manifest
+
+`io_mapping.resolution` records the selected policy, implementation policy, rule fingerprint and per-level coded-row, status and source counts. Coverage is not a measure of classification accuracy.
 
 Each run identifies package version, source path, selected schemes and versions, taxonomy fingerprints, active reviewed crosswalk fingerprints, mapping ambiguity counts, LLM prompt/model metadata when applicable, I–O reference provenance and status counts, and output file names. Input reference hashes allow some material changes to be detected; they do not attest the source's factual accuracy.
 

@@ -12,7 +12,7 @@ from pathlib import Path
 import pandas as pd
 
 from . import __version__
-from .classifier import EntityClassifier
+from .classifier import EXPLICIT_PSIC_COLUMN, EntityClassifier
 from .economic_role import (
     ROLE_OUTPUT_COLUMNS,
     RoleCrosswalk,
@@ -26,6 +26,13 @@ from .io_mapping import (
     io_coverage_summary,
     io_status_counts,
 )
+from .io_resolution import (
+    RESOLUTION_POLICIES,
+    explicit_codes,
+    load_direct_rules,
+    resolution_metadata,
+    resolve_io,
+)
 from .models import ClassificationResult
 from .openplaces import SUMMARY_COLUMNS, read_openplaces
 from .reviewed_psic import crosswalk_fingerprint
@@ -37,7 +44,7 @@ from .specialized.ownership_io import (
 )
 from .text import clean_text
 
-_JSON_FIELDS = ("candidate_codes", "evidence_sources", "flags", "audit")
+_JSON_FIELDS = ("candidate_codes", "evidence_sources", "flags", "audit", "admissible_roots")
 _RESULT_COLUMNS = [f.name for f in fields(ClassificationResult)]
 _CHUNK = 10_000
 _MIN_PARALLEL_CHUNK = 1_000
@@ -136,6 +143,19 @@ def _parallel_chunk_size(row_count: int, workers: int) -> int:
     return max(_MIN_PARALLEL_CHUNK, min(_CHUNK, balanced))
 
 
+def _check_explicit_psic(frame: pd.DataFrame, classifier: EntityClassifier) -> None:
+    """Every supplied PSIC code must exist in the run's taxonomy; list all that do not."""
+    if EXPLICIT_PSIC_COLUMN not in frame.columns:
+        return
+    values = frame[EXPLICIT_PSIC_COLUMN].astype("string").fillna("").str.strip()
+    unknown = sorted({v for v in values if v and v not in classifier.taxonomy.nodes})
+    if unknown:
+        raise ValueError(
+            f"{EXPLICIT_PSIC_COLUMN} has {len(unknown)} code(s) that are not in "
+            f"{classifier.taxonomy.scheme} {classifier.taxonomy.version}: {unknown[:20]}"
+        )
+
+
 def classify_openplaces(
     input_path: str | Path,
     classifiers: Mapping[str, EntityClassifier],
@@ -144,7 +164,10 @@ def classify_openplaces(
     limit: int | None = None,
     workers: int = 1,
     role_crosswalk: RoleCrosswalk | None = None,
+    io_resolution_policy: str = "strict",
 ) -> tuple[Path, Path]:
+    if io_resolution_policy not in RESOLUTION_POLICIES:
+        raise ValueError(f"unknown I-O resolution policy {io_resolution_policy!r}")
     if workers < 1:
         raise ValueError("workers must be at least 1")
     if workers > 1:
@@ -167,6 +190,12 @@ def classify_openplaces(
         frame = frame.head(limit).copy()
     if product_column is not None and product_column not in frame.columns:
         raise ValueError(f"product column {product_column!r} not found")
+    io_crosswalk: IOCrosswalk | None = None
+    if "psic" in classifiers:
+        # Validate user-supplied codes before the classification pass, not after it.
+        io_crosswalk = IOCrosswalk.load_default()
+        _check_explicit_psic(frame, classifiers["psic"])
+        explicit_codes(frame, io_crosswalk.hierarchy)  # type: ignore[arg-type]
 
     rows: list[dict] = []
     if workers == 1 or frame.empty:
@@ -203,16 +232,16 @@ def classify_openplaces(
     # fields here.
     summary = frame[[c for c in frame.columns if c in SUMMARY_COLUMNS]].copy()
     for scheme in classifiers:
-        part = results[results["scheme"] == scheme][
-            ["canonical_id", "code", "level", "status"]
-        ].copy()
-        part = part.rename(columns={c: f"{scheme}_{c}" for c in ("code", "level", "status")})
+        columns = ["code", "level", "status"]
+        if scheme == "psic":
+            columns.append("admissible_roots")
+        part = results[results["scheme"] == scheme][["canonical_id", *columns]].copy()
+        part = part.rename(columns={c: f"{scheme}_{c}" for c in columns})
         summary = summary.merge(part, on="canonical_id", how="left", validate="one_to_one")
 
     # I-O industry sets follow from the PSIC classification only; see io_mapping.py.
     io_mapping: dict[str, object] | None = None
-    if "psic" in classifiers:
-        io_crosswalk = IOCrosswalk.load_default()
+    if io_crosswalk is not None:
         summary = enrich_summary_with_io(
             summary, results, classifiers["psic"].taxonomy, io_crosswalk
         )
@@ -255,6 +284,15 @@ def classify_openplaces(
     refinement_metadata = ownership_io_metadata(summary)
     if refinement_metadata is not None and io_mapping is not None:
         io_mapping["ownership_refinement"] = refinement_metadata
+    if io_crosswalk is not None and io_mapping is not None:
+        # Additive: direct tag evidence, resolved codes with provenance, ownership inferences.
+        direct_rules = load_direct_rules(io_crosswalk.hierarchy)  # type: ignore[arg-type]
+        summary = resolve_io(
+            summary, frame, io_crosswalk, rules=direct_rules, policy=io_resolution_policy
+        )
+        io_mapping["resolution"] = {
+            **resolution_metadata(summary, direct_rules), "selected_policy": io_resolution_policy
+        }
     summary_path = out_dir / "classified_pois.parquet"
     summary.to_parquet(summary_path, index=False)
 

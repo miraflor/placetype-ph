@@ -6,7 +6,9 @@ Its rules are kept distinct from unreviewed specialized proposals.
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import replace
+from functools import lru_cache
 from pathlib import Path
 
 from .models import CrosswalkEntry, MappingKind, SourceEvidence
@@ -34,17 +36,24 @@ def bundled_psic_crosswalk_path() -> Path:
 def _is_auxiliary_osm(key: str) -> bool:
     return (
         key in AUXILIARY_OSM_KEYS
-        or key in {"atm", "access", "building", "addr", "source", "website", "phone"}
-        or key.startswith(("contact:", "payment:", "addr:", "source:"))
+        or key == "atm"
+        or key.startswith(("contact:", "payment:", "addr:", "source:", "isced:"))
     )
 
 
-def psic_source_evidence(row: Row) -> list[SourceEvidence]:
+def psic_source_evidence(
+    row: Row, keep_whole: Callable[[str, str], bool] | None = None
+) -> list[SourceEvidence]:
     """Use independent source groups, not concatenated category strings, for PSIC.
 
     Preserve source names and the FSQ lineage group from the ordinary OpenPlaces
     adapter. OSM attributes are key/value assertions, and Overture primary, alternate,
     and basic fields are dependent statements of the same source.
+
+    ``keep_whole(source, raw)`` may declare that a multi-tag OSM string has its own
+    reviewed decision (for example ``amenity=bus_station | public_transport=station`` is
+    reviewed as UNCODEABLE). Such a string is kept as one category instead of being split,
+    because splitting would make its reviewed row unreachable.
     """
     expanded: list[SourceEvidence] = []
     original = source_evidence(row)
@@ -67,7 +76,9 @@ def psic_source_evidence(row: Row) -> list[SourceEvidence]:
         if evidence.source == "osm":
             raw = evidence.category
             pairs = osm_pairs(raw)
-            if pairs:
+            if raw and keep_whole is not None and len(pairs) > 1 and keep_whole("osm", raw):
+                categories = [raw]
+            elif pairs:
                 categories = list(
                     dict.fromkeys(
                         f"{key}={value}" for key, value in pairs if not _is_auxiliary_osm(key)
@@ -214,6 +225,13 @@ def unsafe_osm_compound(row: Row, evidence: list[SourceEvidence]) -> bool:
 
     if compound_status("osm", row.get("osm_category")) != "MULTIPLE_PRIMARY":
         return False
+    whole = clean_text(row.get("osm_category"))
+    if whole and any(
+        item.source == "osm" and item.category == whole and item.mapping is not None
+        for item in evidence
+    ):
+        # The whole multi-tag string has its own reviewed or terminal decision.
+        return False
     primaries = {
         f"{key}={value}"
         for key, value in osm_pairs(row.get("osm_category"))
@@ -240,6 +258,25 @@ def unsafe_osm_compound(row: Row, evidence: list[SourceEvidence]) -> bool:
             return True
         resolved.update(codes)
     return len(resolved) != 1
+
+
+@lru_cache(maxsize=1)
+def packaged_name_rules() -> frozenset[CrosswalkEntry]:
+    """The reviewed name rules shipped in the package.
+
+    All of them are keyword patterns over names (for example "college", "hotel",
+    "restaurant"), not judgments about one named establishment. When such a rule points to
+    a subtree that does not overlap a reviewed category rule or a curated category floor for
+    the same source, the category is the more direct statement of what the place is, and it
+    takes precedence. Name rules supplied by the user keep their documented precedence.
+    """
+    from .crosswalk import Crosswalk
+
+    return frozenset(
+        entry
+        for entry in Crosswalk.load([bundled_psic_crosswalk_path()]).entries
+        if entry.source_field.value == "name"
+    )
 
 
 def crosswalk_fingerprint(crosswalk: object | None) -> str | None:

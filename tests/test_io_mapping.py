@@ -18,9 +18,11 @@ from placetype_ph.io_mapping import (
     BRIDGE_FILE,
     BRIDGE_RELATIONS,
     CONCORDANCE_FILE,
+    IO_DRAFT_COLUMNS,
     IO_GIS_COLUMNS,
     IO_MAP_COLUMNS,
     IO_OUTPUT_COLUMNS,
+    IO_SUBGROUP_COLUMNS,
     PSIC_LEVELS,
     RESOLUTIONS,
     IOCrosswalk,
@@ -162,7 +164,9 @@ def test_summary_enrichment_adds_io_columns(crosswalk):
 
     enriched = enrich_summary_with_io(summary, results, _agriculture_taxonomy(), crosswalk)
 
-    assert list(enriched.columns) == ["canonical_id", "psic_code", *IO_OUTPUT_COLUMNS]
+    assert list(enriched.columns) == [
+        "canonical_id", "psic_code", *IO_OUTPUT_COLUMNS, *IO_SUBGROUP_COLUMNS, *IO_DRAFT_COLUMNS
+    ]
     assert enriched.loc[0, "io_mapping_status"] == "MAPPED_GROUP"
     assert enriched.loc[0, "io80_codes"] == "01; 02; 04; 09; 13; 14"
 

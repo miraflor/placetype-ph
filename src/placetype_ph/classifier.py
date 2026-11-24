@@ -10,6 +10,7 @@ from .models import (
     ClassificationResult,
     CrosswalkEntry,
     Eligibility,
+    FusionResult,
     FusionStatus,
     MappingKind,
     SourceEvidence,
@@ -19,6 +20,7 @@ from .openplaces import Row, entity_match_flags, evidence_text, source_evidence
 from .retrieval import TaxonomyRetriever
 from .reviewed_psic import (
     accepted_administrative_role,
+    packaged_name_rules,
     psic_source_evidence,
     trusted_psic_source_rule,
     unsafe_osm_compound,
@@ -28,6 +30,9 @@ from .traversal import HierarchicalTraverser
 
 _RESOLVED = {FusionStatus.SINGLE, FusionStatus.NESTED, FusionStatus.INTERSECT}
 _UNRESOLVED = {FusionStatus.EMPTY, FusionStatus.CONFLICT, FusionStatus.UNION}
+# Optional OpenPlaces input column with a user-supplied PSIC code (status MANUAL).
+EXPLICIT_PSIC_COLUMN = "explicit_psic_code"
+_NOT_FUSED = {"CONFLICT", "REVIEW_ENTITY_MATCH"}
 
 
 def _independent_activity_nonactivity_conflict(evidence: list[SourceEvidence]) -> bool:
@@ -70,6 +75,10 @@ class EntityClassifier:
             reviewed_psic_policy and taxonomy.scheme == "psic" and taxonomy.version == "rev5"
         )
         self.retriever = TaxonomyRetriever(taxonomy) if traverser is not None else None
+        # Packaged keyword name rules yield to a disjoint category; user name rules do not.
+        self._packaged_name_rules = (
+            packaged_name_rules() if self.operational_reviewed_psic else frozenset()
+        )
         self.applicable_crosswalk_entries = 0
         # Ambiguous crosswalk matches are counted, not fatal. The run continues and the
         # affected rows are flagged for review; the counts reach run.json.
@@ -176,6 +185,12 @@ class EntityClassifier:
             return entries
         if intersect_subtrees(self.taxonomy, category_roots, name_roots):
             return entries
+        if name_entry in self._packaged_name_rules:
+            # A packaged rule is a keyword pattern ("college", "hotel"), not a judgment
+            # about this establishment; the reviewed category is the more direct statement.
+            # Example: "University of Santo Tomas Hospital" tagged amenity=hospital is 861.
+            flags.append("CROSSWALK_CATEGORY_RULE_OVERRULED_NAME")
+            return category
         flags.append("CROSSWALK_NAME_RULE_OVERRODE_CATEGORY")
         return name
 
@@ -184,7 +199,7 @@ class EntityClassifier:
         flags: list[str] = []
         row_had_ambiguity = False
         if self.operational_reviewed_psic:
-            evidence_items = psic_source_evidence(row)
+            evidence_items = psic_source_evidence(row, keep_whole=self._keep_whole)
         elif self.taxonomy.scheme == "psic":
             # Legacy comparison: only source_name/source_category, not structured
             # Overture labels introduced by the reviewed Rev. 5 integration.
@@ -207,21 +222,41 @@ class EntityClassifier:
                     flags.append(f"CROSSWALK_AMBIGUOUS:{e.source}")
                 entries = self._name_rule_precedence(list(found.entries), flags)
             if entries:
+                floor_rule = None
+                if (
+                    self.operational_reviewed_psic
+                    and e.category
+                    and all(rule.source_field == SourceField.NAME for rule in entries)
+                ):
+                    # A reviewed name-only mapping need not suppress a curated,
+                    # potentially contradictory category floor. Compatible floors
+                    # refine; incompatible evidence requests review, except that a
+                    # packaged keyword name rule yields to the floor it contradicts.
+                    candidate_floor = trusted_psic_source_rule(
+                        self.taxonomy, e.source, e.category
+                    )
+                    if candidate_floor is not None and candidate_floor.codes:
+                        floor_rule = candidate_floor
+                        name_roots = [
+                            root for rule in entries for root in entry_roots(self.taxonomy, rule)
+                        ]
+                        if (
+                            name_roots
+                            and all(rule in self._packaged_name_rules for rule in entries)
+                            and not intersect_subtrees(
+                                self.taxonomy,
+                                entry_roots(self.taxonomy, candidate_floor),
+                                name_roots,
+                            )
+                        ):
+                            entries = []
+                            flags.append("NAME_RULE_OVERRULED_BY_CATEGORY")
                 out.extend(replace(e, mapping=mapping) for mapping in entries)
                 if self.operational_reviewed_psic:
                     flags.append("ACCEPTED_CROSSWALK_RULE")
-                    # A reviewed name-only mapping need not suppress a curated,
-                    # potentially contradictory category floor. Compatible floors
-                    # refine; incompatible evidence requests review.
-                    if e.category and all(
-                        rule.source_field == SourceField.NAME for rule in entries
-                    ):
-                        category_rule = trusted_psic_source_rule(
-                            self.taxonomy, e.source, e.category
-                        )
-                        if category_rule is not None and category_rule.codes:
-                            out.append(replace(e, mapping=category_rule))
-                            flags.append("TRUSTED_CATEGORY_FLOOR")
+                    if floor_rule is not None:
+                        out.append(replace(e, mapping=floor_rule))
+                        flags.append("TRUSTED_CATEGORY_FLOOR")
             else:
                 source_rule = (
                     trusted_psic_source_rule(self.taxonomy, e.source, e.category)
@@ -238,6 +273,73 @@ class EntityClassifier:
         if row_had_ambiguity:
             self.ambiguity_rows += 1
         return out, sorted(set(flags))
+
+    def _keep_whole(self, source: str, raw: str) -> bool:
+        """A multi-tag OSM string with its own reviewed row or terminal source policy."""
+        if self.crosswalk is not None and self.crosswalk.has_exact_category(
+            source, self.taxonomy.scheme, self.taxonomy.version, raw
+        ):
+            return True
+        rule = trusted_psic_source_rule(self.taxonomy, source, raw)
+        return rule is not None and not rule.codes
+
+    def _explicit_code(self, row: Row) -> str | None:
+        """User-supplied PSIC code. An unknown code stops the run instead of being ignored."""
+        if self.taxonomy.scheme != "psic":
+            return None
+        value = row.get(EXPLICIT_PSIC_COLUMN)
+        from .io_resolution import scalar_text
+
+        code = scalar_text(value)
+        if not code:
+            return None
+        if code not in self.taxonomy.nodes:
+            raise ValueError(
+                f"{EXPLICIT_PSIC_COLUMN} {code!r} for canonical_id {row.get('canonical_id')!r} "
+                f"is not a {self.taxonomy.scheme} {self.taxonomy.version} code"
+            )
+        return code
+
+    def _explicit_result(
+        self,
+        canonical_id: str,
+        code: str,
+        fusion: FusionResult,
+        evidence_flags: list[str],
+    ) -> ClassificationResult:
+        """Supplied PSIC is authoritative; its agreement with source evidence is recorded."""
+        flags = ["USER_SUPPLIED_PSIC"]
+        if fusion.code is not None and fusion.code in self.taxonomy.nodes:
+            roots = fusion.admissible_roots or [fusion.code]
+            related = any(
+                root == code
+                or root in self.taxonomy.ancestors(code)
+                or code in self.taxonomy.ancestors(root)
+                for root in roots
+            )
+            flags.append(
+                "EXPLICIT_PSIC_AGREES_WITH_SOURCES"
+                if related
+                else "EXPLICIT_PSIC_DIFFERS_FROM_SOURCES"
+            )
+        elif fusion.status == FusionStatus.EMPTY:
+            flags.append("EXPLICIT_PSIC_NO_SOURCE_EVIDENCE")
+        else:
+            flags.append("EXPLICIT_PSIC_SOURCES_UNRESOLVED")
+        return self._result(
+            canonical_id,
+            code,
+            "MANUAL",
+            "EXPLICIT_INPUT",
+            candidate_codes=list(dict.fromkeys([code, *fusion.candidate_codes])),
+            evidence_sources=fusion.evidence_sources,
+            flags=evidence_flags + flags,
+            audit={
+                "source_fusion_status": fusion.status.value,
+                "source_fusion_code": fusion.code,
+                "source_admissible_roots": sorted(set(fusion.admissible_roots)),
+            },
+        )
 
     def _status_for(self, base: str, code: str | None) -> str:
         """PCPC results are potential product families whichever component decided them.
@@ -276,8 +378,42 @@ class EntityClassifier:
 
     def classify_row(self, row: Row, product_text: str | None = None) -> ClassificationResult:
         canonical_id = str(row["canonical_id"])
+        explicit = self._explicit_code(row)
         mapped, evidence_flags = self._mapped_evidence(row)
         fusion = fuse(self.taxonomy, mapped)
+        if explicit is not None:
+            eligibility = decide_eligibility(mapped)
+            manual_flags = [*evidence_flags, *fusion.flags]
+            if eligibility == Eligibility.NOT_ACTIVITY:
+                manual_flags.append("MANUAL_OVERRIDES_NON_ACTIVITY")
+            if self.operational_reviewed_psic and unsafe_osm_compound(row, mapped):
+                manual_flags.append("MANUAL_OVERRIDES_COMPOUND_REVIEW")
+            manual_flags.extend(entity_match_flags(row, fusion.status == FusionStatus.CONFLICT))
+            return self._explicit_result(canonical_id, explicit, fusion, manual_flags)
+        result = self._classify_fused(
+            row, product_text, canonical_id, mapped, evidence_flags, fusion
+        )
+        if (
+            len(fusion.admissible_roots) > 1
+            and result.deciding_component == "FUSION"
+            and result.code == fusion.code
+            and result.status not in _NOT_FUSED
+        ):
+            # The code is the common parent of several admissible subtrees. The I-O step
+            # maps the subtrees, not the parent, so the parent's other activities stay out.
+            result.admissible_roots = sorted(set(fusion.admissible_roots))
+            result.audit = {**result.audit, "admissible_roots": result.admissible_roots}
+        return result
+
+    def _classify_fused(
+        self,
+        row: Row,
+        product_text: str | None,
+        canonical_id: str,
+        mapped: list[SourceEvidence],
+        evidence_flags: list[str],
+        fusion: FusionResult,
+    ) -> ClassificationResult:
         eligibility = decide_eligibility(mapped)
 
         if self.taxonomy.scheme == "psic" and _independent_activity_nonactivity_conflict(mapped):

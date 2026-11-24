@@ -33,7 +33,9 @@ if ($LASTEXITCODE -ne 0) { throw "Express failed" }
 
 ## Cache identity and reproducibility
 
-Express computes its run key from the OpenPlaces input state, selected schemes, package version, taxonomy fingerprints, reviewed worklist states, product-column selection, promotion policies, retrieval/classifier tuning, I–O resolver policy and **a content fingerprint of the bundled reviewed PSIC CSV**. The semantic cache version is `joint-v9.3-reviewed-psic-rev5` in v0.1.2. This change prevents pre-integration runs from masquerading as current classifications.
+Express computes its run key from the OpenPlaces input state, selected schemes, package version, taxonomy fingerprints, reviewed worklist states, product-column selection, promotion policies, retrieval/classifier tuning, I–O resolver policy and content fingerprints of the bundled reviewed PSIC CSV, the version bridge, the concordance, official hierarchy, subgroup refinement table and direct I–O rules. The selected resolution policy is part of the key; the semantic cache version is `joint-v9.4.3-classification-resolution`.
+
+Choose `placetype express $places --io-resolution-policy extended` for exploratory coverage with labelled provisional evidence, or omit the option for strict mode. Use different `--output` paths to preserve separate final GIS exports. The console reports actual resolved coverage and withheld provisional singletons separately from candidate/map-ready coverage.
 
 Inputs under 8 MiB use a content hash; larger inputs use file size and modification time as a cheaper identity. This is a performance trade-off: timestamp/size identity is less robust to adversarial or unusual in-place changes. Completed runs are checked against manifest and required output files/schema before reuse; this does not independently revalidate empirical accuracy.
 

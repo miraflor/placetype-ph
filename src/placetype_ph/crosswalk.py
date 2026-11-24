@@ -270,6 +270,11 @@ class Crosswalk:
         # textual rule for stable audit metadata rather than depending on CSV order.
         return max(scanned_hits, key=lambda entry: len(entry.source_value)), None
 
+    def has_exact_category(self, source: str, scheme: str, version: str, value: str) -> bool:
+        """Whether an exact category row exists for this whole value (no scanned rules)."""
+        bucket = (source.casefold(), scheme.casefold(), version, str(SourceField.CATEGORY))
+        return (*bucket, normalize_key(value)) in self._exact
+
     def matches(
         self,
         source: str,

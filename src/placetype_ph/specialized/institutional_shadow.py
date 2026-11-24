@@ -9,7 +9,7 @@ from __future__ import annotations
 import json
 import re
 from collections.abc import Mapping
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, replace
 from datetime import date
 from pathlib import Path
 from typing import Any
@@ -27,9 +27,20 @@ BLOCKED_PSIC = frozenset(
     {"NOT_PSIC_ACTIVITY", "UNCODEABLE", "REVIEW_ENTITY_MATCH", "CANDIDATES_ONLY", "CONFLICT"}
 )
 SUBUNIT = re.compile(
+    r"\b\d+(?:st|nd|rd|th)\s+floor\b|"
     r"\b(?:annex|ward|icu|chapel|auditorium|department|dept\.?|dialysis\s+unit|"
-    r"division\s+of|emergency\s+(?:ward|room)|medical\s+arts|"
+    r"division\s+of|emergency\s+(?:ward|room)|medical\s+arts|internal\s+medicine|"
     r"outpatient|doctors?\s+offices?|registrar|faculty)\b|\s@\s",
+    re.I,
+)
+# A government body named as operator: operation is not ownership, so this is never
+# promotable, but it contradicts a private claim (operator evidence policy).
+GOV_OPERATOR = re.compile(
+    r"\b(?:department\s+of\s+(?:health|education|science\s+and\s+technology)|"
+    r"deped|doh|dost|schools?\s+division|division\s+of\s+(?:city\s+)?schools|"
+    r"city\s+schools\s+division|school\s+district|"
+    r"(?:city|municipal|provincial)\s+government\s+of|"
+    r"local\s+government\s+unit)\b",
     re.I,
 )
 NOT_INSTITUTION = (
@@ -41,6 +52,7 @@ NOT_INSTITUTION = (
     "transit_stop",
     "train_station",
     "pharmacy",
+    "chapel",
 )
 SCHOOL = ("amenity=school", "amenity=university", "public_school", "private_school")
 HOSPITAL = ("amenity=hospital", "healthcare=hospital", "hospital")
@@ -125,6 +137,21 @@ def _source_identities(row: Mapping[str, Any]) -> set[tuple[str, str]]:
     if clean(row.get("official_id_source")) and clean(row.get("official_id")):
         ids.add((clean(row["official_id_source"]).casefold(), clean(row["official_id"]).casefold()))
     return ids
+
+
+def operator_evidence(row: Mapping[str, Any]) -> tuple[str, ...]:
+    """Operator values that name a government body, from OSM tags or operator columns."""
+    values: list[str] = []
+    for part in _parts(row, include_basic=False):
+        if "=" in part:
+            k, val = part.split("=", 1)
+            if k.strip() == "operator" and GOV_OPERATOR.search(val):
+                values.append(f"operator={val.strip()}")
+    for field in ("osm_operator", "overture_operator", "operator"):
+        value = clean(row.get(field))
+        if value and GOV_OPERATOR.search(value):
+            values.append(f"{field}={value}")
+    return tuple(dict.fromkeys(values))
 
 
 def _explicit_sides(row: Mapping[str, Any], domain: str) -> set[str]:
@@ -227,6 +254,48 @@ class InstitutionResolver:
         self.links = dict(verified_links or {})
 
     def assess(self, row: Mapping[str, Any]) -> InstitutionDecision:
+        """Identity evidence, then the government-operator check (never promotable).
+
+        A government operator does not prove legal ownership. An unverified private
+        claim goes to review; a verified private record retains authority and an audit flag.
+        Without other evidence the operator is a non-promotable proxy.
+        """
+        decision = self._assess(row)
+        if decision.status in {"ABSTAIN"} or (
+            decision.status == "REVIEW" and not decision.ownership_candidate
+        ):
+            return decision
+        operator = operator_evidence(row)
+        if not operator:
+            return decision
+        if decision.ownership_candidate == "private":
+            verified = decision.status in {"VERIFIED_LINK", "EXACT_EXTERNAL_ID"}
+            if verified and decision.promotion_eligible:
+                return replace(
+                    decision, reason="verified_ownership_with_government_operator",
+                    audit=tuple(decision.audit) + tuple(operator),
+                )
+            return InstitutionDecision(
+                "REVIEW",
+                decision.domain,
+                source_references=decision.source_references,
+                reason="government_operator_vs_private_conflict",
+                audit=operator,
+            )
+        if decision.status == "NO_EVIDENCE" and decision.domain:
+            return InstitutionDecision(
+                "OPERATOR_PROXY",
+                decision.domain,
+                "public",
+                "government_operator_proxy",
+                (),
+                "operation_is_not_legal_ownership",
+                False,
+                operator,
+            )
+        return decision
+
+    def _assess(self, row: Mapping[str, Any]) -> InstitutionDecision:
         domain = domain_of(row)
         gate, reason = _gate(row, domain)
         if gate:

@@ -19,7 +19,10 @@ Only `institution_resolution_status=RESOLVED` with ownership `public`/`private`,
 a `VERIFIED_LINK` or `EXACT_EXTERNAL_ID` evidence status, and nonempty verified
 reference and basis qualify. Furthermore:
 
-* The primary PSIC classification must have `psic_status=SINGLE`.
+* The primary PSIC classification must have `psic_status` `SINGLE`, `INTERSECT`, `NESTED` or
+  `MANUAL`. (Version 1 accepted only `SINGLE`; that excluded schools and clinics whose activity two
+  rules or two sources confirm, which is stronger evidence, not weaker. The abstention reason is now
+  `psic_status_not_accepted`; it was `psic_not_single`.)
 * The built-in crosswalk must have `MAPPED_GROUP` or `MAPPED_DIVISION`, an
   accepted bridge basis (`reviewed` or `code_title_match`), and a matching
   PSIC division 85 (education) or 86 (human health) in both the authoritative

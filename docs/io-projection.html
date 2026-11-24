@@ -33,7 +33,7 @@
 </ol>
 <p>The concordance is a <strong>derived analytical reference</strong>, not an official PSA PSIC-to-I–O codebook; the bridge contains both reviewed and draft rows. See <a href="https://github.com/miraflor/placetype-ph/blob/main/DATA_SOURCES.md">DATA_SOURCES.md</a>.</p>
 <h2 id="exact-candidate-set-versus-map-ready-code">Exact candidate set versus map-ready code</h2>
-<p>For each resolution, <code>io16_codes</code>, <code>io80_codes</code> and <code>io240_codes</code> hold a potentially multi-valued set. <code>io*_map_code</code> is nonempty only if that candidate set currently has <strong>one</strong> item. <code>SINGLETON_CANDIDATE</code> describes cardinality, not empirical truth; <code>AMBIGUOUS_SET</code> means there is no defensible single choice under that mapping.</p>
+<p>For each resolution, <code>io16_codes</code>, <code>io80_codes</code> and <code>io240_codes</code> hold a potentially multi-valued set. <code>io*_map_code</code> records a singleton candidate or a separately labelled resolver decision. <code>SINGLETON_CANDIDATE</code> describes cardinality, not empirical truth; <code>AMBIGUOUS_SET</code> means there is no single choice under that mapping. Map-ready coverage and policy-resolved coverage are different.</p>
 <table>
 <thead>
 <tr>
@@ -48,11 +48,11 @@
 </tr>
 <tr>
 <td><code>io16_map_code</code>, <code>io80_map_code</code>, <code>io240_map_code</code></td>
-<td>One code only for a singleton candidate set; blank otherwise.</td>
+<td>Singleton candidate or separately labelled resolver decision.</td>
 </tr>
 <tr>
 <td><code>io*_map_status</code></td>
-<td><code>SINGLETON_CANDIDATE</code>, <code>AMBIGUOUS_SET</code>, or <code>UNMAPPED</code>.</td>
+<td>Cardinality or resolver status; inspect before aggregation.</td>
 </tr>
 <tr>
 <td><code>io_mapping_status</code></td>
@@ -75,6 +75,9 @@
 <h2 id="the-difference-between-draft-and-accepted-correspondence">The difference between draft and accepted correspondence</h2>
 <p>A hand-written <code>draft</code> bridge yields <code>PROVISIONAL_*</code> when it changes the candidate sets. If an already accepted non-draft ancestor yields <em>exactly the same</em> candidate set, the output may instead cite that ancestor. A <code>no_counterpart</code> does not mean the activity was impossible in 2019; it means the reference cannot establish a defensible mapping for that category.</p>
 <p>A same-code/same-title <code>code_title_match</code> is generated evidence, not independently reviewed semantic equivalence. Rev. 5 scope changes must be handled explicitly (including the accommodation intermediation change identified in the bundled bridge documentation).</p>
+<p>For a reviewed UNION, I–O projection maps the admissible subtrees individually and unions their candidate sets, not their common ancestor. Incomplete UNION mappings abstain. The official IO240 → IO80 → IO16 hierarchy validates the concordance and constrains final codes.</p>
+<p><code>io_mapping_draft_levels</code> records which levels depend on a draft bridge. Strict and evidence-weighted modes withhold those levels unless stronger permitted evidence establishes the code. A withheld singleton is <code>PROVISIONAL_BRIDGE_NOT_RESOLVED</code>, not ambiguous. <code>none</code> explicitly records that no level depends on the draft; blank provisional metadata is treated conservatively.</p>
+<p>Use <code>--io-resolution-policy strict</code> (default) for conservative resolution; <code>evidence-weighted</code> also permits direct tags within the candidate set and explicit source ownership; <code>extended</code> additionally permits labelled draft mappings, direct fallbacks, draft subgroup narrowing and ownership hints. Candidate sets remain unchanged. Inspect <code>io*_resolved_code</code>, <code>io*_resolved_status</code> and <code>io*_resolved_source</code> together; none is an accuracy certificate.</p>
 <h2 id="ownership-narrowing-is-separate">Ownership narrowing is separate</h2>
 <p>For narrowly eligible public/private education or human-health pairs, strongly verified institutional ownership can produce <code>io80_refined_*</code> and <code>io240_refined_*</code> columns. The <strong>original</strong> candidate sets and basic I–O mapping statuses remain unchanged; see <a href="institutions.html">Institutions</a>.</p>
 <h2 id="interpretation-boundary">Interpretation boundary</h2>

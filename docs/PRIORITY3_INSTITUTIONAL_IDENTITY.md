@@ -9,6 +9,8 @@ This adds **opt-in, read-only** school, university, and hospital evidence to the
 - A Level 3 hospital reference uses the 14-field `institution_national_v1` schema. A DOH NHFR `official_code` may qualify as strong site evidence only with matching official ID, canonical name and city, and nonconflicting addresses. A PhilHealth publication `publication_row` **never** qualifies as an official external facility ID.
 - Optional independent, explicitly verified canonical links require a separate reviewed JSON record with provenance and verification date. A reference row, benchmark roster, or fuzzy name match is not such a link.
 - Explicit OSM/Overture ownership and institutional category **claims** remain distinct from registry verification. An operator, accreditation, religious name, or school-ID prefix is not ownership proof.
+- A government body named as operator (DepEd, DOH, DOST, a schools division, a city, municipal or provincial government, an LGU) is reported as `OPERATOR_PROXY` with basis `government_operator_proxy` when there is no other evidence. It is never promotable. An unverified private claim with a government operator yields `REVIEW` with reason `government_operator_vs_private_conflict`. Private ownership from a verified link or exact external ID is kept, and the government operator is recorded in the audit, because operation is not ownership.
+- Subunits now also include floor numbers ("3rd floor") and "internal medicine"; the Overture category `chapel` is not an institution.
 - Wrong-site branches, hospital wards, university offices, incompatible PSIC domains, noninstitution source categories, repeated identities, contradictory owner claims, and conflicting source names are blocked or marked for review.
 
 ## Implementation

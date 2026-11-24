@@ -17,13 +17,13 @@ The concordance is a **derived analytical reference**, not an official PSA PSIC-
 
 ## Exact candidate set versus map-ready code
 
-For each resolution, `io16_codes`, `io80_codes` and `io240_codes` hold a potentially multi-valued set. `io*_map_code` is nonempty only if that candidate set currently has **one** item. `SINGLETON_CANDIDATE` describes cardinality, not empirical truth; `AMBIGUOUS_SET` means there is no defensible single choice under that mapping.
+For each resolution, `io16_codes`, `io80_codes` and `io240_codes` hold a potentially multi-valued set. `io*_map_code` records a singleton candidate or a separately labelled resolver decision. `SINGLETON_CANDIDATE` describes cardinality, not empirical truth; `AMBIGUOUS_SET` means there is no single choice under that mapping. Map-ready coverage and policy-resolved coverage are different.
 
 | Field | Meaning |
 | --- | --- |
 | `io16_codes`, `io80_codes`, `io240_codes` | Entire candidate sets, `; ` separated. |
-| `io16_map_code`, `io80_map_code`, `io240_map_code` | One code only for a singleton candidate set; blank otherwise. |
-| `io*_map_status` | `SINGLETON_CANDIDATE`, `AMBIGUOUS_SET`, or `UNMAPPED`. |
+| `io16_map_code`, `io80_map_code`, `io240_map_code` | Singleton candidate or separately labelled resolver decision. |
+| `io*_map_status` | Cardinality or resolver status; inspect before aggregation. |
 | `io_mapping_status` | `MAPPED_*`, `PROVISIONAL_*`, or detailed unmapped/no-counterpart status. |
 | `io_mapping_bridge_relation`, `io_mapping_bridge_basis` | How and on what basis the revisions were related. |
 | `io_mapping_psic_level`, `io_mapping_psic_code` | The actual ancestor level used for the bridge. |
@@ -34,6 +34,12 @@ For each resolution, `io16_codes`, `io80_codes` and `io240_codes` hold a potenti
 A hand-written `draft` bridge yields `PROVISIONAL_*` when it changes the candidate sets. If an already accepted non-draft ancestor yields *exactly the same* candidate set, the output may instead cite that ancestor. A `no_counterpart` does not mean the activity was impossible in 2019; it means the reference cannot establish a defensible mapping for that category.
 
 A same-code/same-title `code_title_match` is generated evidence, not independently reviewed semantic equivalence. Rev. 5 scope changes must be handled explicitly (including the accommodation intermediation change identified in the bundled bridge documentation).
+
+For a reviewed UNION, I–O projection maps the admissible subtrees individually and unions their candidate sets, not their common ancestor. Incomplete UNION mappings abstain. The official IO240 → IO80 → IO16 hierarchy validates the concordance and constrains final codes.
+
+`io_mapping_draft_levels` records which levels depend on a draft bridge. Strict and evidence-weighted modes withhold those levels unless stronger permitted evidence establishes the code. A withheld singleton is `PROVISIONAL_BRIDGE_NOT_RESOLVED`, not ambiguous. `none` explicitly records that no level depends on the draft; blank provisional metadata is treated conservatively.
+
+Use `--io-resolution-policy strict` (default) for conservative resolution; `evidence-weighted` also permits direct tags within the candidate set and explicit source ownership; `extended` additionally permits labelled draft mappings, direct fallbacks, draft subgroup narrowing and ownership hints. Candidate sets remain unchanged. Inspect `io*_resolved_code`, `io*_resolved_status` and `io*_resolved_source` together; none is an accuracy certificate.
 
 ## Ownership narrowing is separate
 

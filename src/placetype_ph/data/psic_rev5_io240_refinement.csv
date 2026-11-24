@@ -1,0 +1,281 @@
+rev5_level,rev5_code,rev5_title,io240_codes,basis,note
+class,0111,"Growing of cereals (except rice and corn), leguminous crops and oilseeds",022,draft,"Cereals other than rice and corn, legumes and oilseeds: other crops."
+class,0112,Growing of rice,001,draft,Rev. 5 title names this IO240 sector.
+class,0113,Growing of corn,002,draft,Rev. 5 title names this IO240 sector.
+class,0114,Growing of sugarcane,004,draft,Rev. 5 title names this IO240 sector.
+class,0115,Growing of tobacco,013,draft,Rev. 5 title names this IO240 sector.
+class,0117,Growing of leafy and fruit bearing vegetables,018; 019,draft,Rev. 5 title names this IO240 sector.
+subclass,01162,Growing of cotton,022,draft,Fiber crops other than abaca and pina: other crops.
+subclass,01163,Growing of kapok,022,draft,Fiber crops other than abaca and pina: other crops.
+subclass,01164,Growing of maguey,022,draft,Fiber crops other than abaca and pina: other crops.
+subclass,01165,Growing of ramie,022,draft,Fiber crops other than abaca and pina: other crops.
+subclass,01167,Growing of jute,022,draft,Fiber crops other than abaca and pina: other crops.
+subclass,01168,Growing of kenaf,022,draft,Fiber crops other than abaca and pina: other crops.
+subclass,01169,"Growing of fiber crops, n.e.c.",022,draft,Fiber crops other than abaca and pina: other crops.
+subclass,01171,"Growing of leafy and stem vegetables, such as repolyo, pechay and kangkong",018,draft,Rev. 5 title names this IO240 sector.
+subclass,01172,"Growing of fruit bearing vegetables, such as talong, ampalaya and kalabasa",019,draft,Rev. 5 title names this IO240 sector.
+subclass,01181,Growing of onions,020,draft,Rev. 5 title names this IO240 sector.
+subclass,01185,Growing of cassava,009,draft,Rev. 5 title names this IO240 sector.
+subclass,01186,Growing of sweet potatoes,014,draft,Rev. 5 title names this IO240 sector.
+subclass,01191,Growing of orchids,021,draft,Orchids and flowers: horticultural specialties.
+subclass,01192,"Growing of other flowers, including production of flower buds and cut flowers",021,draft,Orchids and flowers: horticultural specialties.
+subclass,01193,Growing of forage crops and other grasses,022,draft,Rev. 5 title names this IO240 sector.
+class,0121,Growing of grapes,017,draft,Rev. 5 title names this IO240 sector.
+class,0122,Growing of bananas,005,draft,Rev. 5 title names this IO240 sector.
+class,0123,Growing of citrus fruits,015,draft,Rev. 5 title names this IO240 sector.
+class,0124,Growing of pineapples,007,draft,Rev. 5 title names this IO240 sector.
+class,0125,Growing of other tropical and subtropical fruits,006; 016; 017,draft,Rev. 5 title names this IO240 sector.
+class,0126,"Growing of coconuts, including copra making",003,draft,Rev. 5 title names this IO240 sector.
+class,0127,Growing of beverage crops,008; 011; 022,draft,Rev. 5 title names this IO240 sector.
+class,0128,"Growing of spices, aromatic, drug and pharmaceutical crops",022,draft,Rev. 5 title names this IO240 sector.
+subclass,01251,Growing of mangoes,006,draft,Rev. 5 title names this IO240 sector.
+subclass,01252,Growing of papayas,016,draft,Rev. 5 title names this IO240 sector.
+subclass,01253,Growing of dragon fruit,017,draft,Rev. 5 title names this IO240 sector.
+subclass,01254,Growing of durians,017,draft,Rev. 5 title names this IO240 sector.
+subclass,01259,"Growing of other tropical and subtropical fruits, n.e.c.",017,draft,Rev. 5 title names this IO240 sector.
+subclass,01271,Growing of coffee plants,008,draft,Rev. 5 title names this IO240 sector.
+subclass,01272,Growing of cacao,011,draft,Rev. 5 title names this IO240 sector.
+subclass,01273,Growing of tea plants,022,draft,Rev. 5 title names this IO240 sector.
+subclass,01291,Growing of strawberries,017,draft,Rev. 5 title names this IO240 sector.
+subclass,01293,Growing of rubber trees,010,draft,Rev. 5 title names this IO240 sector.
+subclass,01294,"Growing of non-wood crops chiefly for construction, furniture and other purposes such as bamboo, buri and nipa",022,draft,Rev. 5 title names this IO240 sector.
+subclass,01295,"Growing of ornamental and decorative trees such as Christmas trees, pine trees and fire trees",022,draft,Rev. 5 title names this IO240 sector.
+subclass,01296,"Growing of oil palm fruit and other oleaginous fruits, except coconut",022,draft,Rev. 5 title names this IO240 sector.
+class,0141,Raising of cattle and buffaloes,024; 025; 027; 030,draft,Rev. 5 title names this IO240 sector.
+class,0142,Raising of horses and other equines,030,draft,Rev. 5 title names this IO240 sector.
+class,0143,Raising of camels and camelids,030,draft,Rev. 5 title names this IO240 sector.
+class,0144,Raising of sheep and goats,026; 027; 030,draft,Rev. 5 title names this IO240 sector.
+class,0145,Raising of swine and pigs,023,draft,Rev. 5 title names this IO240 sector.
+class,0146,Raising and breeding of chickens,028,draft,Rev. 5 title names this IO240 sector.
+class,0147,"Raising of poultry, except chickens",030,draft,Poultry other than chickens: IO240 030 names other poultry.
+class,0148,Egg production,029,draft,Rev. 5 title names this IO240 sector.
+class,0149,Raising of other animals,030,draft,Rev. 5 title names this IO240 sector.
+subclass,01411,Raising and breeding of cattle,024,draft,Rev. 5 title names this IO240 sector.
+subclass,01412,Raising and breeding of carabaos,025,draft,Rev. 5 title names this IO240 sector.
+subclass,01413,"Raising and breeding of buffaloes, except carabaos",030,draft,Buffaloes other than carabaos: other livestock.
+subclass,01414,Raw milk production from cows and carabaos,027,draft,Rev. 5 title names this IO240 sector.
+subclass,01441,"Raising and breeding of sheep, including sheep shearing by the owner",030,draft,Rev. 5 title names this IO240 sector.
+subclass,01442,Raising and breeding of goats,026,draft,Rev. 5 title names this IO240 sector.
+subclass,01443,Raw milk production from goats,027,draft,Rev. 5 title names this IO240 sector.
+subclass,03111,Commercial ocean fishing using vessels over 3 gross tons,032,draft,Rev. 5 title names this IO240 sector.
+subclass,03112,"Municipal coastal fishing using vessels not exceeding 3 gross tons, or without the use of vessels",033,draft,Municipal coastal fishing: inland and coastal fishing.
+subclass,03120,Freshwater fishing,033,draft,Rev. 5 title names this IO240 sector.
+subclass,03211,Culturing of milkfish in marine or brackish water,034,draft,"Fish, shrimp and prawn culture: fish farms and prawn culture."
+subclass,03212,Culturing of tilapia in marine or brackish water,034,draft,"Fish, shrimp and prawn culture: fish farms and prawn culture."
+subclass,03213,Culturing of shrimp and prawns in marine or brackish water,034,draft,"Fish, shrimp and prawn culture: fish farms and prawn culture."
+subclass,03214,Culturing of shellfish in marine or brackish water,037,draft,"Shellfish, crab and crayfish culture."
+subclass,03215,Culturing of crabs in marine or brackish water,037,draft,"Shellfish, crab and crayfish culture."
+subclass,03216,Culturing of seaweed,036,draft,Rev. 5 title names this IO240 sector.
+subclass,03217,Culturing of marine ornamental fish,034,draft,"Fish, shrimp and prawn culture: fish farms and prawn culture."
+subclass,03218,Culturing of pearls in marine or brackish water,035,draft,Rev. 5 title names this IO240 sector.
+subclass,03221,Culturing of milkfish in freshwater,034,draft,"Fish, shrimp and prawn culture: fish farms and prawn culture."
+subclass,03222,Culturing of tilapia in freshwater,034,draft,"Fish, shrimp and prawn culture: fish farms and prawn culture."
+subclass,03223,Culturing of shrimp and prawns in freshwater,034,draft,"Fish, shrimp and prawn culture: fish farms and prawn culture."
+subclass,03224,Culturing of shellfish in freshwater,037,draft,"Shellfish, crab and crayfish culture."
+subclass,03225,Culturing of crabs in freshwater,037,draft,"Shellfish, crab and crayfish culture."
+subclass,03226,Culturing of catfish,034,draft,"Fish, shrimp and prawn culture: fish farms and prawn culture."
+subclass,03227,Culturing of crayfish,037,draft,"Shellfish, crab and crayfish culture."
+subclass,03228,Culturing of eels,034,draft,"Fish, shrimp and prawn culture: fish farms and prawn culture."
+class,0330,Support activities for fishing and aquaculture,038,draft,The bridge note names IO240 038 as the likely single line.
+class,0721,Mining of uranium and thorium ores,045,draft,Rev. 5 title names this IO240 sector.
+class,0722,Mining of precious metals,041,draft,Rev. 5 title names this IO240 sector.
+subclass,07291,Copper ore mining,043,draft,Rev. 5 title names this IO240 sector.
+subclass,07292,Chromite ore mining,045,draft,Rev. 5 title names this IO240 sector.
+subclass,07293,Manganese ore mining,045,draft,Rev. 5 title names this IO240 sector.
+subclass,07294,Nickel ore mining,042,draft,Rev. 5 title names this IO240 sector.
+subclass,07295,Aluminum (bauxite) ore mining,045,draft,Rev. 5 title names this IO240 sector.
+subclass,07299,"Mining of other non-ferrous metal ores, n.e.c.",045,draft,Rev. 5 title names this IO240 sector.
+subclass,10101,Slaughtering and meat packing,046,draft,Rev. 5 title names this IO240 sector.
+subclass,10103,"Production of meat products including sausages, tocino, ham, bacon, corned beef and other processed meat products",047,draft,Rev. 5 title names this IO240 sector.
+subclass,10104,Rendering of lard and other edible fats from animal origins,047,draft,Rev. 5 title names this IO240 sector.
+subclass,10201,Preserving of fish and other marine products by canning or packing,048,draft,Rev. 5 title names this IO240 sector.
+subclass,10202,Drying of fish and other marine products,049,draft,Rev. 5 title names this IO240 sector.
+subclass,10203,Smoking of fish and other marine products,049,draft,Rev. 5 title names this IO240 sector.
+subclass,10204,"Processing of seaweeds, including manufacture of agar-agar or carrageenan",049,draft,Rev. 5 title names this IO240 sector.
+subclass,10205,Production of fish meals or unprepared animal feeds from fish and other aquatic animals,049,draft,Rev. 5 title names this IO240 sector.
+subclass,10209,"Processing and preserving of fish, crustaceans and mollusks, n.e.c.",049,draft,Rev. 5 title names this IO240 sector.
+subclass,10401,Manufacture of virgin coconut oil,051,draft,Rev. 5 title names this IO240 sector.
+subclass,10402,"Production of crude vegetable oil, cake and meals, other than virgin coconut oil",052,draft,Rev. 5 title names this IO240 sector.
+subclass,10403,Manufacture of refined coconut and other vegetable oil and margarine,052,draft,Rev. 5 title names this IO240 sector.
+subclass,10404,Manufacture of fish oil and other marine animal oils,052,draft,Rev. 5 title names this IO240 sector.
+subclass,10405,"Manufacture of unprepared animal feeds from vegetable, animal oils and fats",052,draft,Rev. 5 title names this IO240 sector.
+subclass,10409,"Manufacture of vegetable and animal oil and fats, n.e.c.",052,draft,Rev. 5 title names this IO240 sector.
+subclass,10501,Processing of fresh milk and cream,053,draft,Rev. 5 title names this IO240 sector.
+subclass,10503,"Manufacture of butter, cheese and curd",054,draft,Rev. 5 title names this IO240 sector.
+subclass,10504,"Manufacture of ice cream and sherbet, ice drop, ice candy and other flavored ices",055,draft,Rev. 5 title names this IO240 sector.
+subclass,10505,Manufacture of yoghurt,056,draft,Rev. 5 title names this IO240 sector.
+subclass,10506,Manufacture of whey,056,draft,Rev. 5 title names this IO240 sector.
+subclass,10509,"Manufacture of dairy products, n.e.c.",056,draft,Rev. 5 title names this IO240 sector.
+class,1062,"Manufacture of starches and starch products, including corn oil",059,draft,Rev. 5 title names this IO240 sector.
+subclass,10611,Rice milling,057,draft,Rev. 5 title names this IO240 sector.
+subclass,10612,Corn milling,057,draft,Rev. 5 title names this IO240 sector.
+subclass,10613,Cassava flour milling,058,draft,Rev. 5 title names this IO240 sector.
+subclass,10614,Production of flour from other grain and vegetable,058,draft,Rev. 5 title names this IO240 sector.
+subclass,10615,Manufacture of cereal breakfast foods,058,draft,Rev. 5 title names this IO240 sector.
+subclass,10617,"Manufacture of flour mixes and prepared blended flour and dough for bread, cakes, biscuits or pancakes",058,draft,Rev. 5 title names this IO240 sector.
+subclass,10619,"Manufacture of grain and vegetable mill products, n.e.c.",058,draft,Rev. 5 title names this IO240 sector.
+class,1071,Manufacture of bakery products,060,draft,Rev. 5 title names this IO240 sector.
+class,1072,Manufacture of sugar,061,draft,Rev. 5 title names this IO240 sector.
+class,1073,"Manufacture of cocoa, chocolate and sugar confectionery",062,draft,Rev. 5 title names this IO240 sector.
+class,1074,"Manufacture of macaroni, noodles, couscous and similar farinaceous products",063,draft,Rev. 5 title names this IO240 sector.
+class,1075,Manufacture of prepared meals and dishes,064,draft,Rev. 5 title names this IO240 sector.
+class,1076,Processing of coffee and tea,066; 067,draft,Coffee and tea processing: coffee line or food n.e.c.
+class,1077,"Manufacture of vinegar, spices, sauces and condiments",067,draft,Rev. 5 title names this IO240 sector.
+class,1079,Manufacture of other food products n.e.c.,065; 067,draft,Rev. 5 title names this IO240 sector.
+subclass,10791,"Manufacture of native delicacies or kakanin not intended for immediate consumption such as bibingka, puto, suman, kalamay and binagol",067,draft,Rev. 5 title names this IO240 sector.
+subclass,10792,"Manufacture of ice, except dry ice",067,draft,Rev. 5 title names this IO240 sector.
+subclass,10793,"Manufacture of special food for babies, diets and medical purposes",067,draft,Rev. 5 title names this IO240 sector.
+subclass,10794,Processing of herbs and manufacture of herbal food supplements and infusions,065,draft,Rev. 5 title names this IO240 sector.
+subclass,10795,"Egg processing, including balut and salted egg making",067,draft,Rev. 5 title names this IO240 sector.
+subclass,10796,Manufacture of flavoring extracts and food coloring,067,draft,Rev. 5 title names this IO240 sector.
+subclass,10797,Processing of salt into food-grade salt such as iodized and artisanal salt,067,draft,Rev. 5 title names this IO240 sector.
+subclass,10799,"Manufacture of all other food products, n.e.c.",067,draft,Rev. 5 title names this IO240 sector.
+class,1101,"Distilling, rectifying and blending of spirits",069,draft,Rev. 5 title names this IO240 sector.
+class,1102,Manufacture of wines,069,draft,Rev. 5 title names this IO240 sector.
+class,1103,Manufacture of beer,070,draft,Rev. 5 title names this IO240 sector.
+class,1104,Manufacture of malt,070,draft,Rev. 5 title names this IO240 sector.
+subclass,11052,Manufacture of other carbonated flavored soft drinks,071,draft,Rev. 5 title names this IO240 sector.
+subclass,11053,Manufacture of other non-carbonated flavored soft drinks,072,draft,Non-carbonated flavored drinks.
+subclass,11054,Manufacture of bottled drinking water,073,draft,Rev. 5 title names this IO240 sector.
+subclass,11055,Operation of water purifying and refilling station,073,draft,Rev. 5 title names this IO240 sector.
+subclass,12001,Manufacture of cigarettes,075,draft,Rev. 5 title names this IO240 sector.
+subclass,12002,Manufacture of cigars,076,draft,Rev. 5 title names this IO240 sector.
+subclass,12003,"Manufacture of chewing and smoking tobacco, snuff",076,draft,Rev. 5 title names this IO240 sector.
+subclass,12004,"Stemming and curing, including redrying of tobacco leaves",077,draft,Rev. 5 title names this IO240 sector.
+subclass,12009,"Tobacco manufacturing, n.e.c.",077,draft,Rev. 5 title names this IO240 sector.
+class,1391,Manufacture of knitted and crocheted fabrics,079; 081,draft,Rev. 5 title names this IO240 sector.
+class,1392,"Manufacture of made-up textile articles, except apparel",082,draft,Rev. 5 title names this IO240 sector.
+class,1393,Manufacture of carpets and rugs,083,draft,Rev. 5 title names this IO240 sector.
+class,1394,"Manufacture of cordage, rope, twine and netting",084,draft,Rev. 5 title names this IO240 sector.
+class,1399,Manufacture of other textiles n.e.c.,085; 086,draft,Rev. 5 title names this IO240 sector.
+subclass,13991,"Manufacture of narrow fabrics, laces, tulles and other net fabrics",086,draft,Rev. 5 title names this IO240 sector.
+subclass,13992,Manufacture of embroidered fabrics,085,draft,Rev. 5 title names this IO240 sector.
+subclass,13993,"Manufacture of felt, non-wovens and upholstery filling",086,draft,Rev. 5 title names this IO240 sector.
+subclass,13994,"Manufacture of impregnated,  coated, covered or laminated fabrics",086,draft,Rev. 5 title names this IO240 sector.
+subclass,13995,Manufacture of technical and industrial textiles,086,draft,Rev. 5 title names this IO240 sector.
+subclass,13996,"Manufacture of tarpaulins, tents and sails",086,draft,Rev. 5 title names this IO240 sector.
+subclass,13997,Manufacture of automotive trimmings and custom upholstery,086,draft,Rev. 5 title names this IO240 sector.
+subclass,13999,"Manufacture of miscellaneous textiles, n.e.c.",086,draft,Rev. 5 title names this IO240 sector.
+class,1511,Tanning and dressing of leather; dressing and dyeing of fur,091,draft,Rev. 5 title names this IO240 sector.
+class,1512,"Manufacture of luggage, handbags and the like, saddlery and harness of any material",092,draft,Rev. 5 title names this IO240 sector.
+subclass,15201,"Manufacture of formal footwear such as dress shoes, school shoes and office shoes",093,draft,Rev. 5 title names this IO240 sector.
+subclass,15202,Manufacture of sandals and slippers,094,draft,Rev. 5 title names this IO240 sector.
+subclass,15203,Manufacture of indigenous and traditional footwear,094,draft,Rev. 5 title names this IO240 sector.
+subclass,15204,Manufacture of sports and athletic footwear,093,draft,Rev. 5 title names this IO240 sector.
+subclass,15205,Manufacture of safety and specialized footwear,093,draft,Rev. 5 title names this IO240 sector.
+class,1621,Manufacture of veneer sheets and wood-based panels,096; 097,draft,Rev. 5 title names this IO240 sector.
+class,1622,Manufacture of builders' carpentry and joinery,098,draft,Rev. 5 title names this IO240 sector.
+class,1623,Manufacture of wooden containers,101,draft,Rev. 5 title names this IO240 sector.
+subclass,16211,Manufacture of veneer sheets,096,draft,Rev. 5 title names this IO240 sector.
+subclass,16212,Manufacture of wood-based panels,096; 097,draft,Rev. 5 title names this IO240 sector.
+subclass,16291,Manufacture of charcoal and other solid fuel from biomass,101,draft,Rev. 5 title names this IO240 sector.
+subclass,16292,"Manufacture of plaits and products of plaiting materials made of bamboo, rattan and similar materials, such as mats, matting, screens and cases",100,draft,Rev. 5 title names this IO240 sector.
+subclass,16293,"Manufacture of wooden household utensils and kitchenware, statuettes, ornaments and other products made by wood carving",099,draft,Rev. 5 title names this IO240 sector.
+subclass,16299,"Manufacture of other products of wood; manufacture of articles of cork, straw and plaiting materials, n.e.c.",100; 101,draft,Rev. 5 title names this IO240 sector.
+class,1701,"Manufacture of pulp, paper and paperboard",102,draft,Rev. 5 title names this IO240 sector.
+class,1702,Manufacture of corrugated paper and paperboard and of containers of paper and paperboard,103,draft,Rev. 5 title names this IO240 sector.
+class,1709,Manufacture of other articles of paper and paperboard,104,draft,Rev. 5 title names this IO240 sector.
+class,2011,Manufacture of basic chemicals,109,draft,Rev. 5 title names this IO240 sector.
+class,2012,Manufacture of fertilizers and nitrogen compounds,110,draft,Rev. 5 title names this IO240 sector.
+class,2013,Manufacture of plastics and synthetic rubber in primary forms,111,draft,Rev. 5 title names this IO240 sector.
+class,2021,Manufacture of pesticides and other agrochemical products,112,draft,Rev. 5 title names this IO240 sector.
+class,2022,"Manufacture of paints, varnishes and similar coatings, printing ink and mastics",113,draft,Rev. 5 title names this IO240 sector.
+class,2023,"Manufacture of soap and detergents, cleaning and polishing preparations, perfumes and toilet preparations",114,draft,Rev. 5 title names this IO240 sector.
+class,2029,Manufacture of other chemical products n.e.c.,115,draft,Rev. 5 title names this IO240 sector.
+subclass,23101,"Manufacture of flat glass, including float glass",119,draft,Rev. 5 title names this IO240 sector.
+subclass,23102,"Manufacture of hollow glass, such as bottles, drinking glasses and other glass or crystal articles",120,draft,Rev. 5 title names this IO240 sector.
+subclass,23103,"Manufacture of glass fibers, including glass wool",120,draft,Rev. 5 title names this IO240 sector.
+subclass,23109,"Manufacture of glass and glass products, n.e.c.",120,draft,Rev. 5 title names this IO240 sector.
+class,2391,Manufacture of refractory products,122,draft,Rev. 5 title names this IO240 sector.
+class,2392,Manufacture of clay building materials,122,draft,Rev. 5 title names this IO240 sector.
+class,2393,Manufacture of other porcelain and ceramic products,122,draft,Rev. 5 title names this IO240 sector.
+class,2395,"Manufacture of articles of concrete, cement and plaster",122,draft,Rev. 5 title names this IO240 sector.
+class,2396,"Cutting, shaping and finishing of stone",122,draft,Rev. 5 title names this IO240 sector.
+class,2399,Manufacture of other non-metallic mineral products n.e.c.,122,draft,Rev. 5 title names this IO240 sector.
+subclass,23941,Manufacture of cement,121,draft,Rev. 5 title names this IO240 sector.
+subclass,23942,Manufacture of lime,122,draft,Rev. 5 title names this IO240 sector.
+subclass,23943,Manufacture of plaster,122,draft,Rev. 5 title names this IO240 sector.
+class,2431,Casting of iron and steel,124,draft,Rev. 5 title names this IO240 sector.
+class,2432,Casting of non-ferrous metals,126,draft,Rev. 5 title names this IO240 sector.
+class,2511,Manufacture of structural metal products,127,draft,Rev. 5 title names this IO240 sector.
+class,2512,"Manufacture of tanks, reservoirs and containers of metal",128,draft,Rev. 5 title names this IO240 sector.
+class,2591,"Forging, pressing, stamping and roll-forming of metal; powder metallurgy",129,draft,Rev. 5 title names this IO240 sector.
+class,2593,"Manufacture of cutlery, hand tools and general hardware",130,draft,Rev. 5 title names this IO240 sector.
+subclass,25992,"Manufacture of wire nails, not in steel rolling",131,draft,Rev. 5 title names this IO240 sector.
+subclass,25993,"Manufacture of barbed wire, wire fencing, netting and similar wire products",131,draft,Rev. 5 title names this IO240 sector.
+subclass,25994,Manufacture of small hand-operated kitchen appliances,131,draft,Rev. 5 title names this IO240 sector.
+subclass,25995,Manufacture of metal sanitary ware and plumbing fixtures,131,draft,Rev. 5 title names this IO240 sector.
+subclass,25996,"Manufacture of pins, fasteners, zippers and hand sewing needles",131,draft,Rev. 5 title names this IO240 sector.
+subclass,25997,Manufacture of shades and venetian blinds made of metal,131,draft,Rev. 5 title names this IO240 sector.
+subclass,25999,"Manufacture of miscellaneous fabricated metal products, n.e.c.",131,draft,Rev. 5 title names this IO240 sector.
+subclass,26110,"Manufacture of solar cells, solar panels and photovoltaic inverters",133,draft,Rev. 5 title names this IO240 sector.
+subclass,26191,Manufacture of electronic integrated circuits and semiconductor devices,133,draft,Rev. 5 title names this IO240 sector.
+subclass,26192,Manufacture of bare printed circuit boards,133,draft,Rev. 5 title names this IO240 sector.
+class,2651,"Manufacture of measuring, testing, navigating and control equipment",137,draft,Rev. 5 title names this IO240 sector.
+class,2652,Manufacture of watches and clocks,138,draft,Rev. 5 title names this IO240 sector.
+class,2811,"Manufacture of engines and turbines, except aircraft, vehicle and cycle engines",148,draft,Rev. 5 title names this IO240 sector.
+class,2813,"Manufacture of other pumps, compressors, taps and valves",149,draft,Rev. 5 title names this IO240 sector.
+class,2814,"Manufacture of bearings, gears, gearing and driving elements",151,draft,Rev. 5 title names this IO240 sector.
+class,2815,"Manufacture of ovens, furnaces and permanent household heating equipment",151,draft,Rev. 5 title names this IO240 sector.
+class,2816,Manufacture of lifting and handling equipment,151,draft,Rev. 5 title names this IO240 sector.
+class,2817,Manufacture of office machinery and equipment (except computers and peripheral equipment),150,draft,Rev. 5 title names this IO240 sector.
+class,2818,Manufacture of power-driven hand tools,151,draft,Rev. 5 title names this IO240 sector.
+class,2819,Manufacture of other general-purpose machinery,151,draft,Rev. 5 title names this IO240 sector.
+class,2821,Manufacture of agricultural and forestry machinery,152,draft,Rev. 5 title names this IO240 sector.
+class,2822,Manufacture of metal-forming machinery and machine tools,154,draft,Rev. 5 title names this IO240 sector.
+class,2823,Manufacture of machinery for metallurgy,154,draft,Rev. 5 title names this IO240 sector.
+class,2824,"Manufacture of machinery for mining, quarrying and construction",153,draft,Rev. 5 title names this IO240 sector.
+class,2825,"Manufacture of machinery for food, beverage and tobacco processing",154,draft,Rev. 5 title names this IO240 sector.
+class,2826,"Manufacture of machinery for textile, apparel and leather production",154,draft,Rev. 5 title names this IO240 sector.
+class,2829,Manufacture of other special-purpose machinery,154,draft,Rev. 5 title names this IO240 sector.
+class,3092,Manufacture of bicycles and invalid carriages,160,draft,Rev. 5 title names this IO240 sector.
+class,3099,Manufacture of other transport equipment n.e.c.,161,draft,Rev. 5 title names this IO240 sector.
+subclass,30911,Manufacture and assembly of two-wheeled motorcycles and mopeds,159,draft,Rev. 5 title names this IO240 sector.
+subclass,30913,Manufacture of motorized three-wheeled light vehicles,159,draft,Rev. 5 title names this IO240 sector.
+subclass,30914,Manufacture of side cars for motorcycles,159,draft,Rev. 5 title names this IO240 sector.
+subclass,30915,"Manufacture of motorcycle engines, including electric motors for motorcycle",159,draft,Rev. 5 title names this IO240 sector.
+subclass,30916,Manufacture of other parts and accessories for motorcycles,159,draft,Rev. 5 title names this IO240 sector.
+class,3101,Manufacture of wooden furniture,162,draft,Rev. 5 title names this IO240 sector.
+subclass,31021,Manufacture of manufacture of mattresses and of mattress supports,165,draft,Rev. 5 title names this IO240 sector.
+subclass,31022,Manufacture of plastic furniture,163,draft,Rev. 5 title names this IO240 sector.
+subclass,31023,Manufacture of metal furniture,164,draft,Rev. 5 title names this IO240 sector.
+subclass,31029,"Manufacture of other furniture, n.e.c.",165,draft,Rev. 5 title names this IO240 sector.
+class,4943,Freight transport by road,185,draft,Rev. 5 title names this IO240 sector.
+subclass,49421,Taxi operations,183,draft,Taxi and transport network vehicles: cars for hire.
+subclass,49422,Operations of vehicles for transportation network service,183,draft,Taxi and transport network vehicles: cars for hire.
+subclass,49423,"Activities of chartered vehicle, with driver",182,draft,Rev. 5 title names this IO240 sector.
+subclass,49424,Jeepney operations,184,draft,"Jeepney, UV express and tricycle operations."
+subclass,49425,Utility vehicle express operations,184,draft,"Jeepney, UV express and tricycle operations."
+subclass,49426,Motorized tricycle operations,184,draft,"Jeepney, UV express and tricycle operations."
+subclass,61103,Operation of cable distribution systems,198,draft,Rev. 5 title names this IO240 sector.
+class,6511,Life insurance,206,draft,Rev. 5 title names this IO240 sector.
+class,6512,Non-life insurance,207,draft,Rev. 5 title names this IO240 sector.
+subclass,85101,Public pre-primary or pre-school education for children without special needs,229,draft,Public education subclass.
+subclass,85102,Private pre-primary or pre-school education for children without special needs,230,draft,Private education subclass.
+subclass,85103,Public pre-primary or pre-school education for children with special needs,229,draft,Public education subclass.
+subclass,85104,Private pre-primary or pre-school education for children with special needs,230,draft,Private education subclass.
+subclass,85201,Public primary or elementary education for children without special needs,229,draft,Public education subclass.
+subclass,85202,Private primary or elementary education for children without special needs,230,draft,Private education subclass.
+subclass,85203,Public primary or elementary education for children with special needs,229,draft,Public education subclass.
+subclass,85204,Private primary or elementary education for children with special needs,230,draft,Private education subclass.
+subclass,85311,Public general secondary education for children without special needs,229,draft,Public education subclass.
+subclass,85312,Private general secondary education for children without special needs,230,draft,Private education subclass.
+subclass,85313,Public general secondary education for children with special needs,229,draft,Public education subclass.
+subclass,85314,Private general secondary education for children with special needs,230,draft,Private education subclass.
+subclass,85321,Public technical and vocational secondary education for children without special needs,229,draft,Public education subclass.
+subclass,85322,Private technical and vocational secondary education for children without special needs,230,draft,Private education subclass.
+subclass,85323,Public technical and vocational secondary education for children with special needs,229,draft,Public education subclass.
+subclass,85324,Private technical and vocational secondary education for children with special needs,230,draft,Private education subclass.
+subclass,85331,Public post-secondary non-tertiary education,229,draft,Public education subclass.
+subclass,85332,Private post-secondary non-tertiary education,230,draft,Private education subclass.
+subclass,85401,Public tertiary education,229,draft,Public education subclass.
+subclass,85402,Private tertiary education,230,draft,Private education subclass.
+subclass,85691,Public educational support service activities,229,draft,Public education subclass.
+subclass,85692,Private educational support service activities,230,draft,Private education subclass.
+class,8611,Public hospital activities,231,draft,Public health class.
+class,8612,Private hospital activities,232,draft,Private health class.
+class,8621,Public medical and dental practice activities,231,draft,Public health class.
+class,8622,Private medical and dental practice activities,232,draft,Private health class.
+class,9621,Hairdressing and barber activities,237,draft,Rev. 5 title names this IO240 sector.
+class,9622,Beauty care and other beauty treatment activities,237,draft,Rev. 5 title names this IO240 sector.
+class,9623,"Day spa, sauna and steam bath activities",236,draft,Rev. 5 title names this IO240 sector.

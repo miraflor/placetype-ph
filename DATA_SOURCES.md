@@ -36,6 +36,22 @@ Generated `code_title_match` rows assume that an unchanged code and title mean a
 
 `MAPPED_*` is an operational status, not a claim that PSA published or independently verified the PSIC-to-I-O correspondence. A `code_title_match` bridge is generated evidence and remains distinguishable from a human-reviewed bridge through `io_mapping_bridge_basis`; `draft` remains provisional. Likewise, a single I-O code means that this derived concordance currently has one candidate at that resolution, not that the code has been externally validated. The per-resolution confidence fields describe the concordance evidence and must be considered separately from bridge basis.
 
+### Correction of PSIC 2019 division 24 and groups 242 and 243 (November 2026)
+
+In the official PSA 2018 Input-Output Industry Classification, IO240 124 (casting/foundry of iron and steel), 125 (basic precious and non-ferrous metals) and 126 (non-ferrous metal casting) belong to IO80 42 (fabricated metal products, except machinery and equipment), not to IO80 41 (basic metals), although their names suggest 41. The concordance now maps division 24 to IO80 41 and 42, and groups 242 and 243 to IO80 42. This assignment should be checked against the published 2018 industry classification and aggregation tables.
+
+### Official I-O hierarchy
+
+`src/placetype_ph/data/io_hierarchy_2018.csv` lists every IO240 industry with its IO80 and IO16 parents. This is a derived analytical reference, not a verbatim PSA release; review the parent basis and notes before distribution. PlaceType PH uses the file to check that every concordance row nests (each IO240 code's parent is in the row's IO80 set, and each IO80 code's parent in its IO16 set) and to derive parent codes for resolved and explicit I-O codes.
+
+### Draft subclass narrowing
+
+`src/placetype_ph/data/psic_rev5_io240_refinement.csv` (280 draft rows) narrows the IO240 set of a Revision 5 class or subclass inside its group's set. Every row has basis `draft`. A row applies only when its Revision 5 title matches the loaded taxonomy and its narrowed set lies inside the group's sets; its result is written only to the `io*_subgroup_codes` columns.
+
+### Direct tag rules
+
+`src/placetype_ph/data/direct_io_rules.csv` holds 14 curated analytical rules, one row per tag term. Each rule names an IO80 industry for explicit OSM tags (for example `amenity=bank` → 66, banking institutions). These are analytical rules, not PSA correspondences. They are used only as direct evidence next to the PSIC-based sets, as described in the README section on resolved codes.
+
 PSA sources:
 
 - 2018 I-O release: https://psa.gov.ph/content/psa-releases-2018-input-output-tables

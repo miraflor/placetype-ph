@@ -10,6 +10,7 @@ import pyarrow.parquet as pq
 
 from . import __version__
 from .io_mapping import IO_GIS_COLUMNS
+from .io_resolution import IO_RESOLVED_GIS_COLUMNS
 from .taxonomy import LEVEL_ORDER, Taxonomy
 
 DEFAULT_SUMMARY_NAME = "classified_pois.parquet"
@@ -238,6 +239,7 @@ def build_gis_export(
     read_columns.append("geometry")
     read_columns.extend(column for column in ROLE_COLUMNS if column in names)
     read_columns.extend(column for column in IO_GIS_COLUMNS if column in names)
+    read_columns.extend(column for column in IO_RESOLVED_GIS_COLUMNS if column in names)
     for scheme in available:
         read_columns.append(f"{scheme}_code")
         if f"{scheme}_level" in names:
@@ -252,6 +254,7 @@ def build_gis_export(
     carried.append("geometry")
     carried.extend(column for column in ROLE_COLUMNS if column in source.column_names)
     carried.extend(column for column in IO_GIS_COLUMNS if column in source.column_names)
+    carried.extend(column for column in IO_RESOLVED_GIS_COLUMNS if column in source.column_names)
     fields = [source.schema.field(name) for name in carried]
     arrays = [source.column(name) for name in carried]
 

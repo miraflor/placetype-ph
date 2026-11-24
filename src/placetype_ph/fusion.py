@@ -240,6 +240,7 @@ def fuse(taxonomy: Taxonomy, evidence: list[SourceEvidence]) -> FusionResult:
             evidence_sources=evidence_sources,
             independent_groups=len(groups),
             flags=flags + ["NO_COMMON_ANCESTOR"],
+            admissible_roots=list(current),
         )
 
     reps = [c for c in (_representative_code(taxonomy, e) for e in mapped) if c]
@@ -264,4 +265,5 @@ def fuse(taxonomy: Taxonomy, evidence: list[SourceEvidence]) -> FusionResult:
         evidence_sources=evidence_sources,
         independent_groups=len(groups),
         flags=flags,
+        admissible_roots=list(current),
     )
