@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 1000 305" role="img" aria-label="Constrained taxonomy traversal allows legal child, stop here, or insufficient evidence">
+<rect width="1000" height="305" rx="14" fill="#fbfdfc"/>
+<defs><marker id="arr" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><path d="M0 0 L9 4.5 L0 9 Z" fill="#78949c"/></marker><filter id="shadow" x="-20%" y="-20%" width="140%" height="160%"><feDropShadow dx="0" dy="3" stdDeviation="4" flood-opacity=".075"/></filter></defs>
+<rect x="32" y="66" width="259" height="113" rx="11" fill="#ffffff" stroke="#dbe7e7" stroke-width="1.5" filter="url(#shadow)"/>
+<rect x="32" y="66" width="259" height="5" rx="2" fill="#37648f"/>
+<text x="161.5" y="95" text-anchor="middle" fill="#16323b" font-family="system-ui, sans-serif" font-size="15" font-weight="750">Current taxonomy</text>
+<text x="161.5" y="114" text-anchor="middle" fill="#16323b" font-family="system-ui, sans-serif" font-size="15" font-weight="750">node</text>
+<text x="161.5" y="160" text-anchor="middle" fill="#61737e" font-family="system-ui, sans-serif" font-size="12">official hierarchy</text>
+<rect x="359" y="66" width="285" height="113" rx="11" fill="#ffffff" stroke="#dbe7e7" stroke-width="1.5" filter="url(#shadow)"/>
+<rect x="359" y="66" width="285" height="5" rx="2" fill="#0a8178"/>
+<text x="501.5" y="95" text-anchor="middle" fill="#16323b" font-family="system-ui, sans-serif" font-size="15" font-weight="750">Model sees legal</text>
+<text x="501.5" y="114" text-anchor="middle" fill="#16323b" font-family="system-ui, sans-serif" font-size="15" font-weight="750">child codes only</text>
+<text x="501.5" y="160" text-anchor="middle" fill="#61737e" font-family="system-ui, sans-serif" font-size="12">restricted and audited</text>
+<rect x="712" y="66" width="251" height="113" rx="11" fill="#ffffff" stroke="#dbe7e7" stroke-width="1.5" filter="url(#shadow)"/>
+<rect x="712" y="66" width="251" height="5" rx="2" fill="#b67431"/>
+<text x="837.5" y="103" text-anchor="middle" fill="#16323b" font-family="system-ui, sans-serif" font-size="16" font-weight="750">Choice</text>
+<text x="837.5" y="144" text-anchor="middle" fill="#61737e" font-family="system-ui, sans-serif" font-size="12">child / STOP_HERE /</text>
+<text x="837.5" y="160" text-anchor="middle" fill="#61737e" font-family="system-ui, sans-serif" font-size="12">INSUFFICIENT</text>
+<path d="M 292 123 L 356 123" fill="none" stroke="#78949c" stroke-width="2" marker-end="url(#arr)"/>
+<path d="M 645 123 L 709 123" fill="none" stroke="#78949c" stroke-width="2" marker-end="url(#arr)"/>
+<text x="498" y="245" text-anchor="middle" fill="#16323b" font-family="system-ui, sans-serif" font-size="14" font-weight="700">Invalid codes rejected · insufficient evidence backs off · passes seek majority</text>
+</svg>

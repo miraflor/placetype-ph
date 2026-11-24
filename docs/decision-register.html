@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#ffffff"><meta name="description" content="PlaceType PH — an evidence-first guide to hierarchical Philippine economic classification, source triangulation, conservative decisions, and reproducible outputs.">
+<title>Design decisions | PlaceType PH documentation</title>
+<link rel="icon" href="assets/diagrams/favicon.svg" type="image/svg+xml">
+<script>try{const t=localStorage.getItem("placetype-ph-docs-theme");if(t==="dark"||t==="light")document.documentElement.dataset.theme=t;}catch(e){}</script>
+<link rel="stylesheet" href="assets/css/site.css">
+<script defer src="assets/js/search-index.js"></script>
+<script defer src="assets/js/site.js"></script>
+</head>
+<body data-page="decision-register">
+<button class="menu-toggle" type="button" aria-label="Open documentation navigation" aria-controls="site-sidebar" aria-expanded="false">☰</button>
+<div class="nav-scrim" aria-hidden="true"></div>
+<aside class="sidebar" id="site-sidebar" aria-label="Documentation sidebar">
+<a href="index.html" class="brand"><span class="brand-icon">P<span>H</span></span><span><strong>PlaceType <em>PH</em></strong><small>Economic classification · v0.1.2</small></span></a>
+<div class="search-area"><label class="sr-only" for="doc-search">Search documentation</label><input type="search" id="doc-search" placeholder="Search the documentation…" autocomplete="off"><kbd>/</kbd><div id="search-results" hidden></div></div>
+<nav class="sidebar-nav" aria-label="Chapters"><div class="nav-heading">Start here</div><a href="index.html">Overview</a><a href="getting-started.html">Quickstart</a><a href="architecture.html">Architecture</a><a href="worked-example.html">Worked example</a><div class="nav-heading">Methods</div><a href="taxonomies.html">Official taxonomies</a><a href="sources.html">Source evidence</a><a href="crosswalks.html">Reviewed crosswalks</a><a href="triangulation.html">Evidence triangulation</a><a href="fusion.html">Tree fusion &amp; backoff</a><a href="joint-recheck.html">Cross-taxonomy recheck</a><a href="classification.html">Classification decisions</a><a href="retrieval-llm.html">Retrieval &amp; optional LLM</a><div class="nav-heading">Enrichment &amp; delivery</div><a href="institutions.html">Institutions &amp; ownership</a><a href="io-projection.html">PSIC to I–O</a><a href="express.html">Express workflow</a><a href="outputs.html">Outputs &amp; GIS</a><div class="nav-heading">Reference &amp; assurance</div><a href="evaluation.html">Validation &amp; evaluation</a><a href="reproducibility.html">Reproducibility</a><a href="api-cli.html">CLI &amp; Python API</a><a href="decision-register.html" aria-current="page" class="active">Design decisions</a><a href="limitations.html">Limits &amp; interpretation</a><a href="glossary.html">Glossary &amp; references</a></nav>
+<div class="sidebar-foot"><a href="https://github.com/miraflor/placetype-ph">GitHub repository ↗</a><a href="https://github.com/miraflor/placetype-ph/blob/main/DATA_SOURCES.md">Data sources ↗</a></div>
+</aside>
+<div class="content-frame"><div class="topbar"><span>Documentation <b>/</b> Design decisions</span><div class="topbar-actions"><button type="button" id="theme-toggle" aria-label="Switch to dark mode" title="Switch to dark mode"><svg class="theme-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.9 13.3A9 9 0 0 1 10.7 3.1 9 9 0 1 0 20.9 13.3Z"/></svg><svg class="theme-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M4.9 4.9l1.4 1.4m11.4 11.4 1.4 1.4M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg><span class="theme-label">Dark mode</span></button><a href="https://github.com/miraflor/placetype-ph">View source ↗</a></div></div>
+<div class="reading-layout"><main id="main" class="prose" tabindex="-1"><article><h1 id="method-lineage-and-design-decision-register">Method lineage and design decision register</h1>
+<p class="lede">The purpose of this register is to state *why* each computational choice exists, what the implementation actually does, what alternative was rejected, and what evidence would be needed to validate it.</p>
+<h2 id="foundations-versus-package-policy">Foundations versus package policy</h2>
+<table>
+<thead>
+<tr>
+<th>Component</th>
+<th>Foundation</th>
+<th>PlaceType PH implementation choice / trade-off</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Statistical classification</td>
+<td>PSA's official PSIC, PCPC and PSCC classifications</td>
+<td>Use versioned explicit parent graphs, strict import diagnostics and source fingerprints instead of numeric prefix assumptions.</td>
+</tr>
+<tr>
+<td>Source annotations</td>
+<td>Provider-typed observational records</td>
+<td>Keep OSM <code>key=value</code>, Overture structured categories, FSQ category hierarchy, and their provenance groups.</td>
+</tr>
+<tr>
+<td>Crosswalk matching</td>
+<td>Deterministic label-to-category rules</td>
+<td>Exact, contains and regex with validation; preserve <code>EXACT</code> vs <code>SUBTREE</code> vs <code>UNION</code> vs terminal policy. The present fusion engine still treats <code>EXACT</code> as a rooted constraint.</td>
+</tr>
+<tr>
+<td>Hierarchical fusion</td>
+<td>Intersections of rooted subtrees</td>
+<td>Fuse declared roots without leaf expansion; same-lineage dependencies cannot create independent votes.</td>
+</tr>
+<tr>
+<td>Conflict backoff</td>
+<td>Tree ancestry / least common ancestor</td>
+<td>Only one-level immediate sibling backoff below section for specific PSIC independent discrepancies; otherwise abstain.</td>
+</tr>
+<tr>
+<td>Category suggestions</td>
+<td>Lexical TF–IDF</td>
+<td>Combine word and character similarity (0.6/0.4), coarse branch selection, bounded batches; retrieval score is not truth probability.</td>
+</tr>
+<tr>
+<td>Joint taxonomy review</td>
+<td>Controlled reranking</td>
+<td>Restrict peer rerank to first-pass candidate set; peer titles only, never new cross-taxonomy code discovery.</td>
+</tr>
+<tr>
+<td>Automatic adoption</td>
+<td>Convenience workflow choice</td>
+<td>Express promotes no-verdict suggestions by default <em>with audit status</em>; conservative operators can hold them.</td>
+</tr>
+<tr>
+<td>Optional LLM</td>
+<td>Hierarchical classification and constrained decoding</td>
+<td>Legal-child traversal, <code>STOP_HERE</code>, <code>INSUFFICIENT</code>, multi-pass consensus and cached prompt identity.</td>
+</tr>
+<tr>
+<td>Administrative function</td>
+<td>PSIC Rev. 5 activity distinction</td>
+<td>Narrow 84120 office correction with exact/unrelated evidence vetoes; ownership separately adjudicated.</td>
+</tr>
+<tr>
+<td>Institution identity</td>
+<td>Verified linking and source attribution</td>
+<td>Opt-in references, exact official site identity constraints, provisional name matches never silently promoted.</td>
+</tr>
+<tr>
+<td>I–O concordance</td>
+<td>PSA 2018 I–O industrial system</td>
+<td>Derived PSIC 2019 concordance and separate Rev. 5 bridge; candidate sets with provisional status and confidence.</td>
+</tr>
+<tr>
+<td>Map publication</td>
+<td>GeoParquet standard and taxonomy hierarchy</td>
+<td>Preserve geometry and actual ancestor paths; fail on schema/taxonomy drift.</td>
+</tr>
+<tr>
+<td>Evaluation</td>
+<td>Hierarchical classification metrics</td>
+<td>Report code-production rate separately from exact/hierarchy-compatible correctness and negative code avoidance.</td>
+</tr>
+<tr>
+<td>Reproducibility</td>
+<td>Content fingerprints and deterministic cache recipes</td>
+<td>Version-scoped rule hashes; cheaper size/mtime for large input; not full publication-directory atomicity yet.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="design-constraints-and-what-they-rule-out">Design constraints and what they rule out</h2>
+<h3 id="why-no-single-numeric-classifier-confidence">Why no single numeric classifier confidence?</h3>
+<p>Source crosswalk status, model path agreement, I–O concordance confidence and external identity evidence have <strong>different meanings</strong>. A single number would conflate independent and dependent sources, product versus activity semantics, and calibrated versus uncalibrated assertions.</p>
+<h3 id="why-not-classify-products-from-the-establishment-category">Why not classify products from the establishment category?</h3>
+<p>An establishment may sell many products. PCPC permits only a <em>potential</em> family without direct product evidence; PSCC is more restrictive and requires explicit commodity text or accepted mapping. Inventing a product basket from a shop category would encode an unsupported economic model.</p>
+<h3 id="why-no-arbitrary-cross-taxonomy-voting">Why no arbitrary cross-taxonomy voting?</h3>
+<p>PSIC, PCPC, and PSCC answer different official classification questions. Joint peer recheck tests the <strong>sensitivity of an already retrieved candidate set</strong>, not the correctness of a third taxonomy's code. The bounded design avoids introducing entirely new candidates from contextual labels.</p>
+<h3 id="why-preserve-i-o-ambiguity">Why preserve I–O ambiguity?</h3>
+<p>A code set describes <strong>alternatives</strong> in a derived correspondence. A map-ready singleton merely says the candidate set currently has one value; there is no observed local buyer–supplier transaction evidence here. Users can accept only those candidate statuses appropriate for their downstream research.</p>
+<h3 id="why-separate-data-publication-from-code-reproducibility">Why separate data publication from code reproducibility?</h3>
+<p>A complete <code>run.json</code> and unchanged fingerprints identify computation. They do not validate individual establishments or grant permission to redistribute third-party registry data. The public documentation site contains only synthetic examples and code/algorithm exposition.</p>
+<h2 id="explicit-remaining-engineering-trade-offs">Explicit remaining engineering trade-offs</h2>
+<p>The full input/result materialization limits RAM; optional institutional enrichment is not publication-atomic; Express's large input identity is size/mtime; a final published accuracy claim requires a representative adjudicated benchmark; official PCPC/PSCC normalization counts require source-specific verification. See <a href="limitations.html">Limits</a>.</p>
+<p><strong>Read with:</strong> <a href="architecture.html">Architecture</a> · <a href="reproducibility.html">Reproducibility</a> · <a href="evaluation.html">Evaluation</a>.</p>
+</article>
+<nav class="page-pagination" aria-label="Document pages"><a class="page-step previous" href="api-cli.html"><span>← Previous</span><strong>CLI &amp; Python API</strong></a><a class="page-step next" href="limitations.html"><span>Next →</span><strong>Limits &amp; interpretation</strong></a></nav><footer class="article-footer"><span>PlaceType PH · MIT-licensed package</span><span>Documentation describes the v0.1.2 implementation; classification is not validation of truth.</span></footer></main>
+<aside class="toc" aria-label="On this page"><div class="toc-title">On this page</div><a class="toc-level-2" href="#foundations-versus-package-policy">Foundations versus package policy</a><a class="toc-level-2" href="#design-constraints-and-what-they-rule-out">Design constraints and what they rule out</a><a class="toc-level-3" href="#why-no-single-numeric-classifier-confidence">Why no single numeric classifier confidence?</a><a class="toc-level-3" href="#why-not-classify-products-from-the-establishment-category">Why not classify products from the establishment category?</a><a class="toc-level-3" href="#why-no-arbitrary-cross-taxonomy-voting">Why no arbitrary cross-taxonomy voting?</a><a class="toc-level-3" href="#why-preserve-i-o-ambiguity">Why preserve I–O ambiguity?</a><a class="toc-level-3" href="#why-separate-data-publication-from-code-reproducibility">Why separate data publication from code reproducibility?</a><a class="toc-level-2" href="#explicit-remaining-engineering-trade-offs">Explicit remaining engineering trade-offs</a><a class="toc-repo" href="https://github.com/miraflor/placetype-ph/tree/main/docs">Edit on GitHub ↗</a></aside></div></div>
+</body></html>

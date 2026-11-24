@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#ffffff"><meta name="description" content="PlaceType PH — an evidence-first guide to hierarchical Philippine economic classification, source triangulation, conservative decisions, and reproducible outputs.">
+<title>Source evidence | PlaceType PH documentation</title>
+<link rel="icon" href="assets/diagrams/favicon.svg" type="image/svg+xml">
+<script>try{const t=localStorage.getItem("placetype-ph-docs-theme");if(t==="dark"||t==="light")document.documentElement.dataset.theme=t;}catch(e){}</script>
+<link rel="stylesheet" href="assets/css/site.css">
+<script defer src="assets/js/search-index.js"></script>
+<script defer src="assets/js/site.js"></script>
+</head>
+<body data-page="sources">
+<button class="menu-toggle" type="button" aria-label="Open documentation navigation" aria-controls="site-sidebar" aria-expanded="false">☰</button>
+<div class="nav-scrim" aria-hidden="true"></div>
+<aside class="sidebar" id="site-sidebar" aria-label="Documentation sidebar">
+<a href="index.html" class="brand"><span class="brand-icon">P<span>H</span></span><span><strong>PlaceType <em>PH</em></strong><small>Economic classification · v0.1.2</small></span></a>
+<div class="search-area"><label class="sr-only" for="doc-search">Search documentation</label><input type="search" id="doc-search" placeholder="Search the documentation…" autocomplete="off"><kbd>/</kbd><div id="search-results" hidden></div></div>
+<nav class="sidebar-nav" aria-label="Chapters"><div class="nav-heading">Start here</div><a href="index.html">Overview</a><a href="getting-started.html">Quickstart</a><a href="architecture.html">Architecture</a><a href="worked-example.html">Worked example</a><div class="nav-heading">Methods</div><a href="taxonomies.html">Official taxonomies</a><a href="sources.html" aria-current="page" class="active">Source evidence</a><a href="crosswalks.html">Reviewed crosswalks</a><a href="triangulation.html">Evidence triangulation</a><a href="fusion.html">Tree fusion &amp; backoff</a><a href="joint-recheck.html">Cross-taxonomy recheck</a><a href="classification.html">Classification decisions</a><a href="retrieval-llm.html">Retrieval &amp; optional LLM</a><div class="nav-heading">Enrichment &amp; delivery</div><a href="institutions.html">Institutions &amp; ownership</a><a href="io-projection.html">PSIC to I–O</a><a href="express.html">Express workflow</a><a href="outputs.html">Outputs &amp; GIS</a><div class="nav-heading">Reference &amp; assurance</div><a href="evaluation.html">Validation &amp; evaluation</a><a href="reproducibility.html">Reproducibility</a><a href="api-cli.html">CLI &amp; Python API</a><a href="decision-register.html">Design decisions</a><a href="limitations.html">Limits &amp; interpretation</a><a href="glossary.html">Glossary &amp; references</a></nav>
+<div class="sidebar-foot"><a href="https://github.com/miraflor/placetype-ph">GitHub repository ↗</a><a href="https://github.com/miraflor/placetype-ph/blob/main/DATA_SOURCES.md">Data sources ↗</a></div>
+</aside>
+<div class="content-frame"><div class="topbar"><span>Documentation <b>/</b> Source evidence</span><div class="topbar-actions"><button type="button" id="theme-toggle" aria-label="Switch to dark mode" title="Switch to dark mode"><svg class="theme-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.9 13.3A9 9 0 0 1 10.7 3.1 9 9 0 1 0 20.9 13.3Z"/></svg><svg class="theme-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M4.9 4.9l1.4 1.4m11.4 11.4 1.4 1.4M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg><span class="theme-label">Dark mode</span></button><a href="https://github.com/miraflor/placetype-ph">View source ↗</a></div></div>
+<div class="reading-layout"><main id="main" class="prose" tabindex="-1"><article><h1 id="source-evidence-and-provenance">Source evidence and provenance</h1>
+<p class="lede">A canonical place can combine provider annotations from OSM, Overture and Foursquare. PlaceType PH turns those annotations into typed evidence without erasing provider identity, key/value meaning, or common origin.</p>
+<h2 id="input-contract">Input contract</h2>
+<p><code>read_openplaces()</code> reads Parquet, requires unique, non-null, non-blank <code>canonical_id</code>, and at least one supported source semantic field. Typical fields include <code>osm_name</code>, <code>osm_category</code>, <code>overture_name</code>, <code>overture_category</code>, <code>fsq_name</code>, <code>fsq_category</code>, and structured Overture primary/alternate/basic categories. Input coordinates and geometry are carried to the spatial summary as available; classification does not change them.</p>
+<h2 id="three-provider-streams">Three provider streams</h2>
+<table>
+<thead>
+<tr>
+<th>Source</th>
+<th>Category handling</th>
+<th>Dependence / warning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>OSM</strong></td>
+<td>Parse <code>key=value</code> primary assertions, not substring matches; ignore ancillary attributes for principal activity.</td>
+<td>Multiple substantive tags can describe disjoint activities and trigger review.</td>
+</tr>
+<tr>
+<td><strong>Overture</strong></td>
+<td>Preserve primary and alternate labels as dependent source statements; basic category is advisory context in the operational PSIC adapter.</td>
+<td>An Overture record may itself derive from Foursquare.</td>
+</tr>
+<tr>
+<td><strong>Foursquare</strong></td>
+<td>Preserve source-specific category hierarchy strings, rather than naively splitting category path text.</td>
+<td>Foursquare and FSQ-derived Overture are a single lineage.</td>
+</tr>
+</tbody>
+</table>
+<p>For example, <code>shop=car</code> and <code>shop=carpet</code> are different observed strings. An <code>atm=yes</code> auxiliary tag at a bank does not create a second principal banking/ATM activity. <code>overture_basic_category = pharmacy</code> alone is not accepted as a precise operational PSIC rule.</p>
+<h2 id="typed-evidence-is-not-a-vote">Typed evidence is not a vote</h2>
+<p>Every <code>SourceEvidence</code> contains a <code>dependency_group</code>. With explicit FSQ-derived provenance, Foursquare and Overture share <code>fsq-lineage</code>; otherwise independent providers have separate groups. Categories and name rules from one provider remain dependent on the same upstream record. Agreement does not produce an invented confidence value, and multiple fields from one provider cannot be counted as independent corroboration.</p>
+<h2 id="name-and-category-evidence">Name and category evidence</h2>
+<p>A reviewed <code>source_field=category</code> mapping is a reusable category-to-hierarchy rule. A reviewed <code>source_field=name</code> mapping may be a high-precision chain or institution-specific assertion. If they are compatible they constrain the same root; if contradictory, the name precedence logic can preserve the narrower reviewed name rule while visibly flagging <code>CROSSWALK_NAME_RULE_OVERRODE_CATEGORY</code>. This is package policy, not a generic theorem about business names.</p>
+<p>When a precise reviewed name rule conflicts with a trusted category floor, the operational classifier retains counterevidence rather than manufacturing a single definitive code.</p>
+<h2 id="identity-conflicts-are-returned-upstream-for-review">Identity conflicts are returned upstream for review</h2>
+<p>If independent categories disagree and the canonical record has match-risk indicators (transitive completion, large pair distance or low match score), the classifier can emit <code>REVIEW_ENTITY_MATCH</code>. It <strong>does not</strong> re-run the OpenPlaces matching algorithm or silently split one canonical ID into two. That distinction is critical: mismatched POI identity is an upstream data problem, not a reason to assume one establishment performs several activities.</p>
+<h2 id="untrusted-input-boundary">Untrusted input boundary</h2>
+<p>Business names, descriptions, and provider tags are <strong>data</strong>, not instructions to a model. The optional traversal prompt explicitly tells the LLM not to obey embedded instructions. Provider normalization strips missing labels for matching but keeps official taxonomy titles intact.</p>
+<p><strong>Implementation:</strong> <a href="https://github.com/miraflor/placetype-ph/blob/main/src/placetype_ph/openplaces.py"><code>openplaces.py</code></a> · <a href="https://github.com/miraflor/placetype-ph/blob/main/src/placetype_ph/reviewed_psic.py"><code>reviewed_psic.py</code></a>.</p>
+</article>
+<nav class="page-pagination" aria-label="Document pages"><a class="page-step previous" href="taxonomies.html"><span>← Previous</span><strong>Official taxonomies</strong></a><a class="page-step next" href="crosswalks.html"><span>Next →</span><strong>Reviewed crosswalks</strong></a></nav><footer class="article-footer"><span>PlaceType PH · MIT-licensed package</span><span>Documentation describes the v0.1.2 implementation; classification is not validation of truth.</span></footer></main>
+<aside class="toc" aria-label="On this page"><div class="toc-title">On this page</div><a class="toc-level-2" href="#input-contract">Input contract</a><a class="toc-level-2" href="#three-provider-streams">Three provider streams</a><a class="toc-level-2" href="#typed-evidence-is-not-a-vote">Typed evidence is not a vote</a><a class="toc-level-2" href="#name-and-category-evidence">Name and category evidence</a><a class="toc-level-2" href="#identity-conflicts-are-returned-upstream-for-review">Identity conflicts are returned upstream for review</a><a class="toc-level-2" href="#untrusted-input-boundary">Untrusted input boundary</a><a class="toc-repo" href="https://github.com/miraflor/placetype-ph/tree/main/docs">Edit on GitHub ↗</a></aside></div></div>
+</body></html>

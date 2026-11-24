@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 1020 425" role="img" aria-label="Classification decision path with evidence fusion, safeguards, deterministic result, and model fallback">
+<rect width="1020" height="425" rx="14" fill="#fbfdfc"/>
+<defs><marker id="arr" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><path d="M0 0 L9 4.5 L0 9 Z" fill="#78949c"/></marker><filter id="shadow" x="-20%" y="-20%" width="140%" height="160%"><feDropShadow dx="0" dy="3" stdDeviation="4" flood-opacity=".075"/></filter></defs>
+<rect x="25" y="53" width="256" height="99" rx="11" fill="#ffffff" stroke="#dbe7e7" stroke-width="1.5" filter="url(#shadow)"/>
+<rect x="25" y="53" width="256" height="5" rx="2" fill="#37648f"/>
+<text x="153.0" y="82" text-anchor="middle" fill="#16323b" font-family="system-ui, sans-serif" font-size="15" font-weight="750">Accepted source</text>
+<text x="153.0" y="101" text-anchor="middle" fill="#16323b" font-family="system-ui, sans-serif" font-size="15" font-weight="750">evidence</text>
+<text x="153.0" y="133" text-anchor="middle" fill="#61737e" font-family="system-ui, sans-serif" font-size="12">source / version / match</text>
+<rect x="375" y="53" width="263" height="99" rx="11" fill="#ffffff" stroke="#dbe7e7" stroke-width="1.5" filter="url(#shadow)"/>
+<rect x="375" y="53" width="263" height="5" rx="2" fill="#0a8178"/>
+<text x="506.5" y="82" text-anchor="middle" fill="#16323b" font-family="system-ui, sans-serif" font-size="15" font-weight="750">Subtree</text>
+<text x="506.5" y="101" text-anchor="middle" fill="#16323b" font-family="system-ui, sans-serif" font-size="15" font-weight="750">fusion</text>
+<text x="506.5" y="133" text-anchor="middle" fill="#61737e" font-family="system-ui, sans-serif" font-size="12">dependency-aware</text>
+<rect x="734" y="53" width="250" height="99" rx="11" fill="#ffffff" stroke="#dbe7e7" stroke-width="1.5" filter="url(#shadow)"/>
+<rect x="734" y="53" width="250" height="5" rx="2" fill="#b67431"/>
+<text x="859.0" y="82" text-anchor="middle" fill="#16323b" font-family="system-ui, sans-serif" font-size="15" font-weight="750">Eligibility &amp;</text>
+<text x="859.0" y="101" text-anchor="middle" fill="#16323b" font-family="system-ui, sans-serif" font-size="15" font-weight="750">conflict guards</text>
+<text x="859.0" y="133" text-anchor="middle" fill="#61737e" font-family="system-ui, sans-serif" font-size="12">review or abstain</text>
+<path d="M 282 105 L 372 105" fill="none" stroke="#78949c" stroke-width="2" marker-end="url(#arr)"/>
+<path d="M 640 105 L 730 105" fill="none" stroke="#78949c" stroke-width="2" marker-end="url(#arr)"/>
+<rect x="372" y="221" width="266" height="93" rx="11" fill="#eaf8f4" stroke="#dbe7e7" stroke-width="1.5" filter="url(#shadow)"/>
+<rect x="372" y="221" width="266" height="5" rx="2" fill="#0a8178"/>
+<text x="505.0" y="250" text-anchor="middle" fill="#16323b" font-family="system-ui, sans-serif" font-size="15" font-weight="750">Supported code</text>
+<text x="505.0" y="269" text-anchor="middle" fill="#16323b" font-family="system-ui, sans-serif" font-size="15" font-weight="750">at defensible depth</text>
+<text x="505.0" y="295" text-anchor="middle" fill="#61737e" font-family="system-ui, sans-serif" font-size="12">deterministic output</text>
+<rect x="702" y="221" width="286" height="93" rx="11" fill="#eff6fb" stroke="#dbe7e7" stroke-width="1.5" filter="url(#shadow)"/>
+<rect x="702" y="221" width="286" height="5" rx="2" fill="#37648f"/>
+<text x="845.0" y="250" text-anchor="middle" fill="#16323b" font-family="system-ui, sans-serif" font-size="15" font-weight="750">Optional constrained</text>
+<text x="845.0" y="269" text-anchor="middle" fill="#16323b" font-family="system-ui, sans-serif" font-size="15" font-weight="750">taxonomy traversal</text>
+<text x="845.0" y="295" text-anchor="middle" fill="#61737e" font-family="system-ui, sans-serif" font-size="12">only when unresolved</text>
+<path d="M 859 154 L 851 218" fill="none" stroke="#78949c" stroke-width="2" stroke-dasharray="6 5" marker-end="url(#arr)"/>
+<path d="M 733 148 L 620 221" fill="none" stroke="#78949c" stroke-width="2" stroke-dasharray="6 5" marker-end="url(#arr)"/>
+<text x="501" y="378" text-anchor="middle" fill="#16323b" font-family="system-ui, sans-serif" font-size="15" font-weight="700">The classifier keeps candidates, flags and audit even when it abstains.</text>
+</svg>

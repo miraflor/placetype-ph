@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#ffffff"><meta name="description" content="PlaceType PH — an evidence-first guide to hierarchical Philippine economic classification, source triangulation, conservative decisions, and reproducible outputs.">
+<title>Classification decisions | PlaceType PH documentation</title>
+<link rel="icon" href="assets/diagrams/favicon.svg" type="image/svg+xml">
+<script>try{const t=localStorage.getItem("placetype-ph-docs-theme");if(t==="dark"||t==="light")document.documentElement.dataset.theme=t;}catch(e){}</script>
+<link rel="stylesheet" href="assets/css/site.css">
+<script defer src="assets/js/search-index.js"></script>
+<script defer src="assets/js/site.js"></script>
+</head>
+<body data-page="classification">
+<button class="menu-toggle" type="button" aria-label="Open documentation navigation" aria-controls="site-sidebar" aria-expanded="false">☰</button>
+<div class="nav-scrim" aria-hidden="true"></div>
+<aside class="sidebar" id="site-sidebar" aria-label="Documentation sidebar">
+<a href="index.html" class="brand"><span class="brand-icon">P<span>H</span></span><span><strong>PlaceType <em>PH</em></strong><small>Economic classification · v0.1.2</small></span></a>
+<div class="search-area"><label class="sr-only" for="doc-search">Search documentation</label><input type="search" id="doc-search" placeholder="Search the documentation…" autocomplete="off"><kbd>/</kbd><div id="search-results" hidden></div></div>
+<nav class="sidebar-nav" aria-label="Chapters"><div class="nav-heading">Start here</div><a href="index.html">Overview</a><a href="getting-started.html">Quickstart</a><a href="architecture.html">Architecture</a><a href="worked-example.html">Worked example</a><div class="nav-heading">Methods</div><a href="taxonomies.html">Official taxonomies</a><a href="sources.html">Source evidence</a><a href="crosswalks.html">Reviewed crosswalks</a><a href="triangulation.html">Evidence triangulation</a><a href="fusion.html">Tree fusion &amp; backoff</a><a href="joint-recheck.html">Cross-taxonomy recheck</a><a href="classification.html" aria-current="page" class="active">Classification decisions</a><a href="retrieval-llm.html">Retrieval &amp; optional LLM</a><div class="nav-heading">Enrichment &amp; delivery</div><a href="institutions.html">Institutions &amp; ownership</a><a href="io-projection.html">PSIC to I–O</a><a href="express.html">Express workflow</a><a href="outputs.html">Outputs &amp; GIS</a><div class="nav-heading">Reference &amp; assurance</div><a href="evaluation.html">Validation &amp; evaluation</a><a href="reproducibility.html">Reproducibility</a><a href="api-cli.html">CLI &amp; Python API</a><a href="decision-register.html">Design decisions</a><a href="limitations.html">Limits &amp; interpretation</a><a href="glossary.html">Glossary &amp; references</a></nav>
+<div class="sidebar-foot"><a href="https://github.com/miraflor/placetype-ph">GitHub repository ↗</a><a href="https://github.com/miraflor/placetype-ph/blob/main/DATA_SOURCES.md">Data sources ↗</a></div>
+</aside>
+<div class="content-frame"><div class="topbar"><span>Documentation <b>/</b> Classification decisions</span><div class="topbar-actions"><button type="button" id="theme-toggle" aria-label="Switch to dark mode" title="Switch to dark mode"><svg class="theme-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.9 13.3A9 9 0 0 1 10.7 3.1 9 9 0 1 0 20.9 13.3Z"/></svg><svg class="theme-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M4.9 4.9l1.4 1.4m11.4 11.4 1.4 1.4M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg><span class="theme-label">Dark mode</span></button><a href="https://github.com/miraflor/placetype-ph">View source ↗</a></div></div>
+<div class="reading-layout"><main id="main" class="prose" tabindex="-1"><article><h1 id="operational-classification-policy">Operational classification policy</h1>
+<p class="lede">The classifier applies a sequence of explicit gates before returning a code. Review, negative evidence, dependent contradictions, and a defensible high-level answer all have distinct meanings.</p>
+<h2 id="decision-path">Decision path</h2>
+<figure><img src="assets/diagrams/decision-path.svg" alt="Decision flow: source mappings, fusion, eligibility/compound and administrative gates, supported code or optional fallback, output audit."><figcaption>Figure 1 — Conceptual ordering; see source code for exact conditional precedence and status/flag construction.</figcaption></figure>
+<ol>
+<li><strong>Map evidence.</strong> Match source/category and reviewed name rules, adding trusted Rev. 5 source floors where permitted.</li>
+<li><strong>Fuse and test eligibility.</strong> Compute admissible code subtrees and test <code>NOT_ACTIVITY</code> and <code>UNCODEABLE</code> separately.</li>
+<li><strong>Protect against semantic contradictions.</strong> Independent activity versus non-activity, multiple incompatible OSM primary tags, and dependent source conflicts can force abstention.</li>
+<li><strong>Check narrow administrative function.</strong> A precise education/health administrative office may be assigned PSIC 84120 only if relevant reviewed activity evidence does not contraindicate it. Ownership does not decide this.</li>
+<li><strong>Respect eligibility and entity matching.</strong> Return <code>NOT_PSIC_ACTIVITY</code>, <code>UNCODEABLE</code>, <code>CONFLICT</code>, or <code>REVIEW_ENTITY_MATCH</code> as appropriate.</li>
+<li><strong>Return deterministic fusion</strong> when a sufficiently supported code exists; never force a leaf beyond the strongest admissible asserted root.</li>
+<li><strong>Optional traversal.</strong> If no deterministic result resolves the case and an LLM backend is configured, use restricted taxonomy descent; an unsupported model answer cannot erase a defensible accepted code.</li>
+</ol>
+<h2 id="scope-of-the-reviewed-policy">Scope of the reviewed policy</h2>
+<p>The 328 packaged rules load by default only for <strong>PSIC Rev. 5</strong>. <code>--no-reviewed-psic</code> disables the new operational source interpretation, trusted floors, and administrative policy. Explicit custom crosswalks can remain active, so this comparison is a controlled policy change rather than a complete “no classification” mode. Other PSIC revisions do not inherit Rev. 5-specific trusted rules.</p>
+<h2 id="status-and-audit-fields">Status and audit fields</h2>
+<table>
+<thead>
+<tr>
+<th>Output</th>
+<th>Interpretation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>SINGLE</code>, <code>NESTED</code>, <code>INTERSECT</code></td>
+<td>A determinate outcome from mapped source fusion, with the code's supported hierarchy level.</td>
+</tr>
+<tr>
+<td><code>UNION</code></td>
+<td>A broader unresolved alternative set; inspect candidate codes.</td>
+</tr>
+<tr>
+<td><code>CONFLICT</code></td>
+<td>Disjoint activity assertions / failed compatibility.</td>
+</tr>
+<tr>
+<td><code>REVIEW_ENTITY_MATCH</code></td>
+<td>Semantic disagreement and upstream match-risk indicators.</td>
+</tr>
+<tr>
+<td><code>NOT_PSIC_ACTIVITY</code></td>
+<td>Source evidence establishes the feature is not an economic activity.</td>
+</tr>
+<tr>
+<td><code>UNCODEABLE</code></td>
+<td>Inadequate semantic resolution, different from a negative activity claim.</td>
+</tr>
+<tr>
+<td><code>EMPTY</code>, <code>REVIEW</code></td>
+<td>No supported code from the available components.</td>
+</tr>
+<tr>
+<td><code>LLM_PARTIAL</code>, <code>LLM_FULL</code>, <code>FUSION_BACKOFF</code></td>
+<td>Optional model traversal output or fallback; these require an LLM backend.</td>
+</tr>
+<tr>
+<td><code>POTENTIAL_PRODUCT_FAMILY_PARTIAL/FULL</code></td>
+<td>PCPC classification of a possible family, not a complete basket.</td>
+</tr>
+<tr>
+<td><code>NO_PRODUCT_EVIDENCE</code></td>
+<td>PSCC commodity-level policy gate.</td>
+</tr>
+</tbody>
+</table>
+<p><code>candidate_codes</code>, <code>evidence_sources</code>, <code>flags</code>, <code>deciding_component</code>, <code>audit</code>, and <code>classification_depth</code> explain how the result arose. They should accompany any interpretation of coverage or an I–O projection.</p>
+<h2 id="one-source-can-be-negative-while-another-is-coded">One source can be negative while another is coded</h2>
+<p>The engine treats independent <code>NOT_ACTIVITY</code> versus coded activity as an explicit conflict rather than letting the coded source automatically win. By contrast, <code>UNCODEABLE</code> means “this category gives no sufficient code”; it does not negate an independent defensible exact mapping.</p>
+<h2 id="names-administration-ownership">Names, administration, ownership</h2>
+<p>PSIC 84120 refers to <strong>public administration of health, education, and other social programmes</strong>; the word “school” in an administrative office's OSM annotation does not by itself establish the actual service activity. The narrow administrative rule is a <strong>function classifier</strong>, not a government ownership classifier. Verified ownership evidence is handled later and separately. In particular, no high-level “public” label is allowed to bypass an exact reviewed PSIC mapping.</p>
+<h2 id="deterministic-does-not-mean-infallible">Deterministic does not mean infallible</h2>
+<p>The default <code>--llm none</code> avoids stochastic model calls and returns reproducible decisions, but rules and data can be wrong. They require empirical evaluation on independently adjudicated places with correct entity identity. Determinism is a software property, not a measurement of predictive validity.</p>
+<p><strong>Implementation:</strong> <a href="https://github.com/miraflor/placetype-ph/blob/main/src/placetype_ph/classifier.py"><code>classifier.py</code></a> · <a href="https://github.com/miraflor/placetype-ph/blob/main/src/placetype_ph/reviewed_psic.py"><code>reviewed_psic.py</code></a> · <a href="https://github.com/miraflor/placetype-ph/blob/main/src/placetype_ph/models.py"><code>models.py</code></a>.</p>
+</article>
+<nav class="page-pagination" aria-label="Document pages"><a class="page-step previous" href="joint-recheck.html"><span>← Previous</span><strong>Cross-taxonomy recheck</strong></a><a class="page-step next" href="retrieval-llm.html"><span>Next →</span><strong>Retrieval &amp; optional LLM</strong></a></nav><footer class="article-footer"><span>PlaceType PH · MIT-licensed package</span><span>Documentation describes the v0.1.2 implementation; classification is not validation of truth.</span></footer></main>
+<aside class="toc" aria-label="On this page"><div class="toc-title">On this page</div><a class="toc-level-2" href="#decision-path">Decision path</a><a class="toc-level-2" href="#scope-of-the-reviewed-policy">Scope of the reviewed policy</a><a class="toc-level-2" href="#status-and-audit-fields">Status and audit fields</a><a class="toc-level-2" href="#one-source-can-be-negative-while-another-is-coded">One source can be negative while another is coded</a><a class="toc-level-2" href="#names-administration-ownership">Names, administration, ownership</a><a class="toc-level-2" href="#deterministic-does-not-mean-infallible">Deterministic does not mean infallible</a><a class="toc-repo" href="https://github.com/miraflor/placetype-ph/tree/main/docs">Edit on GitHub ↗</a></aside></div></div>
+</body></html>

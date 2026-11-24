@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 1030 308" role="img" aria-label="PSIC Revision 5 to PSIC 2019 to PSA 2018 IO16 IO80 IO240 candidate code sets">
+<rect width="1030" height="308" rx="14" fill="#fbfdfc"/>
+<defs><marker id="arr" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><path d="M0 0 L9 4.5 L0 9 Z" fill="#78949c"/></marker><filter id="shadow" x="-20%" y="-20%" width="140%" height="160%"><feDropShadow dx="0" dy="3" stdDeviation="4" flood-opacity=".075"/></filter></defs>
+<rect x="20" y="73" width="270" height="109" rx="11" fill="#ffffff" stroke="#dbe7e7" stroke-width="1.5" filter="url(#shadow)"/>
+<rect x="20" y="73" width="270" height="5" rx="2" fill="#37648f"/>
+<text x="155.0" y="102" text-anchor="middle" fill="#16323b" font-family="system-ui, sans-serif" font-size="15" font-weight="750">PSIC Rev. 5</text>
+<text x="155.0" y="121" text-anchor="middle" fill="#16323b" font-family="system-ui, sans-serif" font-size="15" font-weight="750">activity code</text>
+<text x="155.0" y="163" text-anchor="middle" fill="#61737e" font-family="system-ui, sans-serif" font-size="12">deepest valid mapped ancestor</text>
+<rect x="374" y="73" width="280" height="109" rx="11" fill="#ffffff" stroke="#dbe7e7" stroke-width="1.5" filter="url(#shadow)"/>
+<rect x="374" y="73" width="280" height="5" rx="2" fill="#b67431"/>
+<text x="514.0" y="102" text-anchor="middle" fill="#16323b" font-family="system-ui, sans-serif" font-size="15" font-weight="750">PSIC 2019</text>
+<text x="514.0" y="121" text-anchor="middle" fill="#16323b" font-family="system-ui, sans-serif" font-size="15" font-weight="750">bridge</text>
+<text x="514.0" y="163" text-anchor="middle" fill="#61737e" font-family="system-ui, sans-serif" font-size="12">same · recoded · draft · reviewed</text>
+<rect x="740" y="73" width="267" height="109" rx="11" fill="#ffffff" stroke="#dbe7e7" stroke-width="1.5" filter="url(#shadow)"/>
+<rect x="740" y="73" width="267" height="5" rx="2" fill="#0a8178"/>
+<text x="873.5" y="102" text-anchor="middle" fill="#16323b" font-family="system-ui, sans-serif" font-size="15" font-weight="750">2018 I–O</text>
+<text x="873.5" y="121" text-anchor="middle" fill="#16323b" font-family="system-ui, sans-serif" font-size="15" font-weight="750">candidate sets</text>
+<text x="873.5" y="163" text-anchor="middle" fill="#61737e" font-family="system-ui, sans-serif" font-size="12">IO16 · IO80 · IO240</text>
+<path d="M 291 126 L 372 126" fill="none" stroke="#78949c" stroke-width="2" marker-end="url(#arr)"/>
+<path d="M 655 126 L 738 126" fill="none" stroke="#78949c" stroke-width="2" marker-end="url(#arr)"/>
+<text x="517" y="29" text-anchor="middle" fill="#16323b" font-family="system-ui, sans-serif" font-size="17" font-weight="750">Two derived references; no forced single industry</text>
+<text x="517" y="239" text-anchor="middle" fill="#16323b" font-family="system-ui, sans-serif" font-size="14" font-weight="600">Ambiguous set → no map-ready singleton. Provenance remains visible.</text>
+</svg>

@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#ffffff"><meta name="description" content="PlaceType PH — an evidence-first guide to hierarchical Philippine economic classification, source triangulation, conservative decisions, and reproducible outputs.">
+<title>Limits &amp; interpretation | PlaceType PH documentation</title>
+<link rel="icon" href="assets/diagrams/favicon.svg" type="image/svg+xml">
+<script>try{const t=localStorage.getItem("placetype-ph-docs-theme");if(t==="dark"||t==="light")document.documentElement.dataset.theme=t;}catch(e){}</script>
+<link rel="stylesheet" href="assets/css/site.css">
+<script defer src="assets/js/search-index.js"></script>
+<script defer src="assets/js/site.js"></script>
+</head>
+<body data-page="limitations">
+<button class="menu-toggle" type="button" aria-label="Open documentation navigation" aria-controls="site-sidebar" aria-expanded="false">☰</button>
+<div class="nav-scrim" aria-hidden="true"></div>
+<aside class="sidebar" id="site-sidebar" aria-label="Documentation sidebar">
+<a href="index.html" class="brand"><span class="brand-icon">P<span>H</span></span><span><strong>PlaceType <em>PH</em></strong><small>Economic classification · v0.1.2</small></span></a>
+<div class="search-area"><label class="sr-only" for="doc-search">Search documentation</label><input type="search" id="doc-search" placeholder="Search the documentation…" autocomplete="off"><kbd>/</kbd><div id="search-results" hidden></div></div>
+<nav class="sidebar-nav" aria-label="Chapters"><div class="nav-heading">Start here</div><a href="index.html">Overview</a><a href="getting-started.html">Quickstart</a><a href="architecture.html">Architecture</a><a href="worked-example.html">Worked example</a><div class="nav-heading">Methods</div><a href="taxonomies.html">Official taxonomies</a><a href="sources.html">Source evidence</a><a href="crosswalks.html">Reviewed crosswalks</a><a href="triangulation.html">Evidence triangulation</a><a href="fusion.html">Tree fusion &amp; backoff</a><a href="joint-recheck.html">Cross-taxonomy recheck</a><a href="classification.html">Classification decisions</a><a href="retrieval-llm.html">Retrieval &amp; optional LLM</a><div class="nav-heading">Enrichment &amp; delivery</div><a href="institutions.html">Institutions &amp; ownership</a><a href="io-projection.html">PSIC to I–O</a><a href="express.html">Express workflow</a><a href="outputs.html">Outputs &amp; GIS</a><div class="nav-heading">Reference &amp; assurance</div><a href="evaluation.html">Validation &amp; evaluation</a><a href="reproducibility.html">Reproducibility</a><a href="api-cli.html">CLI &amp; Python API</a><a href="decision-register.html">Design decisions</a><a href="limitations.html" aria-current="page" class="active">Limits &amp; interpretation</a><a href="glossary.html">Glossary &amp; references</a></nav>
+<div class="sidebar-foot"><a href="https://github.com/miraflor/placetype-ph">GitHub repository ↗</a><a href="https://github.com/miraflor/placetype-ph/blob/main/DATA_SOURCES.md">Data sources ↗</a></div>
+</aside>
+<div class="content-frame"><div class="topbar"><span>Documentation <b>/</b> Limits &amp; interpretation</span><div class="topbar-actions"><button type="button" id="theme-toggle" aria-label="Switch to dark mode" title="Switch to dark mode"><svg class="theme-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.9 13.3A9 9 0 0 1 10.7 3.1 9 9 0 1 0 20.9 13.3Z"/></svg><svg class="theme-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M4.9 4.9l1.4 1.4m11.4 11.4 1.4 1.4M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg><span class="theme-label">Dark mode</span></button><a href="https://github.com/miraflor/placetype-ph">View source ↗</a></div></div>
+<div class="reading-layout"><main id="main" class="prose" tabindex="-1"><article><h1 id="scope-limitations-and-interpretation">Scope, limitations and interpretation</h1>
+<p class="lede">The package makes defensible, reproducible classification decisions under its explicit rules. It does not turn incomplete source metadata into observed economic transactions, site-verified institutional identity, or population-level accuracy guarantees.</p>
+<h2 id="scientific-interpretation-limits">Scientific interpretation limits</h2>
+<ol>
+<li><strong>Principal activity is not revenue share.</strong> PSIC classification identifies an activity category, not turnover, jobs, gross value added, production functions, prices, or transactions.</li>
+<li><strong>A source category is not an audited establishment record.</strong> OSM, Overture and FSQ differ in completeness, taxonomy vocabulary and update cadence; matching/lineage errors can persist in canonical records.</li>
+<li><strong>Dependent labels are not independent confirmations.</strong> FSQ-derived Overture tags belong to the same source lineage; exact repeated labels do not establish probability or certainty.</li>
+<li><strong>PCPC is not a complete production basket.</strong> Place-only PCPC family assignments require additional product data for stronger claims.</li>
+<li><strong>PSCC is not an inference from a shop name.</strong> Traded commodities demand specific evidence; missing commodity text often implies abstention.</li>
+<li><strong>I–O codes are candidates.</strong> A derived concordance and a singleton candidate are not proof of actual local supply-chain relationships.</li>
+<li><strong>Institutional identity is site-specific.</strong> Name/city similarity, participation/accreditation, administrative jurisdiction, and religious name patterns do not prove legal ownership or physical branch equivalence.</li>
+<li><strong>Cross-taxonomy recheck is not a gold label.</strong> A stable lexical rerank from peer titles is a diagnostic, not an independent statistical verification.</li>
+</ol>
+<h2 id="computational-limits">Computational limits</h2>
+<ul>
+<li>The input and result DataFrames are held in memory even though row conversion is chunked; true bounded-memory national-scale streaming remains open.</li>
+<li>Reviewed <code>EXACT</code> and <code>SUBTREE</code> have different stated rule meanings, but the current fusion implementation represents both as rooted constraints; exact singleton semantics are not globally enforced during fusion. This should be considered when auditing mixed evidence.</li>
+<li>The default deterministic path is reproducible under fixed inputs and rule code; an optional external LLM can introduce backend nondeterminism despite cached prompt identity.</li>
+<li><code>classification_run_ready</code> requires manifests and output files/schema, but the pipeline may leave an intermediate classification Parquet after a later optional enrichment error. No all-or-nothing publication guarantee yet.</li>
+<li>Express hashes small input contents but uses size and modification time for large files. That cache identity is a performance optimization, not an archival integrity proof.</li>
+<li>GitHub Pages is <strong>documentation only</strong>. It does not deploy Python classification, user-supplied data, institution registries or OpenPlaces output.</li>
+</ul>
+<h2 id="data-provenance-and-licensing">Data provenance and licensing</h2>
+<p>Official PSA statistical definitions are cited in the repository's <a href="https://github.com/miraflor/placetype-ph/blob/main/DATA_SOURCES.md">source guide</a>; normalized/derived tables may carry separate attribution and scope requirements. The package's MIT license is not permission to redistribute third-party institutional extracts. This documentation includes no institutional source records or proprietary downstream datasets.</p>
+<h2 id="what-still-needs-empirical-work">What still needs empirical work</h2>
+<p>A stratified, independent, version-aware adjudication set should estimate precision, false positives, coverage, correct ancestor backoff, and error by source/provider and decision path. Comparisons must distinguish reviewed mappings from automatically promoted suggestions and preserve sampling weights where difficult cases were oversampled.</p>
+<p>A strong engineering result is still only <em>an implementation result</em>. The research claim becomes stronger when tested against ground truth independent of the classifier.</p>
+<h2 id="not-part-of-placetype-ph">Not part of PlaceType PH</h2>
+<p>Road networks, shortest-path routing, network HDBSCAN, network Voronoi, economic centrality and geometric Delaunay triangulation are different algorithms. PlaceType PH's <strong>triangulation</strong> refers to semantic evidence comparison and bounded peer-taxonomy review. No geometric partition or clustering stage is hidden in this package.</p>
+<p><strong>Next:</strong> <a href="evaluation.html">Evaluation</a> · <a href="glossary.html">Reference sources</a>.</p>
+</article>
+<nav class="page-pagination" aria-label="Document pages"><a class="page-step previous" href="decision-register.html"><span>← Previous</span><strong>Design decisions</strong></a><a class="page-step next" href="glossary.html"><span>Next →</span><strong>Glossary &amp; references</strong></a></nav><footer class="article-footer"><span>PlaceType PH · MIT-licensed package</span><span>Documentation describes the v0.1.2 implementation; classification is not validation of truth.</span></footer></main>
+<aside class="toc" aria-label="On this page"><div class="toc-title">On this page</div><a class="toc-level-2" href="#scientific-interpretation-limits">Scientific interpretation limits</a><a class="toc-level-2" href="#computational-limits">Computational limits</a><a class="toc-level-2" href="#data-provenance-and-licensing">Data provenance and licensing</a><a class="toc-level-2" href="#what-still-needs-empirical-work">What still needs empirical work</a><a class="toc-level-2" href="#not-part-of-placetype-ph">Not part of PlaceType PH</a><a class="toc-repo" href="https://github.com/miraflor/placetype-ph/tree/main/docs">Edit on GitHub ↗</a></aside></div></div>
+</body></html>

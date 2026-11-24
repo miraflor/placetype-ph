@@ -1,5 +1,7 @@
 # placetype-ph
 
+**Documentation:** [Visual algorithm and implementation guide](https://miraflor.github.io/placetype-ph/) — source evidence, triangulation, fusion, classification, I–O mapping, and reproducibility.
+
 A downstream economic-semantic layer for [`openplaces-ph`](https://github.com/miraflor/openplaces-ph).
 It classifies canonical OpenPlaces entities against Philippine statistical taxonomies while
 preserving uncertainty, hierarchy depth, source provenance, and an audit trail.
