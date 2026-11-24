@@ -11,9 +11,9 @@ The snapshots are in `src/placetype_ph/data/registry/`. `manifest.json` records 
 | `philhealth_hospitals_20260930.csv` | `hospitals` | 1,338 | PhilHealth Levels 1–3, 2026-09-30 | publication row, not facility code |
 | `ched_heida_eligible_20261104.csv` | `heida` | 2,424 | CHED HEIDA directory | official HEI code; not site verification |
 | `unifast_hei_ra10931_20261104.csv.gz` | `unifast` | 1,955 | UniFAST list of participating higher education institutions, captured 2026-11-04 | local digest of region and name, not an official HEI code |
-| `deped_schools_national.csv.gz` | `beis` | 30,364 | project-cleaned extract of a Kaggle-hosted DepEd school masterlist (2026-11-04) | DepEd school ID, treated as unverified; ownership from the ID prefix is a hint only |
+| `deped_schools_national.csv.gz` | `beis` | 30,364 | project-cleaned extract of [Masterlist of DepEd Schools](https://www.kaggle.com/datasets/joshuagilodlsu/masterlist-of-deped-schools) by Kaggle uploader `joshuagilodlsu` (processed 2026-11-04) | DepEd school ID, treated as unverified; ownership from the ID prefix is a hint only |
 
-The DepEd extract was prepared on 2026-11-04 from a Kaggle-hosted school masterlist, via `schools_town_psgc_clean.csv` (Windows-1252 converted to UTF-8; 30,364 unique IDs). The exact Kaggle listing, uploader, source snapshot date and license remain unconfirmed. The owner directed that it remain bundled; local cleaning does not establish redistribution rights. The institution stage is enabled by default.
+The DepEd extract was prepared on 2026-11-04 from [Masterlist of DepEd Schools](https://www.kaggle.com/datasets/joshuagilodlsu/masterlist-of-deped-schools) by Kaggle uploader `joshuagilodlsu`, via `schools_town_psgc_clean.csv` (Windows-1252 converted to UTF-8; 30,364 unique IDs). The original Kaggle listing and uploader are identified; the source snapshot date, downloaded version and license remain unverified. The owner directed that it remain bundled; local cleaning does not establish redistribution rights. The institution stage is enabled by default.
 
 ## Optional: copy snapshots for a custom configuration
 

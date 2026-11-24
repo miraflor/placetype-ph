@@ -22,8 +22,10 @@
       "reference_key": "beis",
       "rows": 30364,
       "sha256": "78d4f20ad200384c70dd4a05203d90c609b67378f1a00405ca4b13b338d674cd",
-      "source": "Cleaned extract prepared in project development on 2026-11-04 from a Kaggle-hosted DepEd school masterlist; intermediate schools_town_psgc_clean.csv",
-      "source_url": null,
+      "source": "Cleaned extract prepared in project development on 2026-11-04 from Masterlist of DepEd Schools, distributed on Kaggle by joshuagilodlsu; intermediate schools_town_psgc_clean.csv",
+      "source_url": "https://www.kaggle.com/datasets/joshuagilodlsu/masterlist-of-deped-schools",
+      "source_title": "Masterlist of DepEd Schools",
+      "source_uploader": "joshuagilodlsu",
       "identifier": "DepEd school ID, treated as unverified",
       "ownership_basis": "six-digit school ID prefix, a hint only (4 private; 1, 2, 3, 5 or 6 public); never promoted without a verified link",
       "rights": "Original dataset license and redistribution clearance remain unverified. Retained at the repository owner’s direction; local cleaning does not establish redistribution rights.",
@@ -33,7 +35,7 @@
         "private_hint": 7309,
         "no_hint": 494
       },
-      "provenance": "30,364 unique school IDs; school_id, school_name and town_psgc retained; Windows-1252 input converted to UTF-8 and gzip-packaged. Exact Kaggle listing, uploader, source snapshot date and license not confirmed."
+      "provenance": "30,364 unique school IDs; school_id, school_name and town_psgc retained; Windows-1252 input converted to UTF-8 and gzip-packaged. Kaggle listing and uploader identified by the repository owner; exact original snapshot date, downloaded version and license remain unverified."
     },
     "ched_heida_eligible_20261104.csv": {
       "reference_key": "heida",
