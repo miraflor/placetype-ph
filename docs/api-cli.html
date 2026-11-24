@@ -94,6 +94,11 @@
 <td>Comma-separated independent taxonomies.</td>
 </tr>
 <tr>
+<td><code>--io-resolution-policy</code></td>
+<td><code>strict</code></td>
+<td>Both classify and express accept strict, evidence-weighted or extended. See <a href="io-projection.html">I–O projection</a> for evidence gates. The Python pipeline uses <code>io_resolution_policy</code>.</td>
+</tr>
+<tr>
 <td><code>--reviewed-psic / --no-reviewed-psic</code></td>
 <td>Enabled</td>
 <td>Bundled accepted Rev. 5 policy or controlled legacy mode.</td>
@@ -154,7 +159,7 @@ print(result.code, result.status, result.flags)
 </code></pre>
 <p>The snippet loads the normalized taxonomy file from the repository reference directory; verify it independently with <code>placetype taxonomy validate</code> before using it. For a legacy test, use <code>EntityClassifier(psic_taxonomy, crosswalk, reviewed_psic_policy=False)</code> and pass only the explicit crosswalks you wish to retain.</p>
 <h2 id="python-api-data-pipeline">Python API: data pipeline</h2>
-<p><code>classify_openplaces(input_path, classifiers, output_dir, *, product_column=None, limit=None, workers=1, role_crosswalk=None)</code> processes canonical Parquet input and returns the two produced paths. For a multi-scheme run, supply a dictionary of <code>scheme → EntityClassifier</code> objects built from their own matching taxonomies; never reuse a PSIC taxonomy for PCPC or PSCC.</p>
+<p><code>classify_openplaces(input_path, classifiers, output_dir, *, product_column=None, limit=None, workers=1, role_crosswalk=None, io_resolution_policy=&quot;strict&quot;)</code> processes canonical Parquet input and returns the two produced paths. For a multi-scheme run, supply a dictionary of <code>scheme → EntityClassifier</code> objects built from their own matching taxonomies; never reuse a PSIC taxonomy for PCPC or PSCC.</p>
 <h2 id="specialized-inspection-and-review">Specialized inspection and review</h2>
 <p>The modules under <code>placetype_ph.specialized</code> provide validation, evidence extraction, candidate-only rule reconciliation, institutional preview and optional enrichment. See the repository's <a href="https://github.com/miraflor/placetype-ph/blob/main/docs/SPECIALIZED_EVIDENCE.md">specialized evidence guide</a> and <a href="https://github.com/miraflor/placetype-ph/blob/main/docs/PRIORITY2_CROSSWALK_RECONCILIATION.md">Priority 2 reconciliation instructions</a> before running those commands with external references.</p>
 <h2 id="input-and-output-contracts">Input and output contracts</h2>

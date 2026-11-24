@@ -112,7 +112,7 @@ def test_express_cache_includes_packaged_rule_contents(tmp_path, monkeypatch):
     fake.write_text("value-a", encoding="utf-8")
     monkeypatch.setattr(express, "bundled_psic_crosswalk_path", lambda: fake)
     assert express.CLASSIFY_PARAMS["reviewed_psic"] is True
-    assert "joint-v9.3" in express.EXPRESS_CACHE_VERSION
+    assert "joint-v9.4" in express.EXPRESS_CACHE_VERSION
     key_before = express.pipeline_state()
     fake.write_text("value-b", encoding="utf-8")
     key_after = express.pipeline_state()

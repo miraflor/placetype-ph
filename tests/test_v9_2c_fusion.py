@@ -64,7 +64,7 @@ def test_non_sibling_cousins_remain_a_hard_conflict(toy_psic):
 
 def test_flowers_and_gifts_has_a_coarse_only_ceiling():
     plan = category_plan("overture", "flowers_and_gifts_store")
-    assert plan.branch_roots == ("47",)
+    assert plan.branch_roots == ("47192", "47735")
     assert (
         _auto_proposal_block_reason(
             "overture",

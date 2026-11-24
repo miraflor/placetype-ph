@@ -8,7 +8,7 @@ from placetype_ph.suggest import category_plan
 @pytest.mark.parametrize(
     ("source", "value", "root"),
     [
-        ("overture", "bank", "64"),
+        ("overture", "bank", "641"),
         ("overture", "bubble_tea_shop", "563"),
         ("overture", "tea_room", "563"),
         ("overture", "smoothie_juice_bar", "563"),
@@ -22,7 +22,7 @@ from placetype_ph.suggest import category_plan
         ("overture", "accountant", "692"),
         ("overture", "funeral_service", "963"),
         ("overture", "bookstore", "4761"),
-        ("overture", "resort", "55"),
+        ("overture", "resort", "551"),
         ("overture", "laboratory_testing", "712"),
         ("overture", "car_rental_service", "771"),
         ("overture", "pawn_shop", "6496"),
@@ -32,7 +32,7 @@ from placetype_ph.suggest import category_plan
         ("overture", "information_technology_company", "62"),
         ("overture", "metal_fabricator", "25"),
         ("overture", "animal_or_pet_service", "96902"),
-        ("overture", "meat_wholesaler", "46"),
+        ("overture", "meat_wholesaler", "46313"),
         ("fsq", "[Retail > Gift Store]", "47192"),
         ("fsq", "[Retail > Supermarket]", "4711"),
         ("fsq", "[Retail > Pawn Shop]", "6496"),

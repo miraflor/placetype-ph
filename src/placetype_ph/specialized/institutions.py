@@ -9,36 +9,48 @@ from dataclasses import dataclass
 from .source_evidence import text
 
 # Precise administrative functions, not merely public ownership or accreditation.
+# Administrative patterns: regional DOH and DepEd offices (with or
+# without punctuation after the agency name), schools division offices, and city,
+# municipal or provincial health departments.
 _ADMIN_PATTERNS = (
     re.compile(
-        r"^(?:doh|department of health)\s*"
-        r"(?:ncr\s+|national capital region\s+)?regional office\b",
+        r"^(?:doh|department\s+of\s+health)\s*[-\u2013,:]?\s*"
+        r"(?:ncr\s+|national\s+capital\s+region\s+)?regional\s+office\b",
         re.I,
     ),
     re.compile(
-        r"^(?:deped|department of education)\b.{0,60}\b"
-        r"(?:schools? division|division) office\b",
+        r"^(?:deped|department\s+of\s+education)\s*[-\u2013,:]?\s*"
+        r"(?:ncr\s+|national\s+capital\s+region\s+)?regional\s+office\b",
         re.I,
     ),
     re.compile(
-        r"^(?:department of education\s+)?schools? division office\b",
+        r"^(?:deped|department\s+of\s+education)\b.{0,60}\b"
+        r"(?:schools?\s+division|division)\s+office\b",
         re.I,
     ),
+    re.compile(r"^(?:department\s+of\s+education\s+)?schools?\s+division\s+office\b", re.I),
     re.compile(
-        r"\b(?:city|municipal|provincial) health department"
-        r"(?: office| headquarters)?$",
+        r"\b(?:city|municipal|municipality|provincial|province)\s+health\s+department"
+        r"(?:\s+(?:office|headquarters))?\s*$",
         re.I,
     ),
 )
+# Frontline services and co-located teaching or clinical units are never reassigned.
 _FRONTLINE = re.compile(
-    r"\b(?:hospital|clinic|medical cent(?:er|re)|health cent(?:er|re)|dental|dentist|"
-    r"laborator(?:y|ies)|elementary school|high school|university|college|academy|"
-    r"tutorial|training cent(?:er|re))\b",
+    r"\b(?:hospital|clinics?|medical\s+cent(?:er|re)|health\s+cent(?:er|re)|"
+    r"eye\s+cent(?:er|re)|animal\s+bite|dental|dentists?|laborator(?:y|ies)|"
+    r"elementary\s+school|high\s+school|national\s+high\s+school|"
+    r"university|college|academy|tutorial|training\s+cent(?:er|re))\b",
     re.I,
 )
+# An agency or office phrase that is not specific enough to change the activity.
+# The bare words "DepEd" and "DOH" are not enough (a teachers' union, a bank ATM or a
+# "DOH accredited" clinic contain them).
 _POTENTIAL_ADMIN = re.compile(
-    r"\b(?:department of (?:health|education)|health department|health office|"
-    r"schools? division office|deped|doh)\b",
+    r"\b(?:department\s+of\s+(?:health|education)|health\s+department|"
+    r"schools?\s+division\s+office|health\s+office|"
+    r"(?:city|municipal|municipality|provincial|regional|government)\s+education\s+department|"
+    r"doh\s+chd)\b",
     re.I,
 )
 
@@ -65,6 +77,117 @@ _PRIVATE_HEALTH = re.compile(
     r"dental clinic|diagnostic cent(?:er|re)|polyclinic)\b",
     re.I,
 )
+
+
+# Extended ownership name patterns. They are added to the patterns above; a name matching
+# either list is a provisional hint, never verified ownership.
+_EXTENDED_PATTERNS = {
+    ("education", "public"): (
+        r"\b(?:government|public)\s+(?:elementary\s+|high\s+|primary\s+)?school\b",
+        r"\bpublic\s+(?:university|college|academy)\b",
+        r"\bnational\s+(?:[a-z]+\s+){0,2}high\s+school\b",
+        r"\b(?:central|integrated)\s+(?:elementary\s+)?school\b",
+        r"\bstate\s+(?:university|college)\b",
+        r"\buniversity\s+of\s+the\s+philippines\b",
+        r"\b(?:polytechnic|technological)\s+university\s+of\s+the\s+philippines\b",
+        r"\bphilippine\s+normal\s+university\b",
+        r"\bpamantasan\s+ng\s+lungsod\b",
+        r"\b(?:city|municipal)\s+college\b",
+        r"\bchild\s+development\s+cent(?:er|re)\b",
+        r"\bday\s*care\s+cent(?:er|re)\b",
+        r"\btesda\b",
+        r"\bphilippine\s+(?:military|national\s+police|merchant\s+marine|public\s+safety)\s+"
+        r"(?:academy|college)\b",
+    ),
+    ("education", "private"): (
+        r"\bprivate\s+(?:elementary\s+|high\s+|primary\s+)?school\b",
+        r"\bprivate\s+(?:university|college|academy|learning\s+cent(?:er|re))\b",
+        r"\bmontessori\b",
+        r"\bcolegio\b",
+        r"\blearning\s+(?:cent(?:er|re)|school|institute)\b",
+        r"\b(?:christian|catholic|baptist|adventist|methodist|lutheran|evangelical|islamic)\s+"
+        r"(?:school|academy|college|learning)\b",
+        r"\b(?:inc|incorporated)\b",
+        r"\bdon\s+bosco\b",
+        r"\bla\s+salle\b",
+        r"\bateneo\b",
+        r"\bmaryknoll\b",
+        r"\bama\s+computer\b",
+        r"\bsti\s+(?:college|education)\b",
+        r"\binternational\s+school\b",
+        r"\breview\s+cent(?:er|re)\b",
+        r"\btutorial\b",
+        r"\bkiddie\b",
+    ),
+    ("health", "public"): (
+        r"\b(?:government|public)\s+(?:medical\s+|dental\s+|health\s+)?"
+        r"(?:clinic|hospital|cent(?:er|re))\b",
+        r"\brural\s+health\s+(?:unit|cent(?:er|re)|office)\b",
+        r"\brhu\b",
+        r"\bbarangay\s+health\s+(?:station|cent(?:er|re)|unit|office|post)\b",
+        r"\bbhs\b",
+        r"\b(?:city|municipal|provincial)\s+health\s+(?:cent(?:er|re)|unit)\b",
+        r"\b(?:city|municipal|provincial)\s+health\s+office\s+clinic\b",
+        r"\bsuper\s+health\s+cent(?:er|re)\b",
+        r"\b(?:provincial|district|regional|municipal|city)\s+(?:general\s+)?hospital\b",
+        r"\bmedicare\s+(?:community\s+)?hospital\b",
+        r"\bregional\s+(?:medical|training\s+and\s+teaching)\s+cent(?:er|re)\b",
+        r"\bregional\s+training\s+and\s+teaching\s+hospital\b",
+        r"\bphilippine\s+general\s+hospital\b",
+    ),
+    ("health", "private"): (
+        r"\bprivate\s+(?:medical\s+|dental\s+|health\s+)?(?:clinic|hospital|cent(?:er|re))\b",
+        r"\b(?:inc|incorporated|corp|corporation)\b",
+        r"\bdoctors?'?\s+(?:hospital|clinic)\b",
+        r"\bdental\b",
+        r"\bdentist",
+        r"\bdiagnostic",
+        r"\bpolyclinic\b",
+        r"\blaborator(?:y|ies)\b",
+        r"\blying[\s-]?in\b",
+        r"\beye\s+(?:cent(?:er|re)|clinic)\b",
+        r"\bderma(?:tology)?\b",
+        r"\bortho(?:dontic|dontics)?\b",
+    ),
+}
+_COMPILED_EXTENDED = {
+    key: tuple(re.compile(pattern, re.I) for pattern in patterns)
+    for key, patterns in _EXTENDED_PATTERNS.items()
+}
+# Private-practice categories in the Philippine setting (extended ownership policy).
+_HEALTH_PRIVATE_CATEGORIES = frozenset(
+    {
+        "overture:dental_clinic",
+        "overture:general_dentistry",
+        "overture:doctors_office",
+        "overture:family_practice",
+        "overture:pediatric_clinic",
+        "overture:obstetrics_and_gynecology",
+        "overture:dialysis_clinic",
+        "overture:vision_or_eye_care_clinic",
+        "osm:amenity=dentist",
+        "osm:healthcare=dentist",
+    }
+)
+_CATEGORY_FIELDS = (
+    ("osm", "osm_category"),
+    ("overture", "overture_category"),
+    ("overture", "overture_primary_category"),
+    ("overture", "overture_alternate_category"),
+)
+
+
+def _categories(row: Mapping[str, object]) -> set[str]:
+    return {
+        f"{source}:{part.strip().casefold()}"
+        for source, field in _CATEGORY_FIELDS
+        for part in re.split(r"[|;]", text(row.get(field)))
+        if part.strip()
+    }
+
+
+def _extended_hint(names: tuple[str, ...], domain: str, side: str) -> bool:
+    return any(p.search(name) for p in _COMPILED_EXTENDED[(domain, side)] for name in names)
 
 
 @dataclass(frozen=True)
@@ -123,20 +246,22 @@ def ownership(row: Mapping[str, object], activity_codes: tuple[str, ...] = ()) -
     if not (education or health):
         return OwnershipDecision()
     hints: set[str] = set()
+    categories = _categories(row)
     if education:
-        if _PUBLIC_EDUCATION.search(joined):
+        if _PUBLIC_EDUCATION.search(joined) or _extended_hint(names, "education", "public"):
             hints.add("public")
-        if _PRIVATE_EDUCATION.search(joined):
+        if _PRIVATE_EDUCATION.search(joined) or _extended_hint(names, "education", "private"):
             hints.add("private")
-        category = text(row.get("overture_category")).casefold()
-        if "public_school" in category:
+        if "overture:public_school" in categories:
             hints.add("public")
-        if "private_school" in category:
+        if "overture:private_school" in categories:
             hints.add("private")
     if health:
-        if _PUBLIC_HEALTH.search(joined):
+        if _PUBLIC_HEALTH.search(joined) or _extended_hint(names, "health", "public"):
             hints.add("public")
-        if _PRIVATE_HEALTH.search(joined):
+        if _PRIVATE_HEALTH.search(joined) or _extended_hint(names, "health", "private"):
+            hints.add("private")
+        if categories & _HEALTH_PRIVATE_CATEGORIES:
             hints.add("private")
     if len(hints) != 1:
         return OwnershipDecision(

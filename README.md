@@ -463,9 +463,24 @@ Use `name` together with `match_type = regex` for chain or brand rules, for exam
 maps a known bakery chain name straight to a class.
 If both a category rule and a name rule match the same source, both are treated as dependent
 evidence: a specific reviewed name rule may refine a broad category rule without becoming a second
-independent vote. When the two assert disjoint subtrees the name rule wins, because the category
-rule is a bulk mapping and the name rule is a specific reviewed judgment; the row is flagged
-`CROSSWALK_NAME_RULE_OVERRODE_CATEGORY`.
+independent vote. When the two assert disjoint subtrees, the outcome depends on what kind of name
+rule it is:
+
+- A name rule you supply (for example a chain or brand rule) is a specific judgment about the
+  establishment, so it wins; the row is flagged `CROSSWALK_NAME_RULE_OVERRODE_CATEGORY`.
+- The 42 name rules packaged with the reviewed PSIC mappings are keyword patterns such as
+  "college", "hotel" or "restaurant". A reviewed category rule or a curated category floor is the
+  more direct statement of what the place is, so it wins over such a rule; the row is flagged
+  `CROSSWALK_CATEGORY_RULE_OVERRULED_NAME` (reviewed category) or `NAME_RULE_OVERRULED_BY_CATEGORY`
+  (category floor). Example: "University of Santo Tomas Hospital" tagged `amenity=hospital` is
+  861 (hospital activities), not 85 (education). Strong source
+  categories take precedence; see [classification architecture](docs/CLASSIFICATION_ARCHITECTURE.md).
+
+A NOT_ACTIVITY decision on either side keeps the earlier behaviour (the name rule wins).
+
+A whole multi-tag OSM string that has its own reviewed row, such as
+`amenity=bus_station | public_transport=station` (UNCODEABLE), is looked up as one value before the
+string is split into separate tags.
 
 Overlapping `contains`/`regex` rules that disagree are never resolved by CSV row order. By default
 the affected field yields no mapping, the row is flagged `CROSSWALK_AMBIGUOUS:<source>` and left for
@@ -631,7 +646,7 @@ When PSIC is classified, `classified_pois.parquet` also carries the industries o
 | `io16_map_status`, `io80_map_status`, `io240_map_status` | `SINGLETON_CANDIDATE`, `AMBIGUOUS_SET`, or `UNMAPPED`; this describes candidate cardinality, not semantic validation |
 | `io16_names`, `io80_names`, `io240_names` | Names in the same order, separated by ` \| ` because some names contain semicolons |
 | `io16_confidence`, `io80_confidence`, `io240_confidence` | Confidence of the concordance rows used (`High`, `High with caveat`, `Medium-High`, `Medium`, `Low`; `Not mapped` when the set is blank). When several rows are combined, the weakest value |
-| `io_mapping_status` | Ordinary non-draft mappings: `MAPPED_GROUP`, `MAPPED_DIVISION`, `MAPPED_SECTION`, `NO_IO_CORRESPONDENCE`, `NO_PSIC2019_COUNTERPART`. Draft-dependent candidates: `PROVISIONAL_GROUP`, `PROVISIONAL_DIVISION`, `PROVISIONAL_SECTION`, `PROVISIONAL_NO_IO_CORRESPONDENCE`, `PROVISIONAL_NO_PSIC2019_COUNTERPART`. Unmapped/error states: `UNMAPPED_NO_PSIC`, `UNMAPPED_UNKNOWN_PSIC_CODE`, `UNMAPPED_NO_BRIDGE` |
+| `io_mapping_status` | Ordinary non-draft mappings: `MAPPED_GROUP`, `MAPPED_DIVISION`, `MAPPED_SECTION`, `MAPPED_UNION`, `NO_IO_CORRESPONDENCE`, `NO_PSIC2019_COUNTERPART`. Draft-dependent candidates: `PROVISIONAL_GROUP`, `PROVISIONAL_DIVISION`, `PROVISIONAL_SECTION`, `PROVISIONAL_UNION`, `PROVISIONAL_NO_IO_CORRESPONDENCE`, `PROVISIONAL_NO_PSIC2019_COUNTERPART`. Unmapped/error states: `UNMAPPED_NO_PSIC`, `UNMAPPED_UNKNOWN_PSIC_CODE`, `UNMAPPED_NO_BRIDGE`, `UNMAPPED_UNION_PARTIAL` |
 | `io_mapping_psic_level`, `io_mapping_psic_code` | The PSIC Revision 5 section, division or group through which the code was mapped |
 | `io_mapping_psic2019_codes` | The PSIC 2019 codes whose I-O sets were combined |
 | `io_mapping_bridge_relation` | `same`, `recoded`, `renamed`, `changed_scope`, `new`, or `no_counterpart` |
@@ -640,6 +655,18 @@ When PSIC is classified, `classified_pois.parquet` also carries the industries o
 A code set means that the activity of the place is **one** of the listed industries, not that the place has several activities. Splitting the string and counting every code therefore counts such a place once per code. For thematic mapping, use the corresponding `io*_map_code`: it is deliberately blank when the candidate set is ambiguous, so a value such as `229; 230` is never silently collapsed to either 229 or 230. The map code is still only a singleton **candidate**; use `io_mapping_bridge_basis`, `io_mapping_status`, and `io*_confidence` to decide how much evidentiary uncertainty to accept. To allocate an ambiguous set to one fine industry requires additional evidence or explicit weights; this package does not invent that evidence.
 
 `PROVISIONAL_*` deliberately marks a result that depends on a hand-written `draft` Revision 5 → PSIC 2019 bridge row. A draft row controls the result only when it changes the I-O sets: if the deepest non-draft ancestor row is an ordinary mapping with the same sets, the ordinary `MAPPED_*` result is reported instead and the provenance columns name that ancestor. Here *ordinary* means only that the result does not depend on a draft row; it is not a claim of external validation. A `code_title_match` ordinary mapping is generated from an unchanged code and normalized title, while `reviewed` records an actual scope review. A `no_counterpart` row never participates in the same-answer replacement. The candidate codes are retained so they can be inspected and used deliberately, but routine production aggregation should filter out `PROVISIONAL_*` unless that uncertainty is explicitly accepted. `NO_PSIC2019_COUNTERPART` is distinct from `NO_IO_CORRESPONDENCE`: the former says bridge review found no defensible historical PSIC category, while the latter says a historical PSIC category exists but has no I-O line in this concordance.
+
+**Results that admit several subtrees.** When the evidence admits several separate PSIC subtrees (a reviewed UNION such as Overture `lodging` = 551, 552, 553 or 559), `psic_code` still shows their deepest common parent (55), as the design rule requires, but the I-O sets are the union of the subtrees' sets (`io_mapping_psic_level = union`, status `MAPPED_UNION` or `PROVISIONAL_UNION`). The parent is not mapped, because a Revision 5 division can hold an activity that maps to another I-O industry: division 55 holds booking intermediation (IO240 224, travel agency and reservation services) and division 47 holds motor vehicle retail (IO80 56). If any subtree has no I-O correspondence, the result is `UNMAPPED_UNION_PARTIAL`. The subtrees are recorded in the first-class JSON-encoded `admissible_roots` field of `entity_classifications.parquet`, with a compatibility audit mirror. A missing or malformed accepted UNION is rejected.
+
+**Official hierarchy check.** Every row of the concordance must nest in the official PSA 2018 I-O classification (`io_hierarchy_2018.csv`): each IO240 code's IO80 parent must be in the row's IO80 set, and each IO80 code's IO16 parent in its IO16 set. A concordance that fails stops the run. The packaged concordance now places PSIC 2019 groups 242 and 243 under IO80 42 (fabricated metal products), as the official classification does for IO240 124, 125 and 126; see `DATA_SOURCES.md`.
+
+**Draft subclass narrowing (separate columns).** The bridge and concordance stop at PSIC groups. `io_subgroup_refinement_code`, `io_subgroup_refinement_basis`, `io16_subgroup_codes`, `io80_subgroup_codes` and `io240_subgroup_codes` give a narrower set for a Revision 5 class or subclass from `psic_rev5_io240_refinement.csv` (for example 86223, private dialysis center activities: IO240 232, private human health, instead of 231 or 232). All rows of that table are `draft`, so these columns never replace `io*_codes` or `io*_map_code`. Without an applicable row they repeat the candidate sets; `not_applied` means the row would have widened the set and was ignored.
+
+**Resolved codes with provenance.** `io16_resolved_code`, `io80_resolved_code` and `io240_resolved_code`, each with `_status` and `_source`, give one code per resolution when the evidence supports one and the reason when it does not. Order of authority: explicit input (`EXPLICIT_INPUT`, `EXPLICIT_OVERRIDES_PSIC`, `EXPLICIT_OUTSIDE_PSIC_SET`), verified institutional ownership (`VERIFIED_OWNERSHIP`), the PSIC map code (`PSIC_MAP`, `PSIC_RESOLVER` for the IO80 same-name resolver), then direct tag evidence. Direct evidence (`direct_io_status`, `direct_io80_code`, `direct_io16_code`, `direct_io80_candidates`, `direct_io_reason`) comes from 14 explicit OSM tag rules in `direct_io_rules.csv`, never from names. It can confirm a PSIC map code (`PSIC_DIRECT_AGREE`), choose inside an ambiguous PSIC set (`HYBRID_RESOLVED`; `shop=car` inside IO80 55 or 56 gives 56), or stand alone when PSIC has no I-O candidates (`DIRECT_FALLBACK`). It never overrides a contradicting PSIC result (`PSIC_DIRECT_DISAGREE`, `PSIC_DIRECT_CONFLICT`) and is not used when the PSIC status is `NOT_PSIC_ACTIVITY`, `UNCODEABLE`, `CONFLICT` or `REVIEW_ENTITY_MATCH` (`DIRECT_BLOCKED_BY_PSIC_STATUS`). The default `strict` policy does not use direct tags to resolve an ambiguous set or as a fallback, and does not adopt a code at an I-O level that depends on a draft bridge row (`io_mapping_draft_levels` lists those levels; a single candidate withheld for this reason has status `PROVISIONAL_BRIDGE_NOT_RESOLVED`); both CLI commands (`--io-resolution-policy`) and the Python API also accept `evidence-weighted` and `extended` (see [classification architecture](docs/CLASSIFICATION_ARCHITECTURE.md)). The three codes are then made to nest in the official hierarchy: a finer code from a stronger source sets its parents (`DERIVED_FROM_IO240`, `DERIVED_FROM_IO80`); otherwise the finer code is cleared (`LEVEL_CONFLICT`). Filter on `_source` to exclude evidence you do not accept, for example `direct`.
+
+**Inferred ownership (separate columns).** `io_ownership_inferred_status` (`INFERRED` or `ABSTAIN`), `io_ownership_inferred_basis`, `io80_ownership_inferred_code` and `io240_ownership_inferred_code` give the public/private side suggested by an explicit source attribute (OSM `ownership=public`, Overture `public_school`) or by name and category hints, when the candidate sets are exactly an education or health ownership pair. Hints that disagree, or a private side contradicted by a government operator tag, abstain. These are labelled inferences: the strict default does not promote them.
+
+**Explicit input.** Optional OpenPlaces input columns `explicit_psic_code`, `explicit_io16_code`, `explicit_io80_code` and `explicit_io240_code` carry codes you supply. A supplied PSIC code gives status `MANUAL`, flag `USER_SUPPLIED_PSIC`, and a flag saying whether the source evidence agrees; the administrative-office rule does not override it. For I-O codes the finest supplied level decides and its parents come from the official hierarchy. An unknown code or a contradictory parent-child combination stops the run before classification, reporting invalid codes or rows.
 
 `run.json` records the file name, SHA-256 hash and row count of both I-O data files, the bridge rows by basis and by relation, and the number of places per `io_mapping_status`. Its `io_mapping.coverage` block is diagnostic rather than a validation certificate: it reports candidate availability, singleton/map-ready versus multi-candidate sets at IO16/IO80/IO240, PSIC classification-status counts, exact and cumulative PSIC depth, bridge-basis counts, map-status counts, and concordance-confidence counts. A singleton map code means only that the derived concordance has one candidate at that resolution; it does **not** by itself prove that the correspondence is correct. `code_title_match` likewise means a generated same-code/same-title bridge, while `reviewed` is kept separate for rows that have actually undergone scope review.
 
@@ -662,6 +689,8 @@ of that scheme, named by the taxonomy level rather than by code width:
 truncating the assigned code, so a class-level PSIC assignment leaves `psic_subclass` empty rather
 than presenting a subclass the classifier never chose. The separate `psic_code`, `pcpc_code`, and
 `pscc_code` columns remain the actual assigned classifications and may therefore stop at any level.
+
+When the summary has them, the layer also carries the resolved I-O codes with their status and source (`io*_resolved_code`, `io*_resolved_status`, `io*_resolved_source`) and `direct_io_status`.
 
 Names, coordinates, taxonomy titles, candidate codes and audit fields are left out. `geometry` is
 kept because the file is meant to be a standalone layer rather than a join table. Add
@@ -724,6 +753,7 @@ Every result carries exactly one `status`. The full set:
 | Status | Meaning |
 |---|---|
 | `SINGLE` | one mapped source, resolved in taxonomy space |
+| `MANUAL` | a PSIC code supplied in `explicit_psic_code` |
 | `NESTED` | compatible mapped evidence agreed and one mapping refined another |
 | `INTERSECT` | compatible mapped evidence agreed on an overlapping subtree |
 | `UNION` | a deliberately broad mapping that no evidence narrowed |
@@ -755,7 +785,11 @@ Flags are additive and any number may appear:
 | `INSUFFICIENT_BACKOFF` | a pass descended, then rejected that node as unsupported and backed off to its parent |
 | `UNBALANCED_PASS_VARIANTS` | `--passes` is not a multiple of the number of prompt variants |
 | `CROSSWALK_AMBIGUOUS:<source>` | overlapping scanned rules disagreed, so that field supplied no mapping |
-| `CROSSWALK_NAME_RULE_OVERRODE_CATEGORY` | a reviewed name rule contradicted the category rule and won |
+| `CROSSWALK_NAME_RULE_OVERRODE_CATEGORY` | a user-supplied name rule contradicted the category rule and won |
+| `CROSSWALK_CATEGORY_RULE_OVERRULED_NAME` | a packaged keyword name rule contradicted a reviewed category rule, which won |
+| `NAME_RULE_OVERRULED_BY_CATEGORY` | a packaged keyword name rule contradicted a curated category floor, which won |
+| `USER_SUPPLIED_PSIC` | the code came from `explicit_psic_code` |
+| `EXPLICIT_PSIC_AGREES_WITH_SOURCES` / `_DIFFERS_FROM_SOURCES` / `_NO_SOURCE_EVIDENCE` / `_SOURCES_UNRESOLVED` | how the supplied PSIC code compares with the source evidence |
 | `PSCC_REQUIRES_PRODUCT_EVIDENCE` | PSCC policy blocked inference from a place name |
 | `ENTITY_MATCH_SUSPECT_TRANSITIVE` | the cluster was completed transitively |
 | `ENTITY_MATCH_SUSPECT_DISTANCE` | cluster members are at least 80 m apart |

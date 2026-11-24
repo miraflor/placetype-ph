@@ -92,6 +92,9 @@ class FusionResult:
     evidence_sources: list[str] = field(default_factory=list)
     independent_groups: int = 0
     flags: list[str] = field(default_factory=list)
+    # Subtrees the evidence still admits after fusion. More than one root means the code is
+    # their common parent, which may hold activities that none of the roots includes.
+    admissible_roots: list[str] = field(default_factory=list)
 
 
 @dataclass(slots=True)
@@ -122,3 +125,4 @@ class ClassificationResult:
     classification_depth: int | None = None
     max_depth: int | None = None
     branch_max_depth: int | None = None
+    admissible_roots: list[str] = field(default_factory=list)

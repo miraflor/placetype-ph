@@ -25,6 +25,7 @@ Use `placetype <command> --help` to inspect the precise options for your install
 | Option | Default | Effect |
 | --- | --- | --- |
 | `--schemes` | `psic,pcpc,pscc` | Comma-separated independent taxonomies. |
+| `--io-resolution-policy` | `strict` | Both classify and express accept strict, evidence-weighted or extended. See [I–O projection](io-projection.html) for evidence gates. The Python pipeline uses `io_resolution_policy`. |
 | `--reviewed-psic / --no-reviewed-psic` | Enabled | Bundled accepted Rev. 5 policy or controlled legacy mode. |
 | `--crosswalk PATH` | None | Repeat to add explicit user mappings. |
 | `--llm` | `none` | `none`, `hf`, or `ollama` traversal backend. |
@@ -58,7 +59,7 @@ The snippet loads the normalized taxonomy file from the repository reference dir
 
 ## Python API: data pipeline
 
-`classify_openplaces(input_path, classifiers, output_dir, *, product_column=None, limit=None, workers=1, role_crosswalk=None)` processes canonical Parquet input and returns the two produced paths. For a multi-scheme run, supply a dictionary of `scheme → EntityClassifier` objects built from their own matching taxonomies; never reuse a PSIC taxonomy for PCPC or PSCC.
+`classify_openplaces(input_path, classifiers, output_dir, *, product_column=None, limit=None, workers=1, role_crosswalk=None, io_resolution_policy="strict")` processes canonical Parquet input and returns the two produced paths. For a multi-scheme run, supply a dictionary of `scheme → EntityClassifier` objects built from their own matching taxonomies; never reuse a PSIC taxonomy for PCPC or PSCC.
 
 ## Specialized inspection and review
 

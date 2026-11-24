@@ -19,7 +19,8 @@ def test_category_query_normalizes_openplaces_vocabularies():
 
 
 def test_source_ontology_rewrites_activity_and_constrains_branch():
-    assert category_plan("overture", "lodging").branch_roots == ("55",)
+    # Rev. 5 division 55 also holds booking intermediation, so lodging names its groups.
+    assert category_plan("overture", "lodging").branch_roots == ("551", "552", "553", "559")
     assert "accommodation" in category_plan("overture", "lodging").query_text
     assert category_plan("osm", "shop=hardware").branch_roots == ("4752",)
     assert category_plan("osm", "amenity=school").branch_roots == ("85",)
@@ -119,7 +120,8 @@ def test_lodging_rewrite_does_not_retrieve_logging():
     result = suggest_mapping(
         taxonomy, TaxonomyRetriever(taxonomy), "overture", "lodging", min_score=1.0
     )
-    assert result.branch_codes == "55"
+    assert result.branch_codes
+    assert all(code.startswith("55") for code in result.branch_codes.split("|"))
     assert result.candidate_codes
     assert "022" not in result.candidate_codes
     assert all(code == "55" or code.startswith("55") for code in result.candidate_codes.split("|"))

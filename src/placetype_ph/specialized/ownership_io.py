@@ -16,7 +16,10 @@ import pandas as pd
 from ..io_mapping import IOCrosswalk
 from .institutional_promotion import NEW_FIELDS, PROMOTABLE
 
-POLICY = "institutional-io-candidate-narrowing-v1"
+POLICY = "institutional-io-candidate-narrowing-v2"
+# Agreement between rules or sources (INTERSECT, NESTED) is stronger activity evidence than a
+# single rule, not weaker; a user-supplied PSIC code (MANUAL) is accepted as given.
+ACCEPTED_PSIC_STATUSES = frozenset({"SINGLE", "INTERSECT", "NESTED", "MANUAL"})
 EXACT_PAIR_REASON = "verified_ownership_exact_reference_pair"
 
 # Guardrails verified against the bundled PSIC 2019/PSA IO2018 concordance.
@@ -176,8 +179,8 @@ def refine_verified_institutional_io(summary: pd.DataFrame) -> pd.DataFrame:
             record["institution_resolution_basis"]
         ):
             decision["io_ownership_refinement_reason"] = "institution_provenance_incomplete"
-        elif _text(record["psic_status"]) != "SINGLE":
-            decision["io_ownership_refinement_reason"] = "psic_not_single"
+        elif _text(record["psic_status"]) not in ACCEPTED_PSIC_STATUSES:
+            decision["io_ownership_refinement_reason"] = "psic_status_not_accepted"
         elif _text(record["io_mapping_status"]) not in {"MAPPED_GROUP", "MAPPED_DIVISION"}:
             decision["io_ownership_refinement_reason"] = "mapping_not_confirmed_at_specific_level"
         elif _text(record["io_mapping_bridge_basis"]) not in {"reviewed", "code_title_match"}:

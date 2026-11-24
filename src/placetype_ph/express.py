@@ -16,7 +16,9 @@ from .reviewed_psic import bundled_psic_crosswalk_path
 # The cache version changes whenever suggestion semantics change in a way that would make
 # an older automatic crosswalk unsafe to reuse. V9.2c caps mixed source categories at their
 # epistemic floor and backs immediate PSIC sibling disagreements off exactly one level.
-EXPRESS_CACHE_VERSION = "joint-v9.3-reviewed-psic-rev5"
+# V9.4 adds classification corrections: UNION I-O mapping, the official IO240 hierarchy,
+# category precedence over packaged keyword name rules, and the newer administrative rule.
+EXPRESS_CACHE_VERSION = "joint-v9.4.3-classification-resolution"
 
 # Files at or below this size are keyed by content. Larger inputs keep the cheap
 # size/mtime identity, because hashing a full canonical_pois.parquet on every run costs
@@ -121,12 +123,30 @@ def file_state(path: Path) -> str:
     return f"stat:{path.parent.name}/{path.name}:{stat.st_size}:{stat.st_mtime_ns}"
 
 
-def pipeline_state() -> str:
+def pipeline_state(io_resolution_policy: str = "strict") -> str:
     """Stable description of every tuning value express passes downstream."""
+    from .io_mapping import BRIDGE_FILE, CONCORDANCE_FILE, HIERARCHY_FILE, REFINEMENT_FILE
+    from .io_resolution import DIRECT_RULES_FILE, POLICY, RESOLUTION_POLICIES
+
+    if io_resolution_policy not in RESOLUTION_POLICIES:
+        raise ValueError(f"unknown I-O resolution policy {io_resolution_policy!r}")
+    data = Path(__file__).resolve().parent / "data"
+    io_reference_names = (
+        BRIDGE_FILE, CONCORDANCE_FILE, HIERARCHY_FILE, REFINEMENT_FILE, DIRECT_RULES_FILE
+    )
+    io_references = {
+        name: hashlib.sha256((data / name).read_bytes()).hexdigest()
+        for name in io_reference_names
+    }
     return "pipeline:" + json.dumps(
         {
             "suggest": SUGGEST_PARAMS,
             "classify": CLASSIFY_PARAMS,
+            "io_resolution": {
+                "selected_policy": io_resolution_policy,
+                "implementation_policy": POLICY,
+                "references": io_references,
+            },
             # The accepted source data is an actual semantic dependency of the
             # output, even if no library version or tuning value changes.
             "reviewed_psic_crosswalk": file_state(bundled_psic_crosswalk_path()),

@@ -12,13 +12,28 @@ from .model import Evidence
 SOURCES = ("osm", "overture", "fsq")
 AUXILIARY_OSM_KEYS = frozenset(
     {
+        "access",
+        "addr",
         "brand",
+        "building",
         "cuisine",
         "delivery",
         "drive_through",
         "internet_access",
         "opening_hours",
         "operator",
+        "ownership",
+        "owner:type",
+        "owner_type",
+        "ownership:type",
+        "operator:type",
+        "religion",
+        "denomination",
+        "emergency",
+        "isced:level",
+        "source",
+        "website",
+        "phone",
         "outdoor_seating",
         "takeaway",
         "wheelchair",
@@ -28,6 +43,7 @@ COMPATIBLE_OSM_PAIRS = frozenset(
     {
         frozenset(("amenity=pharmacy", "healthcare=pharmacy")),
         frozenset(("amenity=clinic", "healthcare=clinic")),
+        frozenset(("amenity=hospital", "healthcare=hospital")),
         frozenset(("amenity=dentist", "healthcare=dentist")),
         frozenset(("amenity=doctors", "healthcare=doctor")),
         frozenset(("amenity=townhall", "office=government")),
@@ -84,7 +100,8 @@ def compound_status(source: str, category: object) -> str:
         primaries = [
             f"{k}={v}"
             for k, v in osm_pairs(category)
-            if k not in AUXILIARY_OSM_KEYS and not k.startswith(("contact:", "payment:"))
+            if k not in AUXILIARY_OSM_KEYS
+            and not k.startswith(("contact:", "payment:", "addr:", "source:", "isced:"))
         ]
         unique = set(primaries)
         if len(unique) <= 1:

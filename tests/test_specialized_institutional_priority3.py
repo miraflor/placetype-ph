@@ -305,7 +305,10 @@ def test_operator_name_alone_not_ownership():
             "osm_category": "operator=Department of Health",
         }
     )
-    assert result.status == "NO_EVIDENCE"
+    # A government operator is recorded as a proxy, never as ownership evidence.
+    assert result.status == "OPERATOR_PROXY"
+    assert result.basis == "government_operator_proxy"
+    assert result.promotion_eligible is False
 
 
 def test_religious_name_not_private_evidence():

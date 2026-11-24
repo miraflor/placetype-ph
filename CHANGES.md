@@ -1,3 +1,38 @@
+# Unreleased: classification and I-O resolution
+
+- Preserve accepted union roots as structured classification output; reject invalid or missing UNION metadata.
+- Treat supplementary OSM attributes as non-activity evidence and recognize compatible hospital tags.
+- Validate explicit inputs, unique IDs and final I-O hierarchy; distinguish same-source agreement from independent evidence.
+- Record per level which I-O sets depend on a draft bridge row (`io_mapping_draft_levels`); strict and evidence-weighted resolution withhold only those levels, with status `PROVISIONAL_BRIDGE_NOT_RESOLVED` for a withheld single candidate.
+
+Improved classification knowledge and resolution while retaining review-based PSIC and verified-only ownership. See [classification architecture](docs/CLASSIFICATION_ARCHITECTURE.md).
+
+- Expose the selected resolution policy in both CLI workflows, fingerprint I-O reference data in Express, and report resolved coverage separately from map-ready coverage.
+- Validate draft-level metadata; use `none` for a compared provisional row with no dependent level, and fail closed on blank legacy metadata.
+
+## Corrections (default)
+
+- I-O concordance: PSIC 2019 division 24 maps to IO80 41 and 42, and groups 242 and 243 to IO80 42, as in the official PSA 2018 I-O classification (IO240 124, 125 and 126 belong to IO80 42).
+- The concordance is checked against the official IO240 → IO80 → IO16 hierarchy (`io_hierarchy_2018.csv`) whenever it is loaded; a row that does not nest stops the run. `IOCrosswalk.load(..., check_hierarchy=False)` disables the check for a deliberately non-PSA concordance.
+- A PSIC result that admits several separate subtrees (for example a reviewed UNION such as Overture `lodging`) is mapped to I-O as the union of the subtrees, not through their common parent. New statuses `MAPPED_UNION`, `PROVISIONAL_UNION`, `UNMAPPED_UNION_PARTIAL`. `psic_code` still shows the common parent.
+- Administrative-office rule updated to expanded administrative-office patterns: DepEd regional offices, punctuation after DOH/DepEd, municipality and province health departments, flexible spacing; frontline words include "clinics", "eye center" and "animal bite"; the bare words "DepEd" and "DOH" no longer send a name to review.
+- A packaged keyword name rule ("college", "hotel", "restaurant" and others) that contradicts a reviewed category rule or a curated category floor now yields to the category instead of producing CONFLICT. User-supplied name rules keep their precedence.
+- A multi-tag OSM string with its own reviewed row (`amenity=bus_station | public_transport=station`, UNCODEABLE) is looked up whole before the string is split.
+- Verified institutional ownership refines I-O candidates for PSIC status `SINGLE`, `INTERSECT`, `NESTED` or `MANUAL` (was `SINGLE` only). Reason `psic_not_single` is now `psic_status_not_accepted`. Policy `institutional-io-candidate-narrowing-v2`.
+- Public/private name hints include expanded ownership patterns and private-practice health categories (still provisional hints).
+- Institution evidence: a government operator with an unverified private claim goes to `REVIEW`; verified private ownership is retained with an audit reason (`government_operator_vs_private_conflict`); a government operator alone is reported as `OPERATOR_PROXY` (never promotable). Floor numbers and "internal medicine" mark subunits; the Overture category `chapel` is not an institution.
+- 21 category floor entries in `suggest.py` use more specific reviewed codes (for example OSM `shop=beauty` → 962 instead of 47).
+
+## Additions (separate columns; existing columns unchanged)
+
+- Draft subclass narrowing from `psic_rev5_io240_refinement.csv` in `io_subgroup_refinement_code`, `io_subgroup_refinement_basis` and `io*_subgroup_codes`.
+- Direct I-O evidence from 14 explicit OSM tag rules (`direct_io_rules.csv`) in `direct_io_*`.
+- Resolved codes with provenance in `io*_resolved_code`, `io*_resolved_status`, `io*_resolved_source`, made to nest in the official hierarchy. Carried into the QGIS layer.
+- Labelled ownership inferences from explicit source attributes or name hints in `io_ownership_inferred_*` and `io*_ownership_inferred_code`; not used in strict resolved columns.
+- Optional input columns `explicit_psic_code` (status `MANUAL`) and `explicit_io16_code`, `explicit_io80_code`, `explicit_io240_code`, validated before classification.
+- `run.json` records the hierarchy, refinement and direct-rule files with their hashes, and resolution counts.
+- Express cache version `joint-v9.4.3-classification-resolution`, so runs made with the earlier rules are not reused.
+
 ## PSA 2018 I-O industry mapping
 
 - `classified_pois.parquet` gains PSA 2018 input-output industry sets (or explicitly provisional candidate sets) for every PSIC-classified place: `io16_codes`, `io80_codes`, `io240_codes` with names and confidence, plus `io_mapping_status`, `io_mapping_psic_level`, `io_mapping_psic_code`, `io_mapping_psic2019_codes`, `io_mapping_bridge_relation`, and `io_mapping_bridge_basis`.

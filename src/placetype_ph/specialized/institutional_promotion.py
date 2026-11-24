@@ -28,7 +28,7 @@ from .institutional_registry import (
 )
 from .institutional_shadow import InstitutionResolver, load_verified_links
 
-POLICY = "institution-verified-ownership-promotion-v1"
+POLICY = "institution-verified-ownership-promotion-v2"
 NEW_FIELDS = (
     "institution_resolution_status",
     "institution_resolved_ownership",
@@ -124,15 +124,15 @@ def resolve_institutional_ownership(
                 }:
                     status, reason = "REVIEW", "invalid_verified_ownership_assertion"
                 else:
-                    # Existing potentially incompatible baseline evidence is never
-                    # overwritten, even when it is only a hint.
+                    # Explicit or untyped prior ownership claims still require review.
+                    # A known provisional hint is weaker than an independently verified link.
+                    baseline_fields = ["institution_ownership", "ownership_side"]
+                    provisional_hint = clean(record.get("ownership_status")) == "PROVISIONAL"
+                    if not provisional_hint:
+                        baseline_fields.append("ownership_candidate")
                     baseline = {
                         clean(record.get(field)).casefold()
-                        for field in (
-                            "institution_ownership",
-                            "ownership_side",
-                            "ownership_candidate",
-                        )
+                        for field in baseline_fields
                         if clean(record.get(field)).casefold() in {"public", "private"}
                     }
                     if baseline and baseline != {candidate}:
@@ -140,6 +140,9 @@ def resolve_institutional_ownership(
                     else:
                         status, reason = "RESOLVED", assessment.reason
                         owner = candidate
+                        hint = clean(record.get("ownership_candidate")).casefold()
+                        if provisional_hint and hint in {"public", "private"} and hint != candidate:
+                            reason = "verified_ownership_overrides_provisional_hint"
             elif assessment.status in PROMOTABLE:
                 status, reason = "REVIEW", "strong_status_without_promotion_eligibility"
         decisions.append(

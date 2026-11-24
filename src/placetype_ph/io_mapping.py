@@ -14,6 +14,19 @@ marked ``draft`` expose candidate sets with ``PROVISIONAL_*`` statuses; they are
 to ordinary ``MAPPED_*`` results until their basis is changed to ``reviewed``. A draft row
 decides the status only when it changes the answer: if the deepest accepted ancestor row gives
 the same I-O sets, that accepted mapping is reported instead.
+
+Two further packaged files support the mapping without widening it:
+
+* ``io_hierarchy_2018.csv`` gives the official IO240 -> IO80 -> IO16 membership of the PSA
+  2018 tables. Every concordance row is checked against it when the crosswalk is loaded, so
+  an IO240 code whose official parent is missing from the same row's IO80 set stops the run.
+* ``psic_rev5_io240_refinement.csv`` narrows the IO240 set of a Revision 5 class or subclass
+  inside its group's set. All of its rows are ``draft``; the narrowed sets are therefore
+  written to separate ``io*_subgroup_codes`` columns and never replace the candidate sets.
+
+A PSIC result whose evidence admits several separate subtrees (a reviewed UNION, for
+example Overture ``lodging``) is mapped as the union of the I-O sets of those subtrees,
+not through their common parent, which may hold activities the evidence excludes.
 """
 
 from __future__ import annotations
@@ -21,6 +34,7 @@ from __future__ import annotations
 import csv
 import hashlib
 import io
+import json
 import re
 import unicodedata
 from collections import Counter
@@ -47,6 +61,8 @@ if TYPE_CHECKING:
 
 CONCORDANCE_FILE = "psic_2019_to_io_2018.csv"
 BRIDGE_FILE = "psic_rev5_to_psic_2019.csv"
+HIERARCHY_FILE = "io_hierarchy_2018.csv"
+REFINEMENT_FILE = "psic_rev5_io240_refinement.csv"
 CONCORDANCE_PSIC_VERSION = "2019 update to 2009 PSIC"
 
 RESOLUTIONS = ("io16", "io80", "io240")
@@ -98,6 +114,10 @@ class IOMappingStatus(StrEnum):
     UNMAPPED_NO_PSIC = "UNMAPPED_NO_PSIC"
     UNMAPPED_UNKNOWN_PSIC_CODE = "UNMAPPED_UNKNOWN_PSIC_CODE"
     UNMAPPED_NO_BRIDGE = "UNMAPPED_NO_BRIDGE"
+    # A PSIC result that admits several separate subtrees, mapped member by member.
+    MAPPED_UNION = "MAPPED_UNION"
+    PROVISIONAL_UNION = "PROVISIONAL_UNION"
+    UNMAPPED_UNION_PARTIAL = "UNMAPPED_UNION_PARTIAL"
 
 
 _MAPPED_AT = {
@@ -135,6 +155,24 @@ IO_OUTPUT_COLUMNS = (
     "io240_names",
     "io240_confidence",
 )
+
+# Draft class/subclass narrowing. Kept apart from the candidate sets because every row of the
+# packaged refinement table is a draft; the original sets stay authoritative.
+IO_SUBGROUP_COLUMNS = (
+    "io_subgroup_refinement_code",
+    "io_subgroup_refinement_basis",
+    "io16_subgroup_codes",
+    "io80_subgroup_codes",
+    "io240_subgroup_codes",
+)
+REFINEMENT_BASES = frozenset({"draft", "reviewed"})
+# Resolutions whose candidate set depends on a draft bridge row ("io16; io80; io240" or a subset).
+# A level is listed only when the deepest accepted ancestor row gives a different set at that
+# level, so a resolution that the draft row does not change is not marked provisional.
+# A provisional row with no dependent levels uses the explicit sentinel "none".
+IO_DRAFT_COLUMNS = ("io_mapping_draft_levels",)
+_ORDINARY_UNION = {str(IOMappingStatus.MAPPED_UNION)}
+_PROVISIONAL_UNION = {str(IOMappingStatus.PROVISIONAL_UNION)}
 
 # The QGIS layer excludes I-O names for the same reason it excludes taxonomy titles.
 IO_GIS_COLUMNS = tuple(
@@ -356,6 +394,96 @@ def _parse_bridge(source: _Source) -> list[BridgeRow]:
     return links
 
 
+@dataclass(frozen=True, slots=True)
+class IOHierarchy:
+    """Official PSA 2018 membership: each IO240 industry in one IO80, each IO80 in one IO16."""
+
+    io240_parent: dict[str, str]
+    io80_parent: dict[str, str]
+    io240_name: dict[str, str]
+    parent_basis: dict[str, str]
+
+
+@dataclass(frozen=True, slots=True)
+class RefinementRow:
+    """Draft or reviewed IO240 narrowing for one Revision 5 class or subclass."""
+
+    rev5_level: str
+    rev5_code: str
+    rev5_title: str
+    io240_codes: tuple[str, ...]
+    basis: str
+    note: str = ""
+
+
+_HIERARCHY_COLUMNS = ("io240_code", "io240_name", "io80_code", "io16_code", "parent_basis", "note")
+_REFINEMENT_COLUMNS = {"rev5_level", "rev5_code", "rev5_title", "io240_codes", "basis", "note"}
+
+
+def _parse_hierarchy(source: _Source) -> IOHierarchy:
+    reader = csv.DictReader(io.StringIO(source.text, newline=""))
+    if tuple(reader.fieldnames or ()) != _HIERARCHY_COLUMNS:
+        raise IOCrosswalkError(f"I-O hierarchy must have exactly {','.join(_HIERARCHY_COLUMNS)}")
+    io240_parent: dict[str, str] = {}
+    io80_parent: dict[str, str] = {}
+    names: dict[str, str] = {}
+    basis: dict[str, str] = {}
+    for line_no, record in _records(source, set(_HIERARCHY_COLUMNS), "I-O hierarchy"):
+        where = f"I-O hierarchy line {line_no}"
+        c240, c80, c16 = record["io240_code"], record["io80_code"], record["io16_code"]
+        for resolution, code in (("io240", c240), ("io80", c80), ("io16", c16)):
+            if not _IO_CODE_PATTERN[resolution].fullmatch(code):
+                raise IOCrosswalkError(f"{where}: malformed {resolution} code {code!r}")
+        if c240 in io240_parent:
+            raise IOCrosswalkError(f"{where}: repeated IO240 code {c240}")
+        if io80_parent.setdefault(c80, c16) != c16:
+            raise IOCrosswalkError(f"{where}: IO80 {c80} has two IO16 parents")
+        io240_parent[c240] = c80
+        names[c240] = record["io240_name"]
+        basis[c240] = record["parent_basis"]
+    if len(io240_parent) != 240 or len(io80_parent) != 80 or len(set(io80_parent.values())) != 16:
+        raise IOCrosswalkError(
+            "I-O hierarchy must cover 240 IO240, 80 IO80 and 16 IO16 industries; found "
+            f"{len(io240_parent)}, {len(io80_parent)} and {len(set(io80_parent.values()))}"
+        )
+    if (
+        set(io240_parent) != {f"{i:03d}" for i in range(1, 241)}
+        or set(io80_parent) != {f"{i:02d}" for i in range(1, 81)}
+        or set(io80_parent.values()) != {f"{i:02d}" for i in range(1, 17)}
+    ):
+        raise IOCrosswalkError("I-O hierarchy does not contain the official code universe")
+    return IOHierarchy(io240_parent, io80_parent, names, basis)
+
+
+def _parse_refinement(source: _Source) -> list[RefinementRow]:
+    rows: list[RefinementRow] = []
+    seen: set[str] = set()
+    for line_no, record in _records(source, _REFINEMENT_COLUMNS, "I-O refinement"):
+        where = f"I-O refinement line {line_no}"
+        level = record["rev5_level"].casefold()
+        if level not in {"class", "subclass"}:
+            raise IOCrosswalkError(f"{where}: refinement applies to classes and subclasses only")
+        code = record["rev5_code"]
+        if not re.fullmatch(r"[0-9]{4}" if level == "class" else r"[0-9]{5}", code):
+            raise IOCrosswalkError(f"{where}: malformed {level} code {code!r}")
+        if code in seen:
+            raise IOCrosswalkError(f"{where}: repeated refinement code {code}")
+        seen.add(code)
+        codes = tuple(_split(record["io240_codes"], CODE_DELIMITER))
+        if not codes or any(not _IO_CODE_PATTERN["io240"].fullmatch(c) for c in codes):
+            raise IOCrosswalkError(f"{where}: malformed IO240 codes {list(codes)!r}")
+        if len(set(codes)) != len(codes):
+            raise IOCrosswalkError(f"{where}: repeated IO240 codes")
+        if record["basis"] not in REFINEMENT_BASES:
+            raise IOCrosswalkError(f"{where}: unknown basis {record['basis']!r}")
+        if not record["rev5_title"]:
+            raise IOCrosswalkError(f"{where}: blank rev5_title")
+        rows.append(
+            RefinementRow(level, code, record["rev5_title"], codes, record["basis"], record["note"])
+        )
+    return rows
+
+
 def _weakest(confidences: Iterable[str]) -> str:
     ranked = [CONFIDENCE_ORDER.index(value) for value in confidences]
     return CONFIDENCE_ORDER[max(ranked)] if ranked else NOT_MAPPED
@@ -383,6 +511,8 @@ class IOCrosswalk:
         bridge: Iterable[BridgeRow] = (),
         *,
         sources: dict[str, _Source] | None = None,
+        hierarchy: IOHierarchy | None = None,
+        refinement: Iterable[RefinementRow] = (),
     ):
         self.rows = list(rows)
         self._index: dict[tuple[str, str], IORow] = {}
@@ -413,23 +543,109 @@ class IOCrosswalk:
                 )
             self._bridge[key] = link
         self._sources = dict(sources or {})
+        self.hierarchy = hierarchy
+        if hierarchy is not None:
+            self._check_hierarchy(hierarchy)
+        self.refinement = list(refinement)
+        if self.refinement and hierarchy is None:
+            raise IOCrosswalkError("an IO240 refinement table requires the I-O hierarchy")
+        self._refine: dict[str, RefinementRow] = {}
+        for row in self.refinement:
+            unknown = [c for c in row.io240_codes if c not in hierarchy.io240_parent]  # type: ignore[union-attr]
+            if unknown:
+                raise IOCrosswalkError(f"refinement {row.rev5_code} lists unknown IO240 {unknown}")
+            self._refine[row.rev5_code] = row
+        self._names = {
+            resolution: {
+                code: name
+                for row in self.rows
+                for code, name in zip(
+                    row.resolution(resolution).codes, row.resolution(resolution).names, strict=True
+                )
+            }
+            for resolution in RESOLUTIONS
+        }
+
+    def _check_hierarchy(self, hierarchy: IOHierarchy) -> None:
+        """Every row must nest: IO240 parents inside its IO80 set, IO80 parents inside IO16.
+
+        A row that lists an IO240 code without that code's official IO80 parent would give
+        places IO80 and IO240 codes that contradict each other in the PSA 2018 tables.
+        """
+        problems: list[str] = []
+        for row in self.rows:
+            label = f"{row.psic_level} {row.psic_code}"
+            io80 = set(row.io80.codes)
+            io16 = set(row.io16.codes)
+            unknown240 = [c for c in row.io240.codes if c not in hierarchy.io240_parent]
+            unknown80 = [c for c in row.io80.codes if c not in hierarchy.io80_parent]
+            if unknown240 or unknown80:
+                problems.append(
+                    f"{label}: codes outside the official hierarchy {unknown240 + unknown80}"
+                )
+                continue
+            orphan240 = [c for c in row.io240.codes if hierarchy.io240_parent[c] not in io80]
+            orphan80 = [c for c in row.io80.codes if hierarchy.io80_parent[c] not in io16]
+            if orphan240:
+                problems.append(
+                    f"{label}: IO240 {orphan240} belong to IO80 "
+                    f"{sorted({hierarchy.io240_parent[c] for c in orphan240})}, "
+                    f"not in {sorted(io80)}"
+                )
+            if orphan80:
+                problems.append(
+                    f"{label}: IO80 {orphan80} belong to IO16 "
+                    f"{sorted({hierarchy.io80_parent[c] for c in orphan80})}, not in {sorted(io16)}"
+                )
+        if problems:
+            raise IOCrosswalkError(
+                "I-O concordance contradicts the official PSA 2018 hierarchy:\n  "
+                + "\n  ".join(problems)
+            )
 
     @classmethod
-    def _from_sources(cls, concordance: _Source, bridge: _Source) -> IOCrosswalk:
+    def _from_sources(
+        cls,
+        concordance: _Source,
+        bridge: _Source,
+        hierarchy: _Source | None = None,
+        refinement: _Source | None = None,
+    ) -> IOCrosswalk:
+        sources = {"concordance": concordance, "bridge": bridge}
+        if hierarchy is not None:
+            sources["hierarchy"] = hierarchy
+        if refinement is not None:
+            sources["refinement"] = refinement
         return cls(
             _parse_concordance(concordance),
             _parse_bridge(bridge),
-            sources={"concordance": concordance, "bridge": bridge},
+            sources=sources,
+            hierarchy=_parse_hierarchy(hierarchy) if hierarchy is not None else None,
+            refinement=_parse_refinement(refinement) if refinement is not None else (),
         )
 
     @classmethod
-    def load(cls, path: str | Path, bridge_path: str | Path | None = None) -> IOCrosswalk:
+    def load(
+        cls,
+        path: str | Path,
+        bridge_path: str | Path | None = None,
+        *,
+        check_hierarchy: bool = True,
+    ) -> IOCrosswalk:
+        """Load a concordance file; by default it must nest in the official hierarchy."""
         bridge = _packaged(BRIDGE_FILE) if bridge_path is None else _from_path(bridge_path)
-        return cls._from_sources(_from_path(path), bridge)
+        hierarchy = _packaged(HIERARCHY_FILE) if check_hierarchy else None
+        refinement = _packaged(REFINEMENT_FILE) if check_hierarchy else None
+        return cls._from_sources(_from_path(path), bridge, hierarchy, refinement)
 
     @classmethod
     def load_default(cls) -> IOCrosswalk:
-        return cls._from_sources(_packaged(CONCORDANCE_FILE), _packaged(BRIDGE_FILE))
+        return cls._from_sources(
+            _packaged(CONCORDANCE_FILE),
+            _packaged(BRIDGE_FILE),
+            _packaged(HIERARCHY_FILE),
+            _packaged(REFINEMENT_FILE),
+        )
 
     def concordance_row(self, code: str) -> IORow | None:
         return self._index.get((_psic_level_of(code) or "", code))
@@ -450,12 +666,25 @@ class IOCrosswalk:
                 sorted(Counter(link.relation for link in self.bridge).items())
             ),
         }
-        for role, target in (("concordance", concordance), ("bridge", bridge)):
-            source = self._sources.get(role)
-            if source is not None:
+        out: dict[str, object] = {"concordance": concordance, "bridge": bridge}
+        if self.hierarchy is not None:
+            out["hierarchy"] = {
+                "io240_rows": len(self.hierarchy.io240_parent),
+                "parent_basis": dict(sorted(Counter(self.hierarchy.parent_basis.values()).items())),
+                "concordance_nesting_checked": True,
+            }
+        if self._sources.get("refinement") is not None:
+            out["subgroup_refinement"] = {
+                "rows": len(self.refinement),
+                "rows_by_basis": dict(sorted(Counter(r.basis for r in self.refinement).items())),
+                "applied_to": "io*_subgroup_codes only; candidate sets unchanged",
+            }
+        for role, target in out.items():
+            source = self._sources.get(role if role != "subgroup_refinement" else "refinement")
+            if source is not None and isinstance(target, dict):
                 target["file"] = source.name
                 target["sha256"] = source.sha256
-        return {"concordance": concordance, "bridge": bridge}
+        return out
 
     def map_psic(self, code: str | None, taxonomy: Taxonomy) -> dict[str, str]:
         """Map one PSIC Revision 5 code to I-O sets.
@@ -498,6 +727,64 @@ class IOCrosswalk:
             if all(fallback[f"{r}_codes"] == candidate[f"{r}_codes"] for r in RESOLUTIONS):
                 return fallback
         return candidate
+
+    def accepted_sets(self, code: str, taxonomy: Taxonomy) -> dict[str, frozenset[str]] | None:
+        """I-O sets from the deepest accepted (non-draft) bridge row above ``code``, if any.
+
+        This is the answer that does not depend on any draft row. ``None`` means no accepted
+        ancestor row exists (or it records no counterpart), so every level depends on a draft.
+        """
+        if code not in taxonomy.nodes:
+            return None
+        for ancestor in taxonomy.ancestors(code, include_self=True):
+            node = taxonomy.get(ancestor)
+            level = str(node.level).casefold()
+            link = self._bridge.get((level, str(node.code)))
+            if link is None or _normalize_title(link.rev5_title) != _normalize_title(node.title):
+                continue
+            if link.basis == "draft":
+                continue
+            if link.relation == "no_counterpart":
+                return None
+            composed = self._compose(level, link)
+            return {
+                r: frozenset(_split(composed[f"{r}_codes"], CODE_DELIMITER)) for r in RESOLUTIONS
+            }
+        return None
+
+    def draft_levels(self, members: Iterable[str], taxonomy: Taxonomy, base: dict[str, str]) -> str:
+        """Levels of ``base`` whose candidate set depends on a draft bridge row.
+
+        ``members`` is one PSIC code, or the admissible roots of a union. For each member the
+        accepted set is its own set when its mapping is not provisional, otherwise the set of
+        its deepest accepted ancestor row. A level depends on a draft row when the union of
+        the members' accepted sets differs from the base set at that level.
+        """
+        if not str(base.get("io_mapping_status", "")).startswith("PROVISIONAL"):
+            return ""
+        accepted: dict[str, set[str]] = {r: set() for r in RESOLUTIONS}
+        unknown = False
+        for code in members:
+            own = self.map_psic(code, taxonomy)
+            if not own["io_mapping_status"].startswith("PROVISIONAL"):
+                sets = {
+                    r: frozenset(_split(own[f"{r}_codes"], CODE_DELIMITER)) for r in RESOLUTIONS
+                }
+            else:
+                found = self.accepted_sets(code, taxonomy)
+                if found is None:
+                    unknown = True
+                    continue
+                sets = found
+            for r in RESOLUTIONS:
+                accepted[r] |= sets[r]
+        levels = [
+            r
+            for r in RESOLUTIONS
+            if base.get(f"{r}_codes")
+            and (unknown or accepted[r] != set(_split(base[f"{r}_codes"], CODE_DELIMITER)))
+        ]
+        return CODE_DELIMITER.join(levels) if levels else "none"
 
     def _compose(self, level: str, link: BridgeRow) -> dict[str, str]:
         targets = [self._index[(_psic_level_of(c) or "", c)] for c in link.psic2019_codes]
@@ -551,6 +838,154 @@ class IOCrosswalk:
         out["io_mapping_status"] = str(status)
         return {column: out[column] for column in IO_OUTPUT_COLUMNS}
 
+    def map_union(self, codes: Iterable[str], taxonomy: Taxonomy) -> dict[str, str]:
+        """Map a PSIC result that admits several separate subtrees, member by member.
+
+        The I-O sets are the union of the members' sets, so they are never wider than the
+        members justify. The common parent is not used: in Revision 5 a division can hold an
+        activity that maps to another I-O industry (division 55 holds booking intermediation,
+        division 47 holds motor vehicle retail). If any member has no I-O correspondence the
+        union is incomplete and nothing is mapped.
+        """
+        members = sorted(set(str(c).strip() for c in codes if str(c).strip()))
+        if not members or any(code not in taxonomy.nodes for code in members):
+            return _empty(IOMappingStatus.UNMAPPED_UNKNOWN_PSIC_CODE)
+        if len(members) == 1:
+            return self.map_psic(members[0], taxonomy)
+        parts = [self.map_psic(code, taxonomy) for code in members]
+        if any(not part[f"{res}_codes"] for part in parts for res in RESOLUTIONS):
+            row = _empty(IOMappingStatus.UNMAPPED_UNION_PARTIAL)
+            row["io_mapping_psic_level"] = "union"
+            row["io_mapping_psic_code"] = CODE_DELIMITER.join(members)
+            return row
+        provisional = any(part["io_mapping_status"].startswith("PROVISIONAL") for part in parts)
+        out = dict.fromkeys(IO_OUTPUT_COLUMNS, "")
+        out.update(
+            {
+                "io_mapping_status": str(
+                    IOMappingStatus.PROVISIONAL_UNION
+                    if provisional
+                    else IOMappingStatus.MAPPED_UNION
+                ),
+                "io_mapping_psic_level": "union",
+                "io_mapping_psic_code": CODE_DELIMITER.join(members),
+                "io_mapping_psic2019_codes": CODE_DELIMITER.join(
+                    dict.fromkeys(
+                        c
+                        for part in parts
+                        for c in _split(part["io_mapping_psic2019_codes"], CODE_DELIMITER)
+                    )
+                ),
+                "io_mapping_bridge_relation": CODE_DELIMITER.join(
+                    sorted({part["io_mapping_bridge_relation"] for part in parts})
+                ),
+                "io_mapping_bridge_basis": CODE_DELIMITER.join(
+                    sorted({part["io_mapping_bridge_basis"] for part in parts})
+                ),
+            }
+        )
+        for resolution in RESOLUTIONS:
+            codes_ = sorted(
+                {c for part in parts for c in _split(part[f"{resolution}_codes"], CODE_DELIMITER)}
+            )
+            out[f"{resolution}_codes"] = CODE_DELIMITER.join(codes_)
+            out[f"{resolution}_names"] = NAME_DELIMITER.join(
+                self._names[resolution].get(c, "") for c in codes_
+            )
+            out[f"{resolution}_confidence"] = _weakest(
+                part[f"{resolution}_confidence"]
+                for part in parts
+                if part[f"{resolution}_confidence"] not in ("", NOT_MAPPED)
+            )
+            out[f"{resolution}_map_code"] = codes_[0] if len(codes_) == 1 else ""
+            out[f"{resolution}_map_status"] = (
+                "SINGLETON_CANDIDATE"
+                if len(codes_) == 1
+                else "AMBIGUOUS_SET"
+                if codes_
+                else "UNMAPPED"
+            )
+        return {column: out[column] for column in IO_OUTPUT_COLUMNS}
+
+    def subgroup(
+        self, code: str | None, taxonomy: Taxonomy, base: dict[str, str]
+    ) -> dict[str, str]:
+        """Draft IO240 narrowing for a Revision 5 class or subclass, in separate columns.
+
+        The nearest class/subclass ancestor with a refinement row decides, but only when the
+        row's title matches the loaded taxonomy. The narrowed IO240 set must lie inside the
+        base set, and its IO80/IO16 parents inside the base IO80/IO16 sets; otherwise the row
+        is reported as ``not_applied``. Without a row the base sets are repeated unchanged.
+        """
+        out = {
+            "io_subgroup_refinement_code": "",
+            "io_subgroup_refinement_basis": "",
+            **{f"{r}_subgroup_codes": base.get(f"{r}_codes", "") for r in RESOLUTIONS},
+        }
+        if not code or self.hierarchy is None or code not in taxonomy.nodes:
+            return out
+        row = None
+        for ancestor in taxonomy.ancestors(code, include_self=True):
+            candidate = self._refine.get(str(ancestor))
+            if candidate is not None and _normalize_title(candidate.rev5_title) == _normalize_title(
+                taxonomy.get(ancestor).title
+            ):
+                row = candidate
+                break
+        base240 = set(_split(base.get("io240_codes", ""), CODE_DELIMITER))
+        if row is None or not base240:
+            return out
+        base80 = set(_split(base.get("io80_codes", ""), CODE_DELIMITER))
+        base16 = set(_split(base.get("io16_codes", ""), CODE_DELIMITER))
+        refined240 = sorted(row.io240_codes)
+        parents80 = sorted({self.hierarchy.io240_parent[c] for c in refined240})
+        parents16 = sorted({self.hierarchy.io80_parent[c] for c in parents80})
+        out["io_subgroup_refinement_code"] = row.rev5_code
+        nested = set(refined240) <= base240 and set(parents80) <= base80
+        if not (nested and set(parents16) <= base16):
+            out["io_subgroup_refinement_basis"] = "not_applied"
+            return out
+        out["io_subgroup_refinement_basis"] = row.basis
+        out["io240_subgroup_codes"] = CODE_DELIMITER.join(refined240)
+        out["io80_subgroup_codes"] = CODE_DELIMITER.join(parents80)
+        out["io16_subgroup_codes"] = CODE_DELIMITER.join(parents16)
+        return out
+
+    def subgroup_union(
+        self, codes: Iterable[str], taxonomy: Taxonomy, base: dict[str, str]
+    ) -> dict[str, str]:
+        """Union of the members' draft narrowing; never wider than the union's own sets."""
+        members = [str(c).strip() for c in codes if str(c).strip() in taxonomy.nodes]
+        parts = [self.subgroup(c, taxonomy, self.map_psic(c, taxonomy)) for c in members]
+        out = {
+            "io_subgroup_refinement_code": CODE_DELIMITER.join(
+                p["io_subgroup_refinement_code"] for p in parts if p["io_subgroup_refinement_code"]
+            ),
+            "io_subgroup_refinement_basis": CODE_DELIMITER.join(
+                sorted(
+                    {
+                        p["io_subgroup_refinement_basis"]
+                        for p in parts
+                        if p["io_subgroup_refinement_basis"]
+                    }
+                )
+            ),
+        }
+        for resolution in RESOLUTIONS:
+            if not base.get(f"{resolution}_codes"):
+                out[f"{resolution}_subgroup_codes"] = ""
+                continue
+            out[f"{resolution}_subgroup_codes"] = CODE_DELIMITER.join(
+                sorted(
+                    {
+                        c
+                        for p in parts
+                        for c in _split(p[f"{resolution}_subgroup_codes"], CODE_DELIMITER)
+                    }
+                )
+            )
+        return out
+
 
 def _clean_code(value: object) -> str | None:
     if value is None or (not isinstance(value, str) and pd.isna(value)):
@@ -570,26 +1005,76 @@ def enrich_summary_with_io(
     number of distinct codes rather than with the number of POIs.
     """
     crosswalk = crosswalk or IOCrosswalk.load_default()
-    psic = results.loc[results["scheme"] == "psic", ["canonical_id", "code"]]
-    ids = [str(value) for value in psic["canonical_id"]]
-    codes = [_clean_code(value) for value in psic["code"]]
-    lookup = {code: crosswalk.map_psic(code, taxonomy) for code in dict.fromkeys(codes)}
-    mapped = [
-        {"canonical_id": cid, **lookup[code]} for cid, code in zip(ids, codes, strict=True)
+    columns = ["canonical_id", "code"] + [
+        col for col in ("status", "audit", "admissible_roots") if col in results.columns
     ]
-    io_frame = pd.DataFrame(mapped, columns=["canonical_id", *IO_OUTPUT_COLUMNS])
+    psic = results.loc[results["scheme"] == "psic", columns]
+    ids = [str(value) for value in psic["canonical_id"]]
+    keys: list[tuple[str, object]] = []
+    for record in psic.to_dict("records"):
+        code = _clean_code(record["code"])
+        roots = _admissible_roots(record, taxonomy, code)
+        keys.append(("union", roots) if len(roots) > 1 else ("code", code))
+    lookup: dict[tuple[str, object], dict[str, str]] = {}
+    for key in dict.fromkeys(keys):
+        kind, value = key
+        if kind == "union":
+            base = crosswalk.map_union(value, taxonomy)  # type: ignore[arg-type]
+            extra = crosswalk.subgroup_union(value, taxonomy, base)  # type: ignore[arg-type]
+            members = tuple(value)  # type: ignore[arg-type]
+        else:
+            base = crosswalk.map_psic(value, taxonomy)  # type: ignore[arg-type]
+            extra = crosswalk.subgroup(value, taxonomy, base)  # type: ignore[arg-type]
+            members = (value,) if value else ()
+        draft = {"io_mapping_draft_levels": crosswalk.draft_levels(members, taxonomy, base)}
+        lookup[key] = {**base, **extra, **draft}
+    out_columns = (*IO_OUTPUT_COLUMNS, *IO_SUBGROUP_COLUMNS, *IO_DRAFT_COLUMNS)
+    mapped = [{"canonical_id": cid, **lookup[key]} for cid, key in zip(ids, keys, strict=True)]
+    io_frame = pd.DataFrame(mapped, columns=["canonical_id", *out_columns])
     # An explicit string dtype avoids Arrow's null type when a slice has no mapped rows.
-    for column in IO_OUTPUT_COLUMNS:
+    for column in out_columns:
         io_frame[column] = io_frame[column].astype("string")
     enriched = summary.merge(io_frame, on="canonical_id", how="left", validate="one_to_one")
     # A POI without a PSIC result row has no PSIC code to map.
     missing = enriched["io_mapping_status"].isna()
     if missing.any():
-        enriched.loc[missing, list(IO_OUTPUT_COLUMNS)] = ""
+        enriched.loc[missing, list(out_columns)] = ""
         enriched.loc[missing, "io_mapping_status"] = str(IOMappingStatus.UNMAPPED_NO_PSIC)
         for resolution in RESOLUTIONS:
             enriched.loc[missing, f"{resolution}_map_status"] = "UNMAPPED"
     return resolve_io80_ambiguity(enriched)
+
+
+def _admissible_roots(
+    record: dict, taxonomy: Taxonomy, code: str | None
+) -> tuple[str, ...]:
+    """Read accepted roots; never widen a malformed or missing known UNION."""
+    if "admissible_roots" in record:
+        raw = record["admissible_roots"]
+        if isinstance(raw, str):
+            raw = json.loads(raw)
+    else:
+        audit = record.get("audit")
+        if isinstance(audit, str) and audit.strip():
+            audit = json.loads(audit)
+        raw = audit.get("admissible_roots", []) if isinstance(audit, dict) else []
+    if not isinstance(raw, (list, tuple)) or any(
+        not isinstance(root, str) or root not in taxonomy.nodes for root in raw
+    ):
+        raise ValueError("invalid admissible_roots in PSIC classification")
+    roots = sorted(set(raw))
+    if roots and code is not None and any(
+        root != code and code not in taxonomy.ancestors(root) for root in roots
+    ):
+        raise ValueError("admissible_roots outside representative PSIC subtree")
+    minimal = tuple(
+        root for root in roots if not any(
+            other != root and other in taxonomy.ancestors(root) for other in roots
+        )
+    )
+    if record.get("status") == "UNION" and len(minimal) < 2:
+        raise ValueError("UNION classification has missing or redundant admissible_roots")
+    return minimal
 
 
 def io_status_counts(summary: pd.DataFrame) -> dict[str, int]:
@@ -690,8 +1175,10 @@ def io_coverage_summary(summary: pd.DataFrame) -> dict[str, object]:
     psic_status_counts_when_coded = _value_counts(psic_status, psic_mask)
 
     statuses = summary["io_mapping_status"].astype("string").fillna("").str.strip()
-    ordinary_mask = statuses.isin({str(status) for status in _MAPPED_AT.values()})
-    provisional_mask = statuses.isin({str(status) for status in _PROVISIONAL_AT.values()})
+    ordinary_mask = statuses.isin({str(status) for status in _MAPPED_AT.values()} | _ORDINARY_UNION)
+    provisional_mask = statuses.isin(
+        {str(status) for status in _PROVISIONAL_AT.values()} | _PROVISIONAL_UNION
+    )
 
     basis = summary["io_mapping_bridge_basis"].astype("string").fillna("").str.strip()
     basis_counts = _value_counts(basis, basis.ne(""))

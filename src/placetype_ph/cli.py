@@ -46,6 +46,7 @@ from .express import (
 )
 from .gis import GISExportError, export_gis_run
 from .io_mapping import IO_MAP_COLUMNS, PSIC_LEVELS, RESOLUTIONS, io_coverage_summary
+from .io_resolution import RESOLUTION_POLICIES, RESOLVED_COLUMNS
 from .joint_crosswalk import (
     ensure_joint_key,
     make_joint_key,
@@ -1217,6 +1218,20 @@ def _print_express_io_coverage(run_dir: Path) -> None:
     if not isinstance(io_mapping, dict):
         return
 
+    resolution = io_mapping.get("resolution")
+    if isinstance(resolution, dict):
+        console.print(f"I-O resolution policy: {resolution.get('selected_policy', 'unknown')}")
+        for level in RESOLUTIONS:
+            stats = resolution.get(f"{level}_resolved", {})
+            if isinstance(stats, dict) and "coded_rows" in stats:
+                counts = stats.get("status_counts", {})
+                total = sum(counts.values()) if isinstance(counts, dict) else 0
+                withheld = counts.get("PROVISIONAL_BRIDGE_NOT_RESOLVED", 0) if total else 0
+                share = _count_share(stats["coded_rows"], total)
+                console.print(
+                    f"  {level.upper()} resolved: {share}; "
+                    f"withheld provisional singleton: {withheld:,}"
+                )
     coverage = io_mapping.get("coverage")
     if not isinstance(coverage, dict):
         outputs = manifest.get("outputs", {})
@@ -1396,6 +1411,10 @@ def express(
             )
         ),
     ] = None,
+    io_resolution_policy: Annotated[
+        str,
+        typer.Option(help="I-O resolution: strict, evidence-weighted, or extended"),
+    ] = "strict",
 ):
     """Run the normal OpenPlaces-to-QGIS workflow with sensible automatic defaults.
 
@@ -1403,6 +1422,11 @@ def express(
     importer, joint crosswalk workflow, classifier, and GIS exporter rather than defining
     a second classification path.
     """
+    if io_resolution_policy not in RESOLUTION_POLICIES:
+        raise typer.BadParameter(
+            "choose strict, evidence-weighted, or extended",
+            param_hint="--io-resolution-policy",
+        )
     if not input_path.is_file():
         raise typer.BadParameter(f"input does not exist: {input_path}")
 
@@ -1450,7 +1474,7 @@ def express(
         f"product_column:{product_column or ''}",
         f"promote_unchecked:{bool(promote_unchecked)}",
         f"hold_inconclusive:{bool(hold_inconclusive)}",
-        pipeline_state(),
+        pipeline_state(io_resolution_policy),
         *[
             f"taxonomy:{scheme}:{versions[scheme]}:{taxonomies[scheme].fingerprint}"
             for scheme in selected
@@ -1556,7 +1580,10 @@ def express(
         )
         raise typer.Exit(1)
 
-    required_summary_columns = IO_MAP_COLUMNS if "psic" in selected else ()
+    required_summary_columns = (
+        (*IO_MAP_COLUMNS, *RESOLVED_COLUMNS, "io_mapping_draft_levels")
+        if "psic" in selected else ()
+    )
     if classification_run_ready(run_dir, required_summary_columns=required_summary_columns):
         console.print(f"Reusing completed classification run: [dim]{run_dir}[/dim]")
     else:
@@ -1575,6 +1602,7 @@ def express(
             cache_path=run_dir / "decisions.sqlite",
             fail_on_ambiguous_crosswalk=CLASSIFY_PARAMS["fail_on_ambiguous_crosswalk"],
             reviewed_psic=bool(CLASSIFY_PARAMS["reviewed_psic"]),
+            io_resolution_policy=io_resolution_policy,
         )
 
     if "psic" in selected:
@@ -1638,7 +1666,16 @@ def classify(
             "flagging the affected rows for review"
         ),
     ] = False,
+    io_resolution_policy: Annotated[
+        str,
+        typer.Option(help="I-O resolution: strict, evidence-weighted, or extended"),
+    ] = "strict",
 ):
+    if io_resolution_policy not in RESOLUTION_POLICIES:
+        raise typer.BadParameter(
+            "choose strict, evidence-weighted, or extended",
+            param_hint="--io-resolution-policy",
+        )
     selected = [_check_scheme(s) for s in schemes.split(",") if s.strip()]
     if not selected:
         raise typer.BadParameter("no scheme selected")
@@ -1687,6 +1724,7 @@ def classify(
             limit=limit,
             workers=workers,
             role_crosswalk=role_cw,
+            io_resolution_policy=io_resolution_policy,
         )
         console.print(f"Wrote [bold]{classifications}[/bold]")
         console.print(f"Wrote [bold]{pois}[/bold]")

@@ -1,0 +1,77 @@
+# Classification and I-O resolution architecture
+
+PlaceType PH classifies establishment activity under PSIC, then projects admissible
+activity subtrees into the PSA 2018 I-O industry hierarchy. Reviewed rules and
+curated category floors remain distinct from heuristic suggestions.
+
+## Source evidence
+
+OSM primary tags describe activity. Ownership, operator, religion, emergency,
+access and contact attributes are supplementary; their raw values remain available
+for institutional evidence. Hospital and healthcare hospital tags are compatible.
+Unreviewed mixtures of distinct primary activities remain subject to conflict checks.
+Whole-string reviewed rules are checked before splitting.
+
+## Accepted subtrees and candidate sets
+
+`psic_code` can represent the common ancestor of a restricted union. The detailed
+classification table stores `admissible_roots` as a JSON array, with an audit mirror
+for older readers. I-O projection uses the accepted members, not excluded siblings.
+A known UNION with missing, malformed or inconsistent roots is invalid. If any
+member is unmapped at any I-O level, the entire union mapping abstains conservatively.
+
+## Resolution and provenance
+
+Candidate sets, draft subgroup refinements, direct tag evidence, verified ownership
+and heuristic ownership remain separate. The resolved codes prioritize explicit
+input, verified institution evidence, reviewed PSIC mapping, then direct tag rules.
+Direct agreement from a shared tag is consistency, not independent corroboration.
+The official hierarchy determines parent codes; conflicts at equal authority retain
+the coarser constraint and clear the incompatible finer code. Explicit code input
+is a manual override, not independently verified source evidence.
+
+Draft refinements and ownership hints remain advisory under the strict default.
+Registry input must be licensed and validated; the package does not bundle registries.
+Review distribution rights and attribution for all analytical reference tables.
+
+See the README and DATA_SOURCES.md for schemas and reference provenance.
+
+## Selectable resolution policy (CLI and Python API)
+
+`classify_openplaces(..., io_resolution_policy="strict")` and
+`resolve_io(..., policy="strict")` default to reviewed mappings, explicit input
+and verified ownership. Direct tag evidence is still emitted but cannot fill
+an unresolved code. `evidence-weighted` additionally allows direct evidence
+inside a candidate set and explicit source ownership, but not standalone direct
+fallback or name-only ownership. `extended` permits direct fallback, labelled
+ownership hints and singleton draft subgroup narrowing. These options do not
+alter the original candidate columns. All resolved codes carry a source and status;
+non-strict policies do not make heuristic evidence verified. The selected policy is
+recorded in `run.json`. Both `placetype classify` and `placetype express`
+accept `--io-resolution-policy strict|evidence-weighted|extended` (choose one).
+Strict is the default; it is conservative evidence acceptance, not proof of
+accuracy. Express keys its cache by policy, implementation version and the five
+I-O reference file hashes; its console reports resolved coverage separately from
+map-ready candidate coverage. Use distinct output paths for policy comparisons.
+
+Draft bridge rows are handled per I-O level. `io_mapping_draft_levels` lists the
+levels (`io16`, `io80`, `io240`) whose candidate set depends on a draft
+Revision 5 → PSIC 2019 bridge row, meaning the deepest accepted ancestor row gives
+a different set at that level, or no accepted ancestor exists. In strict and
+evidence-weighted mode a code at a listed level is not adopted; a level that the
+draft row does not change is resolved normally. For example, PSIC 492 (passenger
+land transport by buses) depends on a draft row only at IO240, so its IO16 and
+IO80 codes resolve. When a single candidate is withheld for this reason the status
+is `PROVISIONAL_BRIDGE_NOT_RESOLVED`, not `PSIC_AMBIGUOUS`. In extended mode the
+code is adopted with status `PROVISIONAL_PSIC_MAP` and source `draft_bridge`.
+An explicit `none` means a provisional row was compared and no level depends on
+a draft. Missing/blank metadata on a provisional row is treated as draft at every
+level (including older summaries). Unknown, duplicate or inconsistent level tokens
+raise a validation error. This validates the metadata contract; it is not an
+independent re-derivation from the original taxonomy for externally edited summaries.
+
+A provisional ownership hint does not veto independently verified ownership;
+its original value remains in the summary and the promotion reason records the
+conflict. Untyped and stronger competing claims still require review. A public
+operator is not proof of public ownership; verified private ownership is retained
+with an audit reason where the only competing evidence is a government operator.
