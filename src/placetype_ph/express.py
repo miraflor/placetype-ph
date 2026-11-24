@@ -11,11 +11,12 @@ import pandas as pd
 import pyarrow.parquet as pq
 
 from .io80_resolver import IO80_IMPLEMENTATION_SHA256, IO80_RESOLVER_FINGERPRINT
+from .reviewed_psic import bundled_psic_crosswalk_path
 
 # The cache version changes whenever suggestion semantics change in a way that would make
 # an older automatic crosswalk unsafe to reuse. V9.2c caps mixed source categories at their
 # epistemic floor and backs immediate PSIC sibling disagreements off exactly one level.
-EXPRESS_CACHE_VERSION = "joint-v9.2c-sibling-backoff"
+EXPRESS_CACHE_VERSION = "joint-v9.3-reviewed-psic-rev5"
 
 # Files at or below this size are keyed by content. Larger inputs keep the cheap
 # size/mtime identity, because hashing a full canonical_pois.parquet on every run costs
@@ -33,6 +34,7 @@ SUGGEST_PARAMS: dict[str, object] = {
     "batch_size": 256,
 }
 CLASSIFY_PARAMS: dict[str, object] = {
+    "reviewed_psic": True,
     "llm": "none",
     "passes": 3,
     "fail_on_ambiguous_crosswalk": False,
@@ -125,6 +127,9 @@ def pipeline_state() -> str:
         {
             "suggest": SUGGEST_PARAMS,
             "classify": CLASSIFY_PARAMS,
+            # The accepted source data is an actual semantic dependency of the
+            # output, even if no library version or tuning value changes.
+            "reviewed_psic_crosswalk": file_state(bundled_psic_crosswalk_path()),
             "io80_resolver": {
                 "implementation": IO80_IMPLEMENTATION_SHA256,
                 "policy": IO80_RESOLVER_FINGERPRINT,
@@ -143,16 +148,12 @@ def input_cache_key(input_path: Path, states: Iterable[str]) -> str:
 def default_output_path(input_path: Path) -> Path:
     """Choose an output in PlaceType, never beside the upstream OpenPlaces file."""
     scope = (
-        input_path.parent.name
-        if input_path.name == "canonical_pois.parquet"
-        else input_path.stem
+        input_path.parent.name if input_path.name == "canonical_pois.parquet" else input_path.stem
     )
     return Path("output") / f"{scope}_placetype.parquet"
 
 
-def find_local_taxonomy_source(
-    reference_dir: Path, scheme: str, version: str
-) -> Path | None:
+def find_local_taxonomy_source(reference_dir: Path, scheme: str, version: str) -> Path | None:
     """Return an already-downloaded source workbook for a missing taxonomy."""
     for name in LOCAL_TAXONOMY_SOURCES.get((scheme, version), ()):
         path = reference_dir / "downloads" / name
@@ -447,9 +448,7 @@ def promoted_total(counts: Mapping[str, int]) -> int:
     )
 
 
-def classification_run_ready(
-    run_dir: Path, required_summary_columns: Iterable[str] = ()
-) -> bool:
+def classification_run_ready(run_dir: Path, required_summary_columns: Iterable[str] = ()) -> bool:
     """A resumable run is ready only when outputs and the required summary schema exist."""
     manifest_path = run_dir / "run.json"
     if not manifest_path.is_file():

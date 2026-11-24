@@ -1574,6 +1574,7 @@ def express(
             workers=workers,
             cache_path=run_dir / "decisions.sqlite",
             fail_on_ambiguous_crosswalk=CLASSIFY_PARAMS["fail_on_ambiguous_crosswalk"],
+            reviewed_psic=bool(CLASSIFY_PARAMS["reviewed_psic"]),
         )
 
     if "psic" in selected:
@@ -1663,7 +1664,9 @@ def classify(
                 if backend is not None
                 else None
             )
-            classifier = EntityClassifier(taxonomy, cw, traverser, cache)
+            classifier = EntityClassifier(
+                taxonomy, cw, traverser, cache, reviewed_psic_policy=reviewed_psic
+            )
             # A scheme/version typo in the crosswalk used to produce an all-EMPTY run
             # with no message at all.
             if cw is not None and classifier.applicable_crosswalk_entries == 0:

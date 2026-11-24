@@ -82,13 +82,13 @@ def read_openplaces(path: str | Path) -> pd.DataFrame:
     return frame
 
 
-def source_evidence(row: Row) -> list[SourceEvidence]:
+def source_evidence(row: Row, *, include_structured_overture: bool = True) -> list[SourceEvidence]:
     overture_from_fsq = _truthy(row.get("overture_has_foursquare_provenance", False))
     evidence: list[SourceEvidence] = []
     for source in SOURCES:
         name = clean_text(row.get(f"{source}_name"))
         category = clean_text(row.get(f"{source}_category"))
-        if source == "overture" and not category:
+        if source == "overture" and not category and include_structured_overture:
             # Keep PCPC/PSCC independent while recognizing structured source fields.
             # PSIC uses a separate typed expansion of primary and alternate labels.
             for field in (

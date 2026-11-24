@@ -66,6 +66,24 @@ commodities from business type, or guarantee that historical classified datasets
 are regenerated. Existing optional institution-reference loading remains
 explicit, and I/O industry projection stays downstream of primary PSIC.
 
+## Legacy comparisons, version scope and Express caches
+
+`--no-reviewed-psic` disables **all new operational PSIC policy** introduced
+by the reviewed integration, including expanded structured source evidence,
+trusted ontology floors and automatic administrative classification. Existing
+explicit crosswalks and earlier classification rules continue to work.
+It does not change PCPC/PSCC source handling. The reviewed integration is
+restricted to PSIC Rev. 5; other PSIC versions do not inherit the new floors.
+
+`placetype express` always uses the reviewed Rev. 5 default unless explicitly
+reconfigured in code. Its cache key includes a new semantic cache version,
+the active classifier policy and the content fingerprint of the packaged
+reviewed CSV. Completed Express runs using an older key are not silently
+reused. No historical output is deleted or overwritten by the key change.
+
+The package version is 0.1.2. These changes do not imply that every PSIC
+mapping has been empirically validated on a representative evaluation set.
+
 The current pipeline writes intermediate classification outputs before all
 optional validation and enrichment completes. Publication-directory atomicity
 remains a separate, disclosed operational limitation. The overlay installer,

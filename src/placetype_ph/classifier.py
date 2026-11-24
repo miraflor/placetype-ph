@@ -59,11 +59,16 @@ class EntityClassifier:
         crosswalk: Crosswalk | None = None,
         traverser: HierarchicalTraverser | None = None,
         cache: DecisionCache | None = None,
+        reviewed_psic_policy: bool = True,
     ):
         self.taxonomy = taxonomy
         self.crosswalk = crosswalk
         self.traverser = traverser
         self.cache = cache
+        # Enables the accepted Rev. 5 semantic policy, independently from user crosswalks.
+        self.operational_reviewed_psic = (
+            reviewed_psic_policy and taxonomy.scheme == "psic" and taxonomy.version == "rev5"
+        )
         self.retriever = TaxonomyRetriever(taxonomy) if traverser is not None else None
         self.applicable_crosswalk_entries = 0
         # Ambiguous crosswalk matches are counted, not fatal. The run continues and the
@@ -178,9 +183,14 @@ class EntityClassifier:
         out: list[SourceEvidence] = []
         flags: list[str] = []
         row_had_ambiguity = False
-        evidence_items = (
-            psic_source_evidence(row) if self.taxonomy.scheme == "psic" else source_evidence(row)
-        )
+        if self.operational_reviewed_psic:
+            evidence_items = psic_source_evidence(row)
+        elif self.taxonomy.scheme == "psic":
+            # Legacy comparison: only source_name/source_category, not structured
+            # Overture labels introduced by the reviewed Rev. 5 integration.
+            evidence_items = source_evidence(row, include_structured_overture=False)
+        else:
+            evidence_items = source_evidence(row)
         for e in evidence_items:
             entries: list[CrosswalkEntry] = []
             if self.crosswalk is not None:
@@ -198,7 +208,7 @@ class EntityClassifier:
                 entries = self._name_rule_precedence(list(found.entries), flags)
             if entries:
                 out.extend(replace(e, mapping=mapping) for mapping in entries)
-                if self.taxonomy.scheme == "psic":
+                if self.operational_reviewed_psic:
                     flags.append("ACCEPTED_CROSSWALK_RULE")
                     # A reviewed name-only mapping need not suppress a curated,
                     # potentially contradictory category floor. Compatible floors
@@ -215,7 +225,7 @@ class EntityClassifier:
             else:
                 source_rule = (
                     trusted_psic_source_rule(self.taxonomy, e.source, e.category)
-                    if self.taxonomy.scheme == "psic"
+                    if self.operational_reviewed_psic
                     else None
                 )
                 if source_rule is None:
@@ -287,7 +297,7 @@ class EntityClassifier:
 
         # Multiple substantive OSM tags are not one activity unless every
         # primary assertion has the same accepted mapping.
-        if self.taxonomy.scheme == "psic" and unsafe_osm_compound(row, mapped):
+        if self.operational_reviewed_psic and unsafe_osm_compound(row, mapped):
             match_flags = entity_match_flags(row, True)
             return self._result(
                 canonical_id,
@@ -301,7 +311,7 @@ class EntityClassifier:
 
         # Dependent source assertions describing disjoint activities are not a
         # licence to select their LCA as one invented principal activity.
-        if self.taxonomy.scheme == "psic" and any(
+        if self.operational_reviewed_psic and any(
             flag.startswith("DEPENDENT_CONFLICT:") for flag in fusion.flags
         ):
             match_flags = entity_match_flags(row, True)
@@ -315,7 +325,7 @@ class EntityClassifier:
                 flags=evidence_flags + fusion.flags + match_flags,
             )
 
-        if self.taxonomy.scheme == "psic":
+        if self.operational_reviewed_psic:
             # Preserve negative eligibility and reviewed exact/name decisions.
             admin_code, admin_reason = accepted_administrative_role(self.taxonomy, row, mapped)
             if admin_code is None and admin_reason in {
